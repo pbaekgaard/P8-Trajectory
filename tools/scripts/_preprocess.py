@@ -7,12 +7,15 @@ import argparse
 import os
 import re
 import sys
+from pathlib import Path
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # Adds the current directory to sys.path
 
 from _deduplicate import main as deduplicate
 from _load_data import main as load_data
 from _timestamporder import main as timestamporder
+
+PROCESSED_DATA_FILE = f"{str(Path(__file__).resolve().parent.parent.parent)}/data/processed/processed_data.parquet"
 
 
 def parse_only(value):
@@ -122,6 +125,10 @@ def main(only=None):
 
     # ... your processing logic here ...
     print(f"Preprocessing complete! Removed {length_before - len(data)} entries.")
+
+    print(f"Saving as DataFrame at {PROCESSED_DATA_FILE}")
+    Path(PROCESSED_DATA_FILE).resolve().parent.mkdir(exist_ok=True)
+    data.to_parquet(path=PROCESSED_DATA_FILE)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Preprocess downloaded data.")

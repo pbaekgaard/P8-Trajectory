@@ -7,7 +7,7 @@ import pandas as pd
 
 # Suppress FutureWarnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
-DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/taxi_log_2008_by_id"))
+DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/raw/taxi_log_2008_by_id"))
 
 def main() -> pd.DataFrame :
     files = glob.glob(os.path.join(DATA_DIR, "*.txt"))
