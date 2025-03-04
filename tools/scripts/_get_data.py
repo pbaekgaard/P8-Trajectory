@@ -10,12 +10,15 @@ import zipfile
 
 # Placeholder URL for the zip file (replace with the actual URL)
 ZIP_URL = "https://www.kaggle.com/api/v1/datasets/download/arashnic/tdriver"
+ROADNET_URL = "https://download.geofabrik.de/asia/china/beijing-latest-free.shp.zip"
 
 # Cache directory
 CACHE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/.cache"))
 DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/raw"))
+ROAD_DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/roadnet"))
 # Derive a filename from the URL using a hash
-CACHE_FILENAME = os.path.join(CACHE_DIR, hashlib.md5(ZIP_URL.encode()).hexdigest() + ".zip")
+CACHE_FILENAME_TDRIVE = os.path.join(CACHE_DIR, hashlib.md5(ZIP_URL.encode()).hexdigest() + ".zip")
+CACHE_FILENAME_ROADNET = os.path.join(CACHE_DIR, hashlib.md5(ROADNET_URL.encode()).hexdigest() + ".zip")
 
 def spinner_animation(stop_event):
     """Display a spinner animation in the console."""
@@ -46,75 +49,128 @@ class ProgressBar:
     def finish(self):
         sys.stdout.write('\nExtraction complete!\n')
 
-def download_with_spinner():
+def download_with_spinner(downloadTdrive = True, downloadRoadnet = True):
     """Download a file with a spinner animation and save to cache."""
     # Create cache directory if it doesn't exist
     os.makedirs(CACHE_DIR, exist_ok=True)
+    zip_data = None
+    road_net_zip = None
     
-    stop_spinner = threading.Event()
-    spinner_thread = threading.Thread(target=spinner_animation, args=(stop_spinner,))
-    spinner_thread.start()
-    
-    try:
-        with urllib.request.urlopen(ZIP_URL) as response:
-            zip_data = response.read()
-            
-            # Save the downloaded data to the cache file
-            with open(CACHE_FILENAME, 'wb') as cache_file:
-                cache_file.write(zip_data)
+    if (downloadTdrive):
+        stop_spinner = threading.Event()
+        spinner_thread = threading.Thread(target=spinner_animation, args=(stop_spinner,))
+        print(f"Downloading T-Drive Dataset")
+        spinner_thread.start()
+        try:
+            with urllib.request.urlopen(ZIP_URL) as response:
+                zip_data = response.read()
                 
-        stop_spinner.set()
-        spinner_thread.join()
-        return zip_data
-    except Exception as e:
-        stop_spinner.set()
-        spinner_thread.join()
-        raise e
+                # Save the downloaded data to the cache file
+                with open(CACHE_FILENAME_TDRIVE, 'wb') as cache_file:
+                    cache_file.write(zip_data)
+                    
+            stop_spinner.set()
+            spinner_thread.join()
+        except Exception as e:
+            stop_spinner.set()
+            spinner_thread.join()
+            raise e
+
+    if (downloadRoadnet):
+        stop_spinner = threading.Event()
+        spinner_thread = threading.Thread(target=spinner_animation, args=(stop_spinner,))
+        print(f"Downloading Roadnet Data")
+        spinner_thread.start()
+        try:
+            with urllib.request.urlopen(ROADNET_URL) as response:
+                road_net_zip = response.read()
+                
+                # Save the downloaded data to the cache file
+                with open(CACHE_FILENAME_ROADNET, 'wb') as cache_file:
+                    cache_file.write(road_net_zip)
+                    
+            stop_spinner.set()
+            spinner_thread.join()
+        except Exception as e:
+            stop_spinner.set()
+            spinner_thread.join()
+            raise e
+    return (zip_data, road_net_zip)
 
 def get_zip_data():
     """Get zip data, either from cache or by downloading."""
-    # Check if file exists in cache
-    if os.path.exists(CACHE_FILENAME):
-        print(f"Using cached zip file from {CACHE_FILENAME}")
-        with open(CACHE_FILENAME, 'rb') as cache_file:
-            return cache_file.read()
-    else:
-        return download_with_spinner()
+    tdrive, roadnet = None, None
 
-def extract_from_release_folder(zf, target_dir):
-    """Extract files from the 'release' folder to the target directory."""
-    # Create target directory if it doesn't exist
+    # Try loading T-Drive from cache
+    if os.path.exists(CACHE_FILENAME_TDRIVE):
+        print(f"Using cached zip file for T-Drive from {CACHE_FILENAME_TDRIVE}")
+        with open(CACHE_FILENAME_TDRIVE, 'rb') as cache_file_tdrive:
+            tdrive = cache_file_tdrive.read()
+    
+    # If not in cache, download it
+    if tdrive is None:
+        print("T-Drive not found in cache, downloading...")
+        tdrive, _ = download_with_spinner(True, False)
+        if tdrive is None:  # Final safeguard
+            raise RuntimeError("Failed to retrieve T-Drive dataset!")
+
+    # Try loading Road Network from cache
+    if os.path.exists(CACHE_FILENAME_ROADNET):
+        print(f"Using cached zip file for Road Network from {CACHE_FILENAME_ROADNET}")
+        with open(CACHE_FILENAME_ROADNET, 'rb') as cache_file_roadnet:
+            roadnet = cache_file_roadnet.read()
+    
+    # If not in cache, download it
+    if roadnet is None:
+        print("Road Network not found in cache, downloading...")
+        _, roadnet = download_with_spinner(False, True)
+        if roadnet is None:  # Final safeguard
+            raise RuntimeError("Failed to retrieve Road Network dataset!")
+
+    return tdrive, roadnet
+
+
+def extract_from_release_folder(zf, target_dir, roadnet: bool):
+    """Extract files from the zip archive to the target directory.
+    If roadnet is True, extract only files containing 'roads' in their name.
+    If roadnet is False, only extract files from the 'release/' folder.
+    Skip extracting files that already exist to speed up the process."""
     os.makedirs(target_dir, exist_ok=True)
     
-    # Get all files in the zip
     file_list = zf.namelist()
     
-    # Filter files to only include those in the release folder
-    release_files = [f for f in file_list if f.startswith('release/')]
-    
-    if not release_files:
-        print("Warning: No files found in 'release' folder.")
+    if roadnet:
+        extract_files = [f for f in file_list if 'roads' in f]
+    else:
+        extract_files = [f for f in file_list if f.startswith('release/')]
+        
+    if not extract_files:
+        print("Warning: No files found to extract.")
         return
     
-    # Setup progress bar
-    progress = ProgressBar(len(release_files))
+    progress = ProgressBar(len(extract_files))
     
-    # Extract each file, removing the 'release/' prefix
-    for file_path in release_files:
-        # Skip the release directory itself
-        if file_path == 'release/' or file_path.endswith('/'):
-            continue
-            
-        # Remove 'release/' prefix to get the new path
-        new_path = os.path.join(target_dir, file_path.replace('release/', '', 1))
+    for file_path in extract_files:
+        if file_path.endswith('/'):
+            continue  # Skip directories
         
-        # Create the directory structure if needed
+        if not roadnet:
+            file_path_clean = file_path.replace('release/', '', 1)
+        else:
+            file_path_clean = file_path
+        
+        new_path = os.path.join(target_dir, file_path_clean)
+        
+        # Skip extraction if file already exists
+        if os.path.exists(new_path):
+            progress.update(file_path)
+            continue
+        
         os.makedirs(os.path.dirname(new_path), exist_ok=True)
         
-        # Extract the file to the new path
         with zf.open(file_path) as source, open(new_path, 'wb') as target:
             target.write(source.read())
-            
+        
         progress.update(file_path)
     
     progress.finish()
@@ -122,14 +178,18 @@ def extract_from_release_folder(zf, target_dir):
 def main():
     try:
         # Get zip data (either from cache or by downloading)
-        zip_data = get_zip_data()
+        (tdrive, roadnet) = get_zip_data()
         
         # Create a BytesIO object from the data
-        zip_file = io.BytesIO(zip_data)
+        tdrive = io.BytesIO(tdrive)
+        roadnet = io.BytesIO(roadnet)
         
         # Open the zip file and extract from release folder
-        with zipfile.ZipFile(zip_file) as zf:
-            extract_from_release_folder(zf, DATA_DIR)
+        with zipfile.ZipFile(tdrive) as td:
+            extract_from_release_folder(td, DATA_DIR, False)
+
+        with zipfile.ZipFile(roadnet) as rn:
+            extract_from_release_folder(rn, ROAD_DATA_DIR, True)
         
         print("Files extracted successfully into 'data' folder.")
     except zipfile.BadZipFile as e:
