@@ -122,6 +122,7 @@ def main(only=None):
             print(f"Performing Timestamp Ordering...")
             data = timestamporder(data)
 
+    data.reindex(columns=['x','y'])
 
     # ... your processing logic here ...
     print(f"Preprocessing complete! Removed {length_before - len(data)} entries.")

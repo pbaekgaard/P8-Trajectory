@@ -15,7 +15,11 @@ def main() -> pd.DataFrame :
     headers = ["trajectory_id", "timestamp", "longitude", "latitude"]
     dfs = [pd.read_csv(file, names=headers, delimiter=",").dropna(inplace=False) for file in files]
 
-    df = pd.concat(dfs, ignore_index=True)
+    df : pd.DataFrame = pd.concat(dfs, ignore_index=True)
+    print(df)
+    df = df.reindex(columns=["trajectory_id", "timestamp", "latitude", "longitude"])
+    print(df)
+
     return df
 
 if __name__ == '__main__':
