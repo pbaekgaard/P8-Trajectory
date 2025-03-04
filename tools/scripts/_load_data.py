@@ -15,9 +15,8 @@ def main() -> pd.DataFrame :
     headers = ["trajectory_id", "timestamp", "longitude", "latitude"]
     dfs = [pd.read_csv(file, names=headers, delimiter=",").dropna(inplace=False) for file in files]
 
-    df : pd.DataFrame = pd.concat(dfs, ignore_index=True)
-    print(df)
-    df = df.reindex(columns=["trajectory_id", "timestamp", "latitude", "longitude"])
+    df = pd.concat(dfs, ignore_index=True)
+    df.rename(columns={'trajectory_id': 'agent_id', 'timestamp': 'time', 'longitude': 'lng', 'latitude': 'lat'}, inplace=True)
     print(df)
 
     return df
