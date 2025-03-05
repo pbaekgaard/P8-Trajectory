@@ -36,26 +36,59 @@ class TEDCompressed(object):
 
 
 class TEDCompressor(object):
-    def __init__(self, k: int, n, m):
+    def __init__(self, k: int, num_trajectories, num_entry_paths):
         super().__init__()
         self.k = math.floor(math.log2(k) + 1)
-        self.shape = (n, m)
+        self.shape = (num_trajectories, num_entry_paths)
         self.err_bound = 0.02
 
     def compress(self, ted_trajectories: List[TEDTrajectory]) -> TEDCompressed:
         M = np.empty(self.shape, dtype=int)
         entry_path_primes = np.empty(self.shape, dtype=str)
+        pddp_tree_vector = np.empty((self.shape[0]), dtype=BinaryEncodingTree)  # een pr trajectory
+        encoded_string_vector = np.empty((self.shape[0]), dtype=str)  # een pr trajectory
+        T_prime_matrix = np.empty((self.shape[0]), dtype=object)  # GIGA MATRICE
 
         for index, ted_trajectory in enumerate(ted_trajectories):
             # compression of entry_paths:
             M[index], entry_path_primes[index] = self.compress_entry_path(ted_trajectory.entry_path)
+
             # compression of distance seq:
-            pddp_tree, encoded_string = self.compress_distance_seq(ted_trajectory.distance_seq)
+            pddp_tree_vector[index], encoded_string_vector[index] = self.compress_distance_seq(ted_trajectory.distance_seq)
+
+            # compression of time_seq
+            T_prime_matrix[index] = self.compress_time_seq(ted_trajectory.time_seq)
+
+        A, B = self.compress_M(M) # GIGA MATRICE
+
+        print("hello")
 
 
-        A, B = self.compress_M(M)
 
-        print(A, B, M)
+    def compress_time_seq(self, time_seq: np.ndarray) -> np.ndarray:
+        time_seq = time_seq[~np.isnan(time_seq)]
+        T_prime = np.full(np.shape(time_seq), None, dtype=object)
+        last_saved_time_interval = None
+
+        for index in range(0, len(T_prime) - 2):
+            interval_one = time_seq[index + 1] - time_seq[index]
+            interval_two = time_seq[index + 2] - time_seq[index + 1]
+
+            if interval_two == interval_one:
+                if last_saved_time_interval == interval_one:
+                    continue
+                else:
+                    last_saved_time_interval = interval_one
+                    T_prime[index] = (index, time_seq[index])
+                    T_prime[index + 1] = (index + 1, time_seq[index + 1])
+            else:
+                if last_saved_time_interval is None:
+                    T_prime[index] = (index, time_seq[index])
+                else:
+                    T_prime[index + 2] = (index + 2, time_seq[index + 2])
+        return T_prime[T_prime != None] # Ignore suggestion from linter / IDE
+
+
 
     def compress_M(self, M: np.ndarray) -> Tuple[np.ndarray]:
         columns_with_one = np.any(M == 1, axis=0)
@@ -232,7 +265,7 @@ if __name__ == '__main__':
     # print(example_trajectory)
     ted = TEDCompressor(
         k=7,
-        n=len(trajectories),
-        m=len(entry_path)
+        num_trajectories=len(trajectories),
+        num_entry_paths=len(entry_path)
     )
     ted.compress(trajectories)
