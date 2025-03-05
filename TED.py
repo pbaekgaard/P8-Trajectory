@@ -48,6 +48,7 @@ class TEDCompressor(object):
         super().__init__()
         self.k = math.floor(math.log2(k) + 1)
         self.shape = (n, m)
+        self.err_bound = 0.02
 
     def compress(self, ted_trajectories: List[TEDTrajectory]) -> TEDCompressed:
         M = np.empty(self.shape, dtype=int)
@@ -57,7 +58,7 @@ class TEDCompressor(object):
             # compression of entry_paths:
             M[index], entry_path_primes[index] = self.compress_entry_path(ted_trajectory.entry_path)
             # compression of distance seq:
-            DDPTree = self.compress_distance_seq(ted_trajectory.distance_seq)
+            pddp_tree = self.compress_distance_seq(ted_trajectory.distance_seq)
         A, B = self.compress_M(M)
 
         print(A, B, M)
@@ -93,7 +94,7 @@ class TEDCompressor(object):
 
         return M_row, entry_path_prime
 
-    def compress_distance_seq(self, distance_seq: np.ndarray) -> BinaryEncodingTree:
+    def compress_distance_seq(self, distance_seq: np.ndarray) -> Tuple[BinaryEncodingTree, str]:
         dp_tree = BinaryEncodingTree(None, "")
         for entry in distance_seq:
             if not np.isnan(entry):
@@ -102,9 +103,31 @@ class TEDCompressor(object):
         ddp_tree = self.dp_to_ddp_tree(dp_tree)
         pddp_tree = self.dpp_to_pddp_tree(ddp_tree)
 
-        return pddp_tree
+        encoded_string = ""
 
-    
+        for entry in distance_seq:
+            if not np.isnan(entry):
+                encoded_string += self.encode_pddp_tree(distance=entry, pddp_tree=ddp_tree)
+
+        pddp_tree.encoded_string = encoded_string
+
+        return pddp_tree, encoded_string
+
+
+    def encode_pddp_tree(self, distance: float, pddp_tree: BinaryEncodingTree, encoded_string: str = "", tree_sum: float = 0, depth: int = 0) -> str:
+        alpha_at_depth = alpha[depth]
+        new_depth = depth + 1
+
+        if pddp_tree.value is not None: return encoded_string
+
+        if distance >= alpha_at_depth + tree_sum - self.err_bound: # Right
+            encoded_string += "1"
+            encoded_string = self.encode_pddp_tree(distance=distance, pddp_tree=pddp_tree.right, encoded_string=encoded_string, tree_sum=tree_sum+alpha_at_depth, depth=new_depth)
+        else: # Left
+            encoded_string += "0"
+            encoded_string = self.encode_pddp_tree(distance=distance, pddp_tree=pddp_tree.left, encoded_string=encoded_string, tree_sum=tree_sum, depth=new_depth)
+
+        return encoded_string
 
     def dpp_to_pddp_tree(self, ddp_tree: BinaryEncodingTree) -> BinaryEncodingTree:
         if ddp_tree.value is not None: return ddp_tree
@@ -161,7 +184,6 @@ class TEDCompressor(object):
         return dp_tree
 
     def populate_dp_tree(self, distance: float, sub_tree: BinaryEncodingTree, depth: int = 0, tree_sum: float = 0) -> BinaryEncodingTree:
-        err_bound = 0.02
         alpha_at_depth = alpha[depth]
         next_depth = depth + 1
 
@@ -172,10 +194,10 @@ class TEDCompressor(object):
                 return sub_tree.append_leafs(
                     left=self.populate_dp_tree(distance=distance, sub_tree=BinaryEncodingTree(), depth=next_depth, tree_sum=tree_sum)
                 )
-        elif distance - tree_sum <= err_bound: # Stay
+        elif distance - tree_sum <= self.err_bound: # Stay
             sub_tree.value = tree_sum
             return sub_tree
-        elif distance >= alpha_at_depth + tree_sum - err_bound: # Right
+        elif distance >= alpha_at_depth + tree_sum - self.err_bound: # Right
             if sub_tree.right is not None:
                 return self.populate_dp_tree(distance=distance, sub_tree=sub_tree.right, depth=next_depth, tree_sum=tree_sum + alpha_at_depth)
             else:
@@ -206,7 +228,7 @@ example_trajectory = TEDTrajectory(entry_path, time_flags, time_seq, distance_se
 entry_path2 = np.array([3, 4, 2, 1, 0, 6])
 time_flags2 = np.array([1, 0, 1, 1, 1, 1])
 time_seq2 = np.array([0, np.nan, 90, 180, 270, 361])
-distance_seq2 = np.array([0, np.nan, 0.5, 0.375, 0.75, 0.75])
+distance_seq2 = np.array([0, np.nan, 0.5, 0.375, 0.75, 0.75]) # 0010011111 encoded
 example_trajectory2 = TEDTrajectory(entry_path2, time_flags2, time_seq2, distance_seq2)
 
 trajectories = [example_trajectory, example_trajectory2]
