@@ -14,6 +14,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # Adds the current 
 from _deduplicate import main as deduplicate
 from _load_data import main as load_data
 from _timestamporder import main as timestamporder
+from _constrain_coordinates import main as constrain_coordinates
 
 PROCESSED_DATA_FILE = f"{str(Path(__file__).resolve().parent.parent.parent)}/data/processed/processed_data.parquet"
 
@@ -31,7 +32,7 @@ def parse_only(value):
     # Split by comma and strip whitespace
     steps = [s.strip() for s in value.split(",") if s.strip()]
     
-    allowed = {'deduplication', 'timestamporder', 'limit_samplerate'}
+    allowed = {'deduplication', 'timestamporder', 'limit_samplerate', 'constrain_coordinates'}
     for step in steps:
         if step not in allowed:
             raise argparse.ArgumentTypeError(
@@ -48,7 +49,8 @@ def format_step_list(steps):
     step_names = {
         'deduplication': 'Deduplication',
         'timestamporder': 'Timestamp Ordering',
-        'limit_samplerate': 'Limiting to avg. Sample Rate'
+        'limit_samplerate': 'Limiting to avg. Sample Rate',
+        'constrain_coordinates': 'Constraining coordinates'
     }
     
     # Format each step
@@ -82,7 +84,8 @@ def main(only=None):
         step_names = {
             'deduplication': 'Deduplication',
             'timestamporder': 'Timestamp Ordering',
-            'limit_samplerate': 'Limiting to avg. Sample Rate'
+            'limit_samplerate': 'Limiting to avg. Sample Rate',
+            'constrain_coordinates': 'Constraining coordinates'
         }
         
         # Format each step
@@ -96,6 +99,9 @@ def main(only=None):
             formatted_output = f"{formatted_steps[0]} and {formatted_steps[1]}"
             print(f"Preprocessing only the following steps: {formatted_output}")
         elif len(formatted_steps) == 3:
+            formatted_output = f"{formatted_steps[0]} and {formatted_steps[1]} and {formatted_steps[2]}"
+            print(f"Preprocessing only the following steps: {formatted_output}")
+        elif len(formatted_steps) == 4:
             print("Preprocessing all steps.")
         # Insert selective preprocessing logic here.
     else:
@@ -108,7 +114,8 @@ def main(only=None):
         only = [
         'deduplication',
         'timestamporder',
-        'limit_samplerate'
+        'limit_samplerate',
+        'constrain_coordinates'
         ]
 
     data = load_data()
@@ -121,12 +128,15 @@ def main(only=None):
         elif step == "timestamporder":
             print(f"Performing Timestamp Ordering...")
             data = timestamporder(data)
+        elif step == 'constrain_coordinates':
+            print(f'Performing Constraining Coordinates step')
+            data = constrain_coordinates(data)
 
     data.reindex(columns=['x','y'])
 
     # ... your processing logic here ...
     print(f"Preprocessing complete! Removed {length_before - len(data)} entries.")
-
+    print(data)
     print(f"Saving as DataFrame at {PROCESSED_DATA_FILE}")
     Path(PROCESSED_DATA_FILE).resolve().parent.mkdir(exist_ok=True)
     data.to_parquet(path=PROCESSED_DATA_FILE)
