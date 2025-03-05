@@ -10,19 +10,11 @@ class BinaryEncodingTree(object):
         self.left: BinaryEncodingTree | None = None
         self.right: BinaryEncodingTree | None = None
         self.value: float | None = value  # Float if black, None if white
-        self.encoded_string: str = encoded_string #Fills up as DDPTree is filled.
-
 
     def append_leafs(self, left = None, right = None):
         self.left = left or self.left # Update left tree if a new left tree is given otherwise keep the existing left tree.
         self.right = right or self.right # Update self.right if right is defined.
         return self
-
-
-    def append_encoded_string(self, encoded_string: str):
-        self.encoded_string = self.encoded_string + encoded_string
-
-
 
 class TEDTrajectory(object):
     def __init__(self, entry_path: np.ndarray, time_flags: np.ndarray, time_seq: np.ndarray, distance_seq: np.ndarray):
@@ -58,7 +50,9 @@ class TEDCompressor(object):
             # compression of entry_paths:
             M[index], entry_path_primes[index] = self.compress_entry_path(ted_trajectory.entry_path)
             # compression of distance seq:
-            pddp_tree = self.compress_distance_seq(ted_trajectory.distance_seq)
+            pddp_tree, encoded_string = self.compress_distance_seq(ted_trajectory.distance_seq)
+
+
         A, B = self.compress_M(M)
 
         print(A, B, M)
@@ -108,8 +102,6 @@ class TEDCompressor(object):
         for entry in distance_seq:
             if not np.isnan(entry):
                 encoded_string += self.encode_pddp_tree(distance=entry, pddp_tree=ddp_tree)
-
-        pddp_tree.encoded_string = encoded_string
 
         return pddp_tree, encoded_string
 
