@@ -7,8 +7,8 @@ import math
 class BinaryEncodingTree(object):
     def __init__(self, value: float = None, encoded_string: str = None):
         super().__init__()
-        self.left: BinaryEncodingTree = None
-        self.right: BinaryEncodingTree = None
+        self.left: BinaryEncodingTree | None = None
+        self.right: BinaryEncodingTree | None = None
         self.value: float | None = value  # Float if black, None if white
         self.encoded_string: str = encoded_string #Fills up as DDPTree is filled.
 
@@ -97,11 +97,32 @@ class TEDCompressor(object):
         dp_tree = BinaryEncodingTree(None, "")
         for entry in distance_seq:
             if not np.isnan(entry):
-                self.update_dp_tree(distance=entry, sub_tree=dp_tree)
-
-        print(dp_tree)
+                self.populate_dp_tree(distance=entry, sub_tree=dp_tree)
 
         ddp_tree = self.dp_to_ddp_tree(dp_tree)
+        pddp_tree = self.dpp_to_pddp_tree(ddp_tree)
+
+        return pddp_tree
+
+    def dpp_to_pddp_tree(self, ddp_tree: BinaryEncodingTree) -> BinaryEncodingTree:
+        if ddp_tree.value is not None:
+            return ddp_tree
+
+        if ddp_tree.left is not None and ddp_tree.right is not None:
+            self.dpp_to_pddp_tree(ddp_tree.left)
+            self.dpp_to_pddp_tree(ddp_tree.right)
+
+        elif ddp_tree.left is not None:
+            self.dpp_to_pddp_tree(ddp_tree.left)
+            if ddp_tree.left.value is not None:
+                ddp_tree.value = ddp_tree.left.value
+                ddp_tree.left = None
+
+        else:
+            self.dpp_to_pddp_tree(ddp_tree.right)
+            if ddp_tree.right.value is not None:
+                ddp_tree.value = ddp_tree.right.value
+                ddp_tree.right = None
 
         return ddp_tree
 
@@ -138,14 +159,14 @@ class TEDCompressor(object):
 
         return dp_tree
 
-    def update_dp_tree(self, distance: float, sub_tree: BinaryEncodingTree, depth: int = 0, tree_sum: float = 0) -> BinaryEncodingTree:
+    def populate_dp_tree(self, distance: float, sub_tree: BinaryEncodingTree, depth: int = 0, tree_sum: float = 0) -> BinaryEncodingTree:
         err_bound = 0.02
         alpha_at_depth = alpha[depth]
         next_depth = depth + 1
 
         if distance == 0 and depth == 0:
             if sub_tree.left is not None:
-                return self.update_dp_tree(
+                return self.populate_dp_tree(
                     distance=distance,
                     sub_tree=sub_tree.left,
                     depth=next_depth,
@@ -153,7 +174,7 @@ class TEDCompressor(object):
                 )
             else:
                 return sub_tree.append_leafs(
-                    left=self.update_dp_tree(
+                    left=self.populate_dp_tree(
                         distance=distance,
                         sub_tree=BinaryEncodingTree(),
                         depth=next_depth,
@@ -165,7 +186,7 @@ class TEDCompressor(object):
             return sub_tree
         elif distance >= alpha_at_depth + tree_sum - err_bound: # Right
             if sub_tree.right is not None:
-                return self.update_dp_tree(
+                return self.populate_dp_tree(
                     distance=distance,
                     sub_tree=sub_tree.right,
                     depth=next_depth,
@@ -173,7 +194,7 @@ class TEDCompressor(object):
                 )
             else:
                 return sub_tree.append_leafs(
-                    right = self.update_dp_tree(
+                    right = self.populate_dp_tree(
                         distance=distance,
                         sub_tree=BinaryEncodingTree(),
                         depth=next_depth,
@@ -182,7 +203,7 @@ class TEDCompressor(object):
                 )
         else: # Left
             if sub_tree.left is not None:
-                return self.update_dp_tree(
+                return self.populate_dp_tree(
                     distance=distance,
                     sub_tree=sub_tree.left,
                     depth=next_depth,
@@ -190,7 +211,7 @@ class TEDCompressor(object):
                 )
             else:
                 return sub_tree.append_leafs(
-                    left = self.update_dp_tree(
+                    left = self.populate_dp_tree(
                         distance=distance,
                         sub_tree=BinaryEncodingTree(),
                         depth=next_depth,
