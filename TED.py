@@ -24,9 +24,9 @@ class BinaryEncodingTree(object):
         if node is None:
             return
         else:
-            result.append(node.value)  # Store value or None if leaf
-            self._serialize_helper(node.left, result)  # Recurse left
-            self._serialize_helper(node.right, result)  # Recurse right
+            result.append(node.value)
+            self._serialize_helper(node.left, result)
+            self._serialize_helper(node.right, result)
 
 
 def deserialize_pddp_tree(serialized_data: List) -> BinaryEncodingTree:
