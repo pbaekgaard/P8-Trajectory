@@ -1,10 +1,6 @@
 from typing import List, Tuple
 import numpy as np
 import math
-import sys
-
-from numpy.ma.core import count
-
 
 class BinaryEncodingTree(object):
     def __init__(self, value: float = None, encoded_string: str = None):
@@ -19,15 +15,12 @@ class BinaryEncodingTree(object):
         self.right = right or self.right # Update self.right if right is defined.
         return self
 
-    def serialize(self):
-        """ Serializes the binary tree into a list """
+    def serialize(self) -> np.ndarray:
         result = []
         self._serialize_helper(self, result)
-        print("serialized tree: ", result)
-        return result
+        return np.array(result)
 
     def _serialize_helper(self, node, result):
-        """ Helper method for pre-order traversal """
         if node is None:
             return
         else:
@@ -37,8 +30,6 @@ class BinaryEncodingTree(object):
 
 
 def deserialize_pddp_tree(serialized_data: List) -> BinaryEncodingTree:
-    """ Deserializes the list back into a BinaryEncodingTree """
-
     def helper(index):
         if index >= len(serialized_data):
             return None, index
@@ -57,7 +48,6 @@ def deserialize_pddp_tree(serialized_data: List) -> BinaryEncodingTree:
         return node, index
 
     tree, _ = helper(0)
-    print("deserialized tree: ", tree)
     return tree
 
 class TEDTrajectory(object):
@@ -105,14 +95,13 @@ class TEDCompressed(object):
         # unpacked_time_flags = np.unpackbits(self.time_flags, axis=1, count=self.shape_time_flags)
         # unpacked_entry_paths = np.unpackbits(self.entry_path_primes, axis=1, count=self.shape_entry_path_primes)
 
-        unpacked_arrays = []
-        for packed, orig_len in zip(self.encoded_distances, self.original_lengths_encoded_distances):
-            unpacked = np.unpackbits(packed, count=orig_len)  # Unpack and remove padding
-            unpacked_arrays.append(unpacked)
+        #unpacked_arrays = []
+        #for packed, orig_len in zip(self.encoded_distances, self.original_lengths_encoded_distances):
+            #unpacked = np.unpackbits(packed, count=orig_len)  # Unpack and remove padding
+            #unpacked_arrays.append(unpacked)
 
         # Convert back to a variable-length NumPy array (dtype=object)
-        unpacked_encoded_distances = np.array(unpacked_arrays, dtype=object)
-        print(unpacked_encoded_distances)
+        #unpacked_encoded_distances = np.array(unpacked_arrays, dtype=object)
 
 class TEDCompressor(object):
     def __init__(self, k: int, num_trajectories, num_entry_paths):
@@ -124,7 +113,7 @@ class TEDCompressor(object):
     def compress(self, ted_trajectories: List[TEDTrajectory]) -> TEDCompressed:
         M = np.empty(self.shape, dtype=np.uint8)
         entry_path_primes = np.empty((self.shape[0], self.shape[1] * (self.k - 1)), dtype=np.uint8)
-        pddp_tree_vector = np.empty((self.shape[0]), dtype=BinaryEncodingTree)  # one pr trajectory
+        pddp_tree_vector = np.empty((self.shape[0]), dtype=object)  # one pr trajectory
         encoded_distances_matrix = np.empty((self.shape[0]), dtype=object)  # one pr trajectory | DTYPE MUST BE OBJECT!!! str not working in numpy.
         T_prime_matrix = np.empty((self.shape[0]), dtype=object)  # GIGA MATRICE
         flags_matrix = np.empty(self.shape, dtype=np.uint8)
@@ -135,7 +124,8 @@ class TEDCompressor(object):
 
             # compression of distance seq:
 
-            pddp_tree_vector[index], encoded_distances_matrix[index] = self.compress_distance_seq(ted_trajectory.distance_seq)
+            pddp_tree, encoded_distances_matrix[index] = self.compress_distance_seq(ted_trajectory.distance_seq)
+            pddp_tree_vector[index] = pddp_tree.serialize()
 
             # compression of time_seq
             T_prime_matrix[index] = self.compress_time_seq(ted_trajectory.time_seq)
@@ -144,8 +134,6 @@ class TEDCompressor(object):
             flags_matrix[index] = ted_trajectory.time_flags
 
         A, B = self.compress_M(M) # GIGA MATRICE
-
-
 
         # TODO: Compress all binary representations with np.packbits
         return TEDCompressed(
@@ -220,10 +208,6 @@ class TEDCompressor(object):
 
         ddp_tree = self.dp_to_ddp_tree(dp_tree)
         pddp_tree = self.dpp_to_pddp_tree(ddp_tree)
-
-        serialized_pddp_tree = pddp_tree.serialize()
-        deserialized_pddp_tree = deserialize_pddp_tree(serialized_pddp_tree)
-
 
         encoded_string = ""
 
