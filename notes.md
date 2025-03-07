@@ -1,23 +1,13 @@
-# NxMap creation works!!!
+Jeg har fået lavet en NxMap nu.
 
-But the CRS doesnt match the traces or the one used in the matcher
+Den skal lige gemmes to_file()
 
-error:
+det ligger øverst i mapmatch py filen.
 
-    Creating graph
-    Creating NxMap
-    Loaded data in 2.9 seconds!
-    [1]: Processing!
-    creating nxmap from geofence
-    matching trace to map
-    Failed to download map for taxi 1: crs of origin EPSG:3857 must match crs of map EPSG:4326
-    [2]: Processing!
-    creating nxmap from geofence
-    matching trace to map
-    Failed to download map for taxi 2: crs of origin EPSG:3857 must match crs of map EPSG:4326
-    {1: [], 2: []}
+Håber det er en NxMap der kan bruges til noget og at vi kan lave mapmatching på
+den nu med mappymatch :)
 
-## TODO:
+Koden er helt fucked tho. har startet forfra basically, men jeg har ikke slettet
+min experimentation i filen haha
 
--   [ ] Check what crs the shp file is
--   [ ] See if we can change it to the same csr as the T-Drive data.
+glhf
