@@ -1,117 +1,138 @@
-import logging
 import os
-import sys
-import time
-from functools import partial
-from multiprocessing import Pool
 
-import geopandas
+import folium
+import geopandas as gpd
+import igraph
 import networkx as nx
 import osmnx as ox
 import pandas as pd
 import pyproj
-from mappymatch.constructs.geofence import Geofence
-from mappymatch.constructs.trace import Trace
 from mappymatch.maps.nx.nx_map import NxMap
 from mappymatch.matchers.lcss.lcss import LCSSMatcher
-from shapely.geometry import LineString
+from pyrosm import OSM
+from shapely.geometry import Point
+from tqdm import tqdm  # For progress bars
 
-logging.getLogger("mappymatch").setLevel(logging.ERROR)
-logging.getLogger("osmnx").setLevel(logging.ERROR)
+# Define the path to the OSM file (Beijing road network)
+ROADMAP = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../beijing-latest.osm.pbf"))
 
-ROADMAP_SHP = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/roadnet/gis_osm_roads_free_1.shp"))
-gdf = geopandas.read_file(ROADMAP_SHP)
+# Load road network
+osm : OSM= OSM(ROADMAP)
 
-# Initialize MultiDiGraph
-G = nx.MultiDiGraph()
+# Get the road network
+(nodes, edges) = osm.get_network(nodes=True, network_type="driving")  # Change to "walking" or "all" if needed
 
-# Iterate through road segments
-print("Creating graph")
-for idx, row in gdf.iterrows():
-    geom = row.geometry
-    if isinstance(geom, LineString):  # Ensure it's a valid road segment
-        coords = list(geom.coords)  # Get list of (x, y) coordinates
-        
-        # Add nodes and edges
-        for i in range(len(coords) - 1):
-            u, v = coords[i], coords[i + 1]  # Start and end points
-            
-            # Add nodes
-            G.add_node(u, pos=u)
-            G.add_node(v, pos=v)
-            
-            # Add edge (with attributes if needed)
-            G.add_edge(u, v, key=idx, length=geom.length, **row.to_dict())
+# Convert to NetworkX graph
+G : nx.MultiDiGraph = osm.to_graph(edges=edges, nodes=nodes, graph_type="networkx")
+G.graph['crs'] = pyproj.CRS('EPSG:4326')
+map = NxMap(G)
 
-# Check if the GeoDataFrame has a CRS
-if gdf.crs is not None:
-    G.graph["crs"] = gdf.crs
-else:
-    # If no CRS is found, assume WGS84 (lat/lon) as a fallback
-    G.graph["crs"] = pyproj.CRS("EPSG:4326")
-print("Creating NxMap")
-nx_map = NxMap(G)
 
-class HiddenPrints:
-    def __enter__(self):
-        self._original_stdout = sys.stdout
-        sys.stdout = open(os.devnull, 'w')
+# Ensure the road network has a CRS (Coordinate Reference System)
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        sys.stdout.close()
-        sys.stdout = self._original_stdout
-
-def process_trace(item):
-    """Process a single trace and return the taxi_id and matched dataframe"""
-    start = time.time()
-    taxi_id, trace = item
-    print(f"[{taxi_id}]: Processing!")
-    try:
-        geofence = Geofence.from_trace(trace, padding=1e3)
-        print("creating nxmap from geofence")
-        # with HiddenPrints():
-        #     nx_map = NxMap.from_geofence(geofence=geofence)
-        matcher = LCSSMatcher(nx_map)
-        print(f"matching trace to map")
-        matches = matcher.match_trace(trace=trace)
-        df = matches.matches_to_dataframe()
-        print(f"Taxi {taxi_id} took {time.time() - start:.2f} seconds")
-        print(f"[{taxi_id}]: DONE!")
-        return taxi_id, df
-    except Exception as e:
-        print(f"Failed to download map for taxi {taxi_id}: {e}")
-        return taxi_id, []
-
-def mapmatch(data: pd.DataFrame):
-    traces = []
-    match_dfs = {}
+def mapmatch(data):
+    """
+    Perform map matching on trajectory data.
     
-    # Create traces (this part remains sequential)
-    for taxi_id, group in data.groupby("agent_id"):
-        trace = Trace.from_dataframe(
-            group,
-            lat_column="lat",
-            lon_column="lng",
-            xy=True
-        )
-        traces.append((taxi_id, trace))
-    # Parallel processing of trace
-
-
-    results = []
-    results.append(process_trace(traces[0]))
-    results.append(process_trace(traces[1]))
-    # with Pool(processes=6) as pool:  # Uses all available CPU cores by default
-    #     # You can specify number of processes with Pool(processes=4) if you want to limit it
-    #     results = pool.map(process_trace, traces)
+    Parameters:
+        data (pd.DataFrame): DataFrame with columns ['agent_id', 'lng', 'lat', 'time']
     
-    # Collect results into match_dfs dictionary
-    for taxi_id, df in results:
-        match_dfs[taxi_id] = df
-    print(match_dfs)
-        
-    return match_dfs
+    Returns:
+        dict: Mapping of agent_id to a dict with trajectory and matched road segments
+    """
+    match_results = {}
 
-if __name__ == '__main__':
-    # Your main code here if running as a script
-    pass
+    # Convert road network to a GeoDataFrame if not already
+    if not isinstance(roads, gpd.GeoDataFrame):
+        roads_gdf = gpd.GeoDataFrame(roads)
+    else:
+        roads_gdf = roads
+
+    # Process only the first taxi's trajectory
+    for taxi_id, group in tqdm(data.groupby("agent_id"), desc="Map-matching trajectories"):
+        print(f"Headers for taxi_id {taxi_id}: {list(group.columns)}")
+        
+        # Convert the group of GPS points to a GeoDataFrame
+        geometry = [Point(xy) for xy in zip(group["lng"], group["lat"])]
+        traj_gdf = gpd.GeoDataFrame(group, geometry=geometry, crs="EPSG:4326")
+
+        # List to store matched road IDs or coordinates for this taxi
+        matched_segments = []
+
+
+        # Store both trajectory and matches for this taxi
+        match_results[taxi_id] = {
+            "trajectory": traj_gdf,
+            "matches": matched_segments
+        }
+        break  # Only process one taxi
+
+    return match_results
+
+def plot_mapmatch_results_folium(results, taxi_id, output_file="mapmatch_results.html"):
+    # Get the trajectory to center the map
+    trajectory = results[taxi_id]["trajectory"]
+    center_lat = trajectory["lat"].mean()
+    center_lon = trajectory["lng"].mean()
+
+    # Create a Folium map centered on the trajectory
+    m = folium.Map(location=[center_lat, center_lon], zoom_start=15, tiles="OpenStreetMap")
+
+    # Define a small bounding box around the trajectory for context
+    buffer = 0.01  # ~1 km in Beijing
+    bounds = [
+        trajectory.total_bounds[0] - buffer,  # minx
+        trajectory.total_bounds[1] - buffer,  # miny
+        trajectory.total_bounds[2] + buffer,  # maxx
+        trajectory.total_bounds[3] + buffer   # maxy
+    ]
+    roads_subset = roads.cx[bounds[0]:bounds[2], bounds[1]:bounds[3]]
+
+    # Add road network (gray lines)
+    folium.GeoJson(
+        roads_subset,
+        style_function=lambda x: {"color": "gray", "weight": 1, "opacity": 0.5},
+        name="Road Network"
+    ).add_to(m)
+
+    # Add matched road segments (blue lines)
+    matched_geometries = [match["geometry"] for match in results[taxi_id]["matches"]]
+    matched_gdf = gpd.GeoDataFrame(geometry=matched_geometries, crs="EPSG:4326")
+    folium.GeoJson(
+        matched_gdf,
+        style_function=lambda x: {"color": "blue", "weight": 3, "opacity": 0.8},
+        name="Matched Roads"
+    ).add_to(m)
+
+    # Add original GPS points (red markers)
+    for idx, row in trajectory.iterrows():
+        folium.Marker(
+            location=[row["lat"], row["lng"]],
+            popup=f"Time: {row['time']}",
+            icon=folium.Icon(color="red", icon="circle")
+        ).add_to(m)
+
+    # Add layer control
+    folium.LayerControl().add_to(m)
+
+    # Save the map
+    m.save(output_file)
+    print(f"Map saved as {output_file}. Open it in a web browser to view.")
+
+# Example usage
+if __name__ == "__main__":
+    print('henlo')
+    # # Sample data for one taxi
+    # sample_data = pd.DataFrame({
+    #     "agent_id": [1, 1, 1],
+    #     "lng": [116.305, 116.306, 116.307],
+    #     "lat": [39.965, 39.966, 39.967],
+    #     "time": ["2008-02-02 13:30:00", "2008-02-02 13:30:10", "2008-02-02 13:30:20"]
+    # })
+    #
+    # # Run map matching
+    # results = mapmatch(sample_data)
+    #
+    # # Plot results for the first taxi
+    # taxi_id = list(results.keys())[0]
+    # plot_mapmatch_results_folium(results, taxi_id)
