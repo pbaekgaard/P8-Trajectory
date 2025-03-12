@@ -120,6 +120,8 @@ def extract_from_release_folder(zf, target_dir):
     progress.finish()
 
 def main():
+    if os.path.exists(DATA_DIR): return
+
     try:
         # Get zip data (either from cache or by downloading)
         zip_data = get_zip_data()
