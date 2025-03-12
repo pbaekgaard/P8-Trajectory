@@ -29,6 +29,7 @@ class BinaryEncodingTree(object):
             self._serialize_helper(node.right, result)
 
 
+# TODO: Flyt til BinaryEncodingTree
 def deserialize_pddp_tree(serialized_data: List) -> BinaryEncodingTree:
     def helper(index):
         if index >= len(serialized_data):
@@ -88,19 +89,6 @@ class TEDCompressed(object):
         self.time_seqs = time_seqs
         self.pddp_trees = pddp_trees
         self.time_flags = np.packbits(time_flags, axis=1)
-        # TODO: Use this when we implement query processing.
-        # unpacked_A = np.unpackbits(self.A, axis=1, count=self.shape_A)
-        # unpacked_B = np.unpackbits(self.B, count=self.shape_B)
-        # unpacked_time_flags = np.unpackbits(self.time_flags, axis=1, count=self.shape_time_flags)
-        # unpacked_entry_paths = np.unpackbits(self.entry_path_primes, axis=1, count=self.shape_entry_path_primes)
-
-        #unpacked_arrays = []
-        #for packed, orig_len in zip(self.encoded_distances, self.original_lengths_encoded_distances):
-            #unpacked = np.unpackbits(packed, count=orig_len)  # Unpack and remove padding
-            #unpacked_arrays.append(unpacked)
-
-        # Convert back to a variable-length NumPy array (dtype=object)
-        #unpacked_encoded_distances = np.array(unpacked_arrays, dtype=object)
 
     def save_to_file(self, filename):
         np.savez_compressed(filename,
@@ -137,6 +125,28 @@ class TEDCompressed(object):
         return ted_compressed
 
 
+    def unpack(self):
+        # TODO: Use this when we implement query processing.
+        unpacked_A = np.unpackbits(self.A, axis=1, count=self.shape_A)
+        unpacked_B = np.unpackbits(self.B, count=self.shape_B)
+        unpacked_time_flags = np.unpackbits(self.time_flags, axis=1, count=self.shape_time_flags)
+        unpacked_entry_paths = np.unpackbits(self.entry_path_primes, axis=1, count=self.shape_entry_path_primes)
+
+        unpacked_arrays = []
+        for packed, orig_len in zip(self.encoded_distances, self.original_lengths_encoded_distances):
+            unpacked = np.unpackbits(packed.astype("uint8"), count=orig_len)  # Unpack and remove padding
+            unpacked_arrays.append(unpacked)
+
+        # Convert back to a variable-length NumPy array (dtype=object)
+        unpacked_encoded_distances = np.array(unpacked_arrays, dtype=object)
+        unpacked_trees_array = []
+        for pddp_tree in self.pddp_trees:
+            unpacked_trees_array.append(deserialize_pddp_tree(pddp_tree))
+        print("")
+
+        # TODO: return unpacked TEDCompressed object
+
+
 class TEDCompressor(object):
     def __init__(self, k: int, num_trajectories, num_entry_paths):
         super().__init__()
@@ -159,7 +169,7 @@ class TEDCompressor(object):
             # compression of distance seq:
 
             pddp_tree, encoded_distances_matrix[index] = self.compress_distance_seq(ted_trajectory.distance_seq)
-            pddp_tree_vector[index] = pddp_tree.serialize()
+            pddp_tree_vector[index] = pddp_tree.serialize() # TODO: Flyt ind i pack metode på TEDCompressed
 
             # compression of time_seq
             T_prime_matrix[index] = self.compress_time_seq(ted_trajectory.time_seq)
@@ -281,7 +291,7 @@ class TEDCompressor(object):
                 ddp_tree.value = ddp_tree.left.value
                 ddp_tree.left = None
 
-        else:
+        elif ddp_tree.right is not None:
             self.dpp_to_pddp_tree(ddp_tree.right)
             if ddp_tree.right.value is not None:
                 ddp_tree.value = ddp_tree.right.value
@@ -384,13 +394,13 @@ example_trajectory3 = TEDTrajectory(entry_path3, time_flags3, time_seq3, distanc
 
 trajectories = [example_trajectory, example_trajectory2, example_trajectory3]
 
-#for index in range(0, 999997):
-    #entry_path4 = np.random.randint(0, 6, size=6)
-    #time_flags4 = np.random.randint(0, 1, size=6)
-    #time_seq4 = np.sort(np.where(time_flags4 == 1, np.random.randint(0, 1000, size=6), np.nan))
-    #distance_seq4 = np.where(time_flags4 == 1, np.random.uniform(0, 1, size=6), np.nan)
-    #example_trajectory4 = TEDTrajectory(entry_path4, time_flags4, time_seq4, distance_seq4)
-    #trajectories.append(example_trajectory4)
+# for index in range(0, 999997):
+#     entry_path4 = np.random.randint(0, 6, size=6)
+#     time_flags4 = np.random.randint(0, 1, size=6)
+#     time_seq4 = np.sort(np.where(time_flags4 == 1, np.random.randint(0, 1000, size=6), np.nan))
+#     distance_seq4 = np.where(time_flags4 == 1, np.random.uniform(0, 1, size=6), np.nan)
+#     example_trajectory4 = TEDTrajectory(entry_path4, time_flags4, time_seq4, distance_seq4)
+#     trajectories.append(example_trajectory4)
 
 if __name__ == '__main__':
     print("Hello TED")
@@ -404,3 +414,6 @@ if __name__ == '__main__':
     compressed_trajectories = ted.compress(trajectories)
     compressed_trajectories.save_to_file("data.npz")
     data = TEDCompressed.load_ted_compressed("data.npz")
+    unpacked_data = data.unpack()
+
+    print("")
