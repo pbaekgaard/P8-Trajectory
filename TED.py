@@ -281,7 +281,7 @@ class TEDCompressor(object):
                 ddp_tree.value = ddp_tree.left.value
                 ddp_tree.left = None
 
-        else:
+        elif ddp_tree.right is not None:
             self.dpp_to_pddp_tree(ddp_tree.right)
             if ddp_tree.right.value is not None:
                 ddp_tree.value = ddp_tree.right.value
@@ -384,13 +384,13 @@ example_trajectory3 = TEDTrajectory(entry_path3, time_flags3, time_seq3, distanc
 
 trajectories = [example_trajectory, example_trajectory2, example_trajectory3]
 
-#for index in range(0, 999997):
-    #entry_path4 = np.random.randint(0, 6, size=6)
-    #time_flags4 = np.random.randint(0, 1, size=6)
-    #time_seq4 = np.sort(np.where(time_flags4 == 1, np.random.randint(0, 1000, size=6), np.nan))
-    #distance_seq4 = np.where(time_flags4 == 1, np.random.uniform(0, 1, size=6), np.nan)
-    #example_trajectory4 = TEDTrajectory(entry_path4, time_flags4, time_seq4, distance_seq4)
-    #trajectories.append(example_trajectory4)
+for index in range(0, 999997):
+    entry_path4 = np.random.randint(0, 6, size=6)
+    time_flags4 = np.random.randint(0, 1, size=6)
+    time_seq4 = np.sort(np.where(time_flags4 == 1, np.random.randint(0, 1000, size=6), np.nan))
+    distance_seq4 = np.where(time_flags4 == 1, np.random.uniform(0, 1, size=6), np.nan)
+    example_trajectory4 = TEDTrajectory(entry_path4, time_flags4, time_seq4, distance_seq4)
+    trajectories.append(example_trajectory4)
 
 if __name__ == '__main__':
     print("Hello TED")
@@ -400,7 +400,8 @@ if __name__ == '__main__':
         num_trajectories=len(trajectories),
         num_entry_paths=len(entry_path)
     )
-    print(trajectories)
+    #print(trajectories)
     compressed_trajectories = ted.compress(trajectories)
     compressed_trajectories.save_to_file("data.npz")
     data = TEDCompressed.load_ted_compressed("data.npz")
+    print("")
