@@ -410,7 +410,7 @@ if __name__ == '__main__':
         num_trajectories=len(trajectories),
         num_entry_paths=len(entry_path)
     )
-    print(trajectories)
+    #print(trajectories)
     compressed_trajectories = ted.compress(trajectories)
     compressed_trajectories.save_to_file("data.npz")
     data = TEDCompressed.load_ted_compressed("data.npz")
