@@ -60,9 +60,10 @@ class TEDTrajectory(object):
 
 # Also for packing using np.packbits
 class TEDCompressed(object):
-    def __init__(self, entry_path_primes: np.ndarray, A: np.ndarray, B: np.ndarray, time_flags: np.ndarray,
-                 time_seqs: np.ndarray, pddp_trees: np.ndarray, encoded_distances: np.ndarray):
+    def __init__(self, entry_path_primes: np.ndarray = None, A: np.ndarray = None, B: np.ndarray = None, time_flags: np.ndarray = None,
+                 time_seqs: np.ndarray = None, pddp_trees: np.ndarray = None, encoded_distances: np.ndarray = None, value: bool = False):
         super().__init__()
+        if value: return
 
         self.shape_A = A.shape[1]
         self.shape_B = B.shape[0]
@@ -79,8 +80,7 @@ class TEDCompressed(object):
 
 
         # Convert to object dtype NumPy array
-        self.encoded_distances = np.array(packed_arrays, dtype=np.uint8)
-
+        self.encoded_distances = np.array(packed_arrays, dtype=object)
 
         self.entry_path_primes = np.packbits(entry_path_primes, axis=1)
         self.A = np.packbits(A, axis=1)
@@ -88,7 +88,6 @@ class TEDCompressed(object):
         self.time_seqs = time_seqs
         self.pddp_trees = pddp_trees
         self.time_flags = np.packbits(time_flags, axis=1)
-
         # TODO: Use this when we implement query processing.
         # unpacked_A = np.unpackbits(self.A, axis=1, count=self.shape_A)
         # unpacked_B = np.unpackbits(self.B, count=self.shape_B)
@@ -102,6 +101,41 @@ class TEDCompressed(object):
 
         # Convert back to a variable-length NumPy array (dtype=object)
         #unpacked_encoded_distances = np.array(unpacked_arrays, dtype=object)
+
+    def save_to_file(self, filename):
+        np.savez_compressed(filename,
+                            shape_A=self.shape_A,
+                            shape_B=self.shape_B,
+                            shape_time_flags=self.shape_time_flags,
+                            shape_entry_path_primes=self.shape_entry_path_primes,
+                            entry_path_primes=self.entry_path_primes,
+                            A=self.A,
+                            B=self.B,
+                            time_flags=self.time_flags,
+                            time_seqs=self.time_seqs,
+                            pddp_trees=self.pddp_trees,
+                            encoded_distances=self.encoded_distances,
+                            original_lengths_encoded_distances=self.original_lengths_encoded_distances
+        )
+
+    @staticmethod
+    def load_ted_compressed(filename):
+        data = np.load(filename, allow_pickle=True)
+        ted_compressed = TEDCompressed(value=True)
+        ted_compressed.shape_A = data["shape_A"]
+        ted_compressed.shape_B = data["shape_B"]
+        ted_compressed.shape_time_flags = data["shape_time_flags"]
+        ted_compressed.shape_entry_path_primes = data["shape_entry_path_primes"]
+        ted_compressed.entry_path_primes = data["entry_path_primes"]
+        ted_compressed.A = data["A"]
+        ted_compressed.B = data["B"]
+        ted_compressed.time_flags = data["time_flags"]
+        ted_compressed.time_seqs = data["time_seqs"]
+        ted_compressed.pddp_trees = data["pddp_trees"]
+        ted_compressed.encoded_distances = data["encoded_distances"]
+        ted_compressed.original_lengths_encoded_distances = data["original_lengths_encoded_distances"]
+        return ted_compressed
+
 
 class TEDCompressor(object):
     def __init__(self, k: int, num_trajectories, num_entry_paths):
@@ -350,6 +384,14 @@ example_trajectory3 = TEDTrajectory(entry_path3, time_flags3, time_seq3, distanc
 
 trajectories = [example_trajectory, example_trajectory2, example_trajectory3]
 
+#for index in range(0, 999997):
+    #entry_path4 = np.random.randint(0, 6, size=6)
+    #time_flags4 = np.random.randint(0, 1, size=6)
+    #time_seq4 = np.sort(np.where(time_flags4 == 1, np.random.randint(0, 1000, size=6), np.nan))
+    #distance_seq4 = np.where(time_flags4 == 1, np.random.uniform(0, 1, size=6), np.nan)
+    #example_trajectory4 = TEDTrajectory(entry_path4, time_flags4, time_seq4, distance_seq4)
+    #trajectories.append(example_trajectory4)
+
 if __name__ == '__main__':
     print("Hello TED")
     # print(example_trajectory)
@@ -358,5 +400,7 @@ if __name__ == '__main__':
         num_trajectories=len(trajectories),
         num_entry_paths=len(entry_path)
     )
+    print(trajectories)
     compressed_trajectories = ted.compress(trajectories)
-    print("")
+    compressed_trajectories.save_to_file("data.npz")
+    data = TEDCompressed.load_ted_compressed("data.npz")
