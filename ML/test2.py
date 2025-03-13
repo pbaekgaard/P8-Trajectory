@@ -1,82 +1,70 @@
 import numpy as np
-from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Input, LSTM, Dense, RepeatVector
-from sklearn.preprocessing import MinMaxScaler
+import matplotlib.pyplot as plt
+from fastdtw import fastdtw
+from scipy.spatial.distance import euclidean
+from sklearn.manifold import MDS
 from sklearn_extra.cluster import KMedoids
 
-# Example taxi trajectories (each trajectory is a sequence of GPS points)
+
+
+# Generate sample taxi trajectories (latitude, longitude)
 trajectories = [
-    [(40.7128, -74.0060), (40.7135, -74.0055), (40.7150, -74.0040)],  # Example Trajectory 1
-    [(40.7306, -73.9352), (40.7310, -73.9345), (40.7320, -73.9330)],  # Example Trajectory 2
-    [(40.7500, -73.9800), (40.7510, -73.9795), (40.7525, -73.9780)],   # Example Trajectory 3
-    [(40.7500, -73.9800), (40.7510, -73.9795), (40.7525, -73.9780)]
+    np.array([[0, 0], [1, 2], [2, 4], [3, 6], [4, 8]]),  # Straight path
+    np.array([[0, 0], [1, 1.5], [2, 3.5], [3, 5], [4, 7.5]]),  # Slightly curved
+    np.array([[0, 0], [1, 1], [2, 1], [3, 2], [4, 3]]),  # Different pattern
+    np.array([[0, 0], [1, 2.2], [2, 4.3], [3, 6.1], [4, 8.2]])  # Almost same as first
 ]
 
-# Convert to NumPy array and normalize
-scaler = MinMaxScaler()
-max_length = max(len(t) for t in trajectories)  # Find longest trajectory
-
-def pad_and_normalize(trajectories):
-    normalized = []
-    for traj in trajectories:
-        traj = np.array(traj)  # Convert list to array
-        traj = scaler.fit_transform(traj)  # Normalize GPS coordinates
-        # Pad to max_length with zeros
-        traj_padded = np.pad(traj, ((0, max_length - len(traj)), (0, 0)), mode='constant')
-        normalized.append(traj_padded)
-    return np.array(normalized)
-
-X_train = pad_and_normalize(trajectories)
-
-# Model parameters
-timesteps = X_train.shape[1]  # Max trajectory length
-input_dim = 2  # (latitude, longitude)
-latent_dim = 64  # Size of trajectory embedding
-
-# Encoder
-inputs = Input(shape=(timesteps, input_dim))
-encoded = LSTM(128, activation='relu', return_sequences=True)(inputs)
-encoded = LSTM(64, activation='relu', return_sequences=False)(encoded)
-
-# Bottleneck (embedding layer)
-embedding = Dense(latent_dim, activation='relu', name="trajectory_embedding")(encoded)
-
-# Decoder
-decoded = RepeatVector(timesteps)(embedding)
-decoded = LSTM(64, activation='relu', return_sequences=True)(decoded)
-decoded = LSTM(128, activation='relu', return_sequences=True)(decoded)
-decoded = Dense(input_dim, activation='sigmoid')(decoded)  # Output (lat, lon)
-
-# Compile model
-autoencoder = Model(inputs, decoded)
-autoencoder.compile(optimizer='adam', loss='mse')
-
-# Define embedding model (extracts the latent representation)
-embedding_model = Model(inputs, embedding)
-
-# Train the autoencoder
-autoencoder.fit(X_train, X_train, epochs=50, batch_size=16, validation_split=0.2)
-
-# Extract trajectory embeddings
-trajectory_embeddings = embedding_model.predict(X_train)
-
-# Print the embedding for the first trajectory
-print(trajectory_embeddings[0])
+# Plot trajectories
+for traj in trajectories:
+    plt.plot(traj[:, 0], traj[:, 1], marker='o')
+plt.title("Sample Taxi Trajectories")
+plt.xlabel("Longitude")
+plt.ylabel("Latitude")
+plt.show()
 
 
-# Number of clusters (you can tune this)
+# Compute DTW distance matrix
+num_trajs = len(trajectories)
+dtw_matrix = np.zeros((num_trajs, num_trajs))
+
+for i in range(num_trajs):
+    for j in range(i+1, num_trajs):  # Distance is symmetric, so compute half
+        distance, _ = fastdtw(trajectories[i], trajectories[j], dist=euclidean)
+        dtw_matrix[i, j] = distance
+        dtw_matrix[j, i] = distance  # Symmetric
+
+print("DTW Distance Matrix:")
+print(dtw_matrix)
+
+
+# Apply MDS to reduce DTW distance matrix into a 2D embedding
+mds = MDS(n_components=2, dissimilarity='precomputed', random_state=42)
+dtw_embeddings = mds.fit_transform(dtw_matrix)
+
+# Plot DTW Embeddings
+plt.scatter(dtw_embeddings[:, 0], dtw_embeddings[:, 1], c='blue', marker='o')
+for i, txt in enumerate(range(len(trajectories))):
+    plt.annotate(txt, (dtw_embeddings[i, 0], dtw_embeddings[i, 1]))
+plt.title("DTW-Based Trajectory Embeddings")
+plt.xlabel("MDS Component 1")
+plt.ylabel("MDS Component 2")
+plt.show()
+
+
+
+# Perform clustering
 num_clusters = 2
+kmedoids = KMedoids(n_clusters=num_clusters, metric='precomputed', random_state=42)
+clusters = kmedoids.fit_predict(dtw_matrix)
 
-# Apply K-Medoids clustering
-kmedoids = KMedoids(n_clusters=num_clusters, random_state=42)
-labels = kmedoids.fit_predict(trajectory_embeddings)
+# Plot clusters
+plt.scatter(dtw_embeddings[:, 0], dtw_embeddings[:, 1], c=clusters, cmap='viridis', marker='o')
+for i, txt in enumerate(range(len(trajectories))):
+    plt.annotate(txt, (dtw_embeddings[i, 0], dtw_embeddings[i, 1]))
+plt.title("DTW-Based Clustering of Taxi Trajectories")
+plt.xlabel("MDS Component 1")
+plt.ylabel("MDS Component 2")
+plt.show()
 
-# Print cluster assignments
-print("Cluster assignments:", labels)
 
-# Get the indices of medoids (representative trajectories)
-medoid_indices = kmedoids.medoid_indices_
-print("Medoid indices:", medoid_indices)
-
-# Get representative trajectories (reference set)
-reference_set = [X_train[idx] for idx in medoid_indices]
