@@ -21,6 +21,7 @@ SAVED_MAP = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../map.j
 
 G = ox.graph_from_xml(ROADMAP)
 print(G)
+G.graph['crs'] = pyproj.CRS('EPSG:4326')
 map = NxMap(G)
 # Load road network
 
