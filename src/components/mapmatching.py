@@ -4,28 +4,31 @@ import folium
 import geopandas as gpd
 import igraph
 import networkx as nx
+import osmium
 import osmnx as ox
 import pandas as pd
 import pyproj
-from mappymatch.maps.nx.nx_map import NxMap
+from mappymatch.constructs.geofence import Geofence
+from mappymatch.maps.nx.nx_map import Coordinate, NxMap
 from mappymatch.matchers.lcss.lcss import LCSSMatcher
 from pyrosm import OSM
 from shapely.geometry import Point
 from tqdm import tqdm  # For progress bars
 
 # Define the path to the OSM file (Beijing road network)
-ROADMAP = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../beijing-latest.osm.pbf"))
+ROADMAP = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../beijing-latest.osm"))
+SAVED_MAP = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../map.json"))
 
-# Load road network
-osm : OSM= OSM(ROADMAP)
-
-# Get the road network
-(nodes, edges) = osm.get_network(nodes=True, network_type="driving")  # Change to "walking" or "all" if needed
-
-# Convert to NetworkX graph
-G : nx.MultiDiGraph = osm.to_graph(edges=edges, nodes=nodes, graph_type="networkx")
-G.graph['crs'] = pyproj.CRS('EPSG:4326')
+G = ox.graph_from_xml(ROADMAP)
+print(G)
 map = NxMap(G)
+# Load road network
+
+
+
+
+print(f"Saving to map to: {SAVED_MAP}")
+map.to_file(SAVED_MAP)
 
 
 # Ensure the road network has a CRS (Coordinate Reference System)
