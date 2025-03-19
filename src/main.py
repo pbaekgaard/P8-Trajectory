@@ -13,17 +13,18 @@ def main():
     data = load_data(dataType='parquet')
 
     results = None
-    print("Performing Map Matching")
     if os.path.exists(MATCHED_DATA):
+        print(f"Found matched data")
         with open(MATCHED_DATA, "rb") as file:
             results = pickle.load(file)
     else:
+        print("Performing Map Matching")
         map = getMap()
 
 
         results = mapmatch(data, map)
         # Save to a pickle file
-        with open("../my_data.pkl", "wb") as file:
+        with open(MATCHED_DATA, "wb") as file:
             pickle.dump(results, file)
         # results = load_match_results('../match_results.pkl')
 
