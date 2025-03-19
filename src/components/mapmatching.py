@@ -77,10 +77,10 @@ def mapmatch(data, map : NxMap):
             lon_column= "lng",
             xy= True
         )
-        traces.append(trace)
+        traces.append((taxi_id, trace))
 
 
-    matches = matcher.match_trace_batch(traces)
+    matches = [(id, matcher.match_trace(t)) for id, t in traces]
 
         # Store both trajectory and matches for this taxi
 
