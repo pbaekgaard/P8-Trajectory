@@ -9,6 +9,8 @@ from sklearn.manifold import MDS
 import tools.scripts._get_data as _get_data
 import tools.scripts._load_data as _load_data
 from sklearn_extra.cluster import KMedoids  # For K-Medoids clustering
+import numpy as np
+from dtw import dtw
 
 # Check if GPU is available
 # Step 1: Detect available device (CUDA for Windows/Linux with NVIDIA GPU, MPS for macOS M1/M2, or CPU)
@@ -177,6 +179,52 @@ def plot_embeddings(methodName, reduced_embeddings, cluster_labels, selected_ids
     plt.grid(True)
     plt.show()
 
+
+### DTW Distance Calculation and Visualization
+def compute_dtw_distance_matrix(trajectories):
+    """
+    Compute a distance matrix using DTW between all pairs of trajectories.
+    :param trajectories: Tensor of shape (batch_size, max_len, input_dim)
+    :return: Distance matrix of shape (batch_size, batch_size)
+    """
+    batch_size = trajectories.shape[0]
+    distance_matrix = np.zeros((batch_size, batch_size))
+
+    # Convert trajectories to numpy for DTW computation
+    traj_np = trajectories.cpu().numpy()
+
+    for i in range(batch_size):
+        for j in range(i, batch_size):
+            # Extract only valid points (non-padded) - assuming padding is [0.0, 0.0]
+            traj_i = traj_np[i][~np.all(traj_np[i] == 0, axis=1)]
+            traj_j = traj_np[j][~np.all(traj_np[j] == 0, axis=1)]
+
+            if len(traj_i) == 0 or len(traj_j) == 0:
+                distance = float('inf')  # Handle empty trajectories
+            else:
+                # Compute DTW distance (default is Euclidean distance)
+                dtw_result = dtw(traj_i, traj_j)
+                distance = dtw_result.distance
+
+            distance_matrix[i, j] = distance
+            distance_matrix[j, i] = distance  # Symmetric matrix
+
+    return distance_matrix
+
+def plot_dtw_embeddings(reduced_embeddings, selected_ids):
+    """
+    Plot the 2D embeddings obtained from MDS applied to DTW distances.
+    """
+    plt.figure(figsize=(8, 6))
+    scatter = plt.scatter(reduced_embeddings[:, 0], reduced_embeddings[:, 1], s=100)
+    for i, txt in enumerate(selected_ids):
+        plt.annotate(str(txt), (reduced_embeddings[i, 0], reduced_embeddings[i, 1]), fontsize=12)
+    plt.title("2D MDS of Trajectories based on DTW Distances")
+    plt.xlabel('MDS Component 1')
+    plt.ylabel('MDS Component 2')
+    plt.grid(True)
+    plt.show()
+
 # Instantiate the transformer model
 input_dim = 2
 d_model = 64
@@ -258,6 +306,23 @@ end_event.record()
 torch.mps.synchronize()
 print(f"Clustering time: {start_event.elapsed_time(end_event):.3f} ms")
 
+# Add DTW-based analysis
+start_event.record()
+print("\nComputing DTW distances...")
+dtw_distance_matrix = compute_dtw_distance_matrix(trajectories)
+print("DTW distance matrix shape:", dtw_distance_matrix.shape)
+
+# Apply MDS to reduce DTW distances to 2D
+mds = MDS(n_components=2, dissimilarity="precomputed", random_state=42)
+dtw_reduced_embeddings = mds.fit_transform(dtw_distance_matrix)
+print(f"DTW reduced embeddings shape: {dtw_reduced_embeddings.shape}")
+
+end_event.record()
+torch.mps.synchronize()
+print(f"DTW computation and MDS time: {start_event.elapsed_time(end_event):.3f} ms")
+
+# Plot the DTW-based embeddings
+plot_dtw_embeddings(dtw_reduced_embeddings, selected_ids)
 
 #plot_embeddings("K-Means", reduced_embeddings, kmeans_cluster_labels, selected_ids)
 plot_embeddings("K-Medoids", reduced_embeddings, kmedoids_cluster_labels, selected_ids)
