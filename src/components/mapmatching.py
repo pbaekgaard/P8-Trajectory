@@ -60,6 +60,7 @@ def mapmatch(data):
 
     # Convert road network to a GeoDataFrame if not already
 
+    traces = []
     # Process only the first taxi's trajectory
     for taxi_id, group in tqdm(data.groupby("agent_id"), desc="Map-matching trajectories"):
         print(f"Mapmatching taxi_{taxi_id}")
@@ -71,14 +72,14 @@ def mapmatch(data):
             lon_column= "lng",
             xy= True
         )
-        match : MatchResult = matcher.match_trace(trace)
-        match_results[taxi_id] = match
+        traces.append(trace)
 
 
+    matches = matcher.match_trace_batch(traces)
 
         # Store both trajectory and matches for this taxi
 
-    return match_results
+    return matches
 
 
 
