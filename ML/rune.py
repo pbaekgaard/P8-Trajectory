@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 import tools.scripts._get_data as _get_data
 import tools.scripts._load_data as _load_data
+import faulthandler
 
 
 class TimeEmbedding(nn.Module):
@@ -64,23 +65,17 @@ class TrajectoryTransformer(nn.Module):
 
 
 def split_into_batches(df: pd.DataFrame, batch_size: int = 3) -> List[pd.DataFrame]:
-    # Ensure the dataframe is sorted by trajectory_id and timestamp
     df = df.sort_values(by=["trajectory_id", "timestamp"])
-
-    # Get the list of unique trajectory_ids
     trajectory_ids = df["trajectory_id"].unique()
+    grouped = df.groupby("trajectory_id")
 
-    # List to store batches
     batches = []
 
-    # Loop to split into batches of trajectory_ids
     for i in range(0, len(trajectory_ids), batch_size):
         batch_trajectory_ids = trajectory_ids[i:i + batch_size]
 
-        # Get the subset of the original dataframe for this batch
-        batch_df = df[df["trajectory_id"].isin(batch_trajectory_ids)]
+        batch_df = pd.concat([grouped.get_group(trajectory_id) for trajectory_id in batch_trajectory_ids])
 
-        # Append the batch DataFrame to the list
         batches.append(batch_df)
 
     return batches
@@ -105,6 +100,7 @@ def pad_batches(df: pd.DataFrame) -> pd.DataFrame:
     """Pads all trajectories in the DataFrame to match the longest trajectory."""
     trajectory_lengths = df.groupby("trajectory_id").size()
     longest_trajectory = trajectory_lengths.max()
+    print("max_len: ", longest_trajectory)
 
     return df.groupby("trajectory_id", group_keys=False).apply(lambda g: pad_trajectory(g, longest_trajectory))
 
@@ -160,6 +156,9 @@ def visualize_in_PCA(trajectory_representations: np.ndarray, representative_indi
     for i, (x, y) in enumerate(trajectory_pca):
         plt.text(x, y, str(i), fontsize=12, ha='right', va='bottom', color='black')
 
+    plt.xlim([-1,1])
+    plt.ylim([-1,1])
+
     # Labels and legend
     plt.xlabel("PCA Component 1")
     plt.ylabel("PCA Component 2")
@@ -207,7 +206,62 @@ def select_and_process_trajectories(df: pd.DataFrame, x: int, max_len: int) -> t
     return tensor, selected_ids
 
 
+def generate_reference_set(df: pd.DataFrame) -> (pd.DataFrame, pd.DataFrame, [], []):
+    print("processing data...")
+    df = pd.DataFrame(df, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
+    df['timestamp'] = pd.to_datetime(df['timestamp'])
+    df['t_relative'] = df.groupby('trajectory_id')['timestamp'].transform(
+        lambda x: (x - x.min()).dt.total_seconds())  # convert to delta_seconds from start.
+    df = normalize_df(df)
+
+    print("instantiating model...")
+    model = TrajectoryTransformer()
+    print("batching data...")
+    df_batches = split_into_batches(df, batch_size=5)
+
+    trajectory_representations = []
+    print("process batches...")
+    for batch in df_batches:
+        padded_df = pad_batches(batch)
+        batch_tensor, mask_tensor = df_to_tensor(padded_df)
+        # print("Batch Tensor Shape:", batch_tensor.shape)  # Should be (batch_size, seq_len, 3)
+        # print("mask tensor:", mask_tensor)
+        encoded_output = model(batch_tensor, mask_tensor)
+        # print("Encoded Representation Shape:", encoded_output.shape)  # Should be (batch_size, 64)
+        trajectory_representations.append(encoded_output)
+        print("batch completed...")
+
+    trajectory_representations = torch.cat(trajectory_representations, dim=0).detach().cpu().numpy()
+
+    # print("trajectory_rep: ", trajectory_representations)
+
+    kmedoids = KMedoids(n_clusters=3, metric="euclidean")
+    cluster_labels = kmedoids.fit_predict(trajectory_representations)
+
+    print("cluster label: ", cluster_labels)
+
+    representative_indices = kmedoids.medoid_indices_
+    print("representative_indices: ", representative_indices)
+
+    reference_set = []
+    for cluster_label in cluster_labels:
+        reference_set.append(representative_indices[cluster_label])
+    print("reference set: ", reference_set)
+
+    representative_trajectories = df[df['trajectory_id'].isin(unique_trajectories[representative_indices])]
+
+    reference_set[0]  # hvilket cluster tilhører jeg
+    unique_trajectories[0]  # hvad er mit trajectory_id
+    df[df['trajectory_id'] == unique_trajectories[0]]  # alle mine punkter
+
+    # print(representative_trajectories)
+
+    visualize_in_PCA(trajectory_representations, representative_indices)
+
+    return df, representative_trajectories, reference_set, unique_trajectories
+
 if __name__ == "__main__":
+    faulthandler.enable()
     data = [
         # Beijing Trajectories
         [0, "2008-02-02 15:36:08", 116.51172, 39.92123],  # Trajectory 1
@@ -265,7 +319,7 @@ if __name__ == "__main__":
         # [14, "2008-02-02 16:12:05", 40.55200, 9.95200],
     ]
 
-    num_trajectories = 3
+    num_trajectories = 10
 
     print("getting data...")
     _get_data.main()
@@ -273,47 +327,18 @@ if __name__ == "__main__":
     traj_df = _load_data.main()
 
     print(f"selecting {num_trajectories} trajectories...")
-    unique_ids = traj_df['trajectory_id'].unique()
-    selected_ids = unique_ids[:num_trajectories]
 
-    df = traj_df.loc[traj_df['trajectory_id'].isin(selected_ids)]
-    print(f"{num_trajectories} trajectories selected.")
+    # Group by trajectory_id and get the first 3 unique trajectory IDs
+    unique_trajectories = traj_df['trajectory_id'].unique()[:num_trajectories]
 
-    print("processing data...")
-    df = pd.DataFrame(traj_df, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
-    df['timestamp'] = pd.to_datetime(df['timestamp'])
-    df['t_relative'] = df.groupby('trajectory_id')['timestamp'].transform(
-        lambda x: (x - x.min()).dt.total_seconds())  # convert to delta_seconds from start.
-    df = normalize_df(df)
+    # Filter the original DataFrame to include only those 3 trajectories
+    df = traj_df[traj_df['trajectory_id'].isin(unique_trajectories)]
 
-    print("instantiating model...")
-    model = TrajectoryTransformer()
-    print("batching data...")
-    df_batches = split_into_batches(df, batch_size=3)
+    df, representative_trajectories, ref_set, unique_trajectories = generate_reference_set(df)
 
-    trajectory_representations = []
-    print("process batches...")
-    for batch in df_batches:
-        padded_df = pad_batches(batch)
-        batch_tensor, mask_tensor = df_to_tensor(padded_df)
-        print("Batch Tensor Shape:", batch_tensor.shape)  # Should be (batch_size, seq_len, 3)
-        print("mask tensor:", mask_tensor)
-        encoded_output = model(batch_tensor, mask_tensor)
-        print("Encoded Representation Shape:", encoded_output.shape)  # Should be (batch_size, 64)
-        trajectory_representations.append(encoded_output)
-        print("batch completed...")
 
-    trajectory_representations = torch.cat(trajectory_representations, dim=0).detach().cpu().numpy()
 
-    print("trajectory_rep: ", trajectory_representations)
 
-    kmedoids = KMedoids(n_clusters=2, metric="euclidean")
-    cluster_labels = kmedoids.fit_predict(trajectory_representations)
 
-    representative_indices = kmedoids.medoid_indices_
-    print("Representative Trajectories Indices:", representative_indices)
 
-    representative_trajectories = df.iloc[representative_indices]
-    print("Representative Trajectories:\n", representative_trajectories)
 
-    visualize_in_PCA(trajectory_representations, representative_indices)

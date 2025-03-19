@@ -16,6 +16,9 @@ def main() -> pd.DataFrame :
     dfs = [pd.read_csv(file, names=headers, delimiter=",").dropna(inplace=False) for file in files]
 
     df = pd.concat(dfs, ignore_index=True)
+
+    df = df.sort_values(by=["trajectory_id"], ascending=True)
+
     return df
 
 if __name__ == '__main__':
