@@ -7,6 +7,8 @@ from sklearn_extra.cluster import KMedoids
 from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
+import tools.scripts._get_data as _get_data
+import tools.scripts._load_data as _load_data
 
 
 class TimeEmbedding(nn.Module):
@@ -174,6 +176,37 @@ def normalize_df(df):
     return df
 
 
+def select_and_process_trajectories(df: pd.DataFrame, x: int, max_len: int) -> tuple:
+    """
+    Select x trajectories from a DataFrame and convert them into a tensor of shape (x, max_len, 3).
+    Each trajectory is processed into feature vectors [latitude, longitude, time_delta],
+    padded or truncated to max_len.
+    """
+    unique_ids = df['trajectory_id'].unique()
+    selected_ids = unique_ids[:x]
+
+    groups = df.groupby('trajectory_id')
+    feature_vectors = []
+
+    for traj_id in selected_ids:
+        traj_df = groups.get_group(traj_id).sort_values('timestamp')
+        traj_df['timestamp'] = pd.to_datetime(traj_df['timestamp'])
+        traj_df['t_.relative'] = (traj_df['timestamp'] - traj_df['timestamp'].shift(1)).dt.total_seconds().fillna(0.0)
+        features = traj_df[['latitude', 'longitude', 'time_delta']].values.tolist()
+
+        if len(features) > max_len:
+            features = features[:max_len]
+        else:
+            while len(features) < max_len:
+                features.append([0.0, 0.0, 0.0])
+        print("id ", traj_id)
+        print(features)
+        feature_vectors.append(features)
+
+    tensor = torch.tensor(feature_vectors, dtype=torch.float32)
+    return tensor, selected_ids
+
+
 if __name__ == "__main__":
     data = [
         # Beijing Trajectories
@@ -231,17 +264,35 @@ if __name__ == "__main__":
         # [14, "2008-02-02 16:10:05", 40.55000, 9.95000],  # Trajectory 3
         # [14, "2008-02-02 16:12:05", 40.55200, 9.95200],
     ]
-    df = pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
+
+    num_trajectories = 3
+
+    print("getting data...")
+    _get_data.main()
+    print("loading data...")
+    traj_df = _load_data.main()
+
+    print(f"selecting {num_trajectories} trajectories...")
+    unique_ids = traj_df['trajectory_id'].unique()
+    selected_ids = unique_ids[:num_trajectories]
+
+    df = traj_df.loc[traj_df['trajectory_id'].isin(selected_ids)]
+    print(f"{num_trajectories} trajectories selected.")
+
+    print("processing data...")
+    df = pd.DataFrame(traj_df, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
     df['timestamp'] = pd.to_datetime(df['timestamp'])
     df['t_relative'] = df.groupby('trajectory_id')['timestamp'].transform(
         lambda x: (x - x.min()).dt.total_seconds())  # convert to delta_seconds from start.
     df = normalize_df(df)
 
-
+    print("instantiating model...")
     model = TrajectoryTransformer()
+    print("batching data...")
     df_batches = split_into_batches(df, batch_size=3)
 
     trajectory_representations = []
+    print("process batches...")
     for batch in df_batches:
         padded_df = pad_batches(batch)
         batch_tensor, mask_tensor = df_to_tensor(padded_df)
@@ -250,12 +301,13 @@ if __name__ == "__main__":
         encoded_output = model(batch_tensor, mask_tensor)
         print("Encoded Representation Shape:", encoded_output.shape)  # Should be (batch_size, 64)
         trajectory_representations.append(encoded_output)
+        print("batch completed...")
 
     trajectory_representations = torch.cat(trajectory_representations, dim=0).detach().cpu().numpy()
 
     print("trajectory_rep: ", trajectory_representations)
 
-    kmedoids = KMedoids(n_clusters=4, metric="euclidean")
+    kmedoids = KMedoids(n_clusters=2, metric="euclidean")
     cluster_labels = kmedoids.fit_predict(trajectory_representations)
 
     representative_indices = kmedoids.medoid_indices_
