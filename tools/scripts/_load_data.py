@@ -20,6 +20,8 @@ def main() -> pd.DataFrame :
     return df
 
 def load_compressed_data():
+    # TODO: remove once compressed data is available
+    return None
     files = glob.glob(os.path.join(COMPRESSED_DATA_DIR, "*.txt"))
 
     headers = ["trajectory_id", "timestamp", "longitude", "latitude"]
