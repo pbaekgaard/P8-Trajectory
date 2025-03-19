@@ -2,17 +2,23 @@
 import os
 
 from components.loaddata import main as load_data
-from components.mapmatching import mapmatch, plot_mapmatch_results_folium
+from components.mapmatching import (load_match_results, mapmatch,
+                                    plot_mapmatched_trajectory)
 
 
 def main():
+    print("Loading data")
     data = load_data(dataType='parquet')
 
+    print("Performing Map Matching")
     results = mapmatch(data)
+    # results = load_match_results('../match_results.pkl')
 
     # Plot results for the first taxi
-    taxi_id = list(results.keys())[0]
-    plot_mapmatch_results_folium(results, taxi_id)
+    print("Plotting")
+    # folium_map = plot_mapmatched_trajectory(data, results)
+    # folium_map.show_in_browser(
+    # )
     
 
 if __name__ == "__main__":

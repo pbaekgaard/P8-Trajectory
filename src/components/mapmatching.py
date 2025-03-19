@@ -1,36 +1,44 @@
 import os
+import pickle
 
 import folium
-import geopandas as gpd
-import igraph
-import networkx as nx
-import osmium
-import osmnx as ox
-import pandas as pd
-import pyproj
-from mappymatch.constructs.geofence import Geofence
-from mappymatch.maps.nx.nx_map import Coordinate, NxMap
-from mappymatch.matchers.lcss.lcss import LCSSMatcher
-from pyrosm import OSM
-from shapely.geometry import Point
+from mappymatch.constructs.match import Match
+from mappymatch.constructs.trace import Trace
+from mappymatch.maps.nx.nx_map import NxMap
+from mappymatch.maps.nx.readers.osm_readers import (NetworkType,
+                                                    parse_osmnx_graph)
+from mappymatch.matchers.lcss.lcss import LCSSMatcher, MatchResult
+from mappymatch.utils.plot import plot_matches, plot_trace
 from tqdm import tqdm  # For progress bars
 
 # Define the path to the OSM file (Beijing road network)
-ROADMAP = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../beijing-latest.osm"))
+# ROADMAP = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../Beijing.osm"))
 SAVED_MAP = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../map.json"))
+# # Create Graph
+# # G = ox.graph.graph_from_place("Beijing, China")
+# print(f"Creating Graph")
+# G = ox.graph.graph_from_place("Beijing, China")
+#
+# print(f"Creating NxMap")
+# nx_map = NxMap(parse_osmnx_graph(G, network_type=NetworkType.DRIVE))
+#
+#
+# # Load road network
+# print(f"Saving to map to: {SAVED_MAP}")
+# nx_map.to_file(SAVED_MAP)
 
-G = ox.graph_from_xml(ROADMAP)
-print(G)
-G.graph['crs'] = pyproj.CRS('EPSG:4326')
-map = NxMap(G)
-# Load road network
 
+def save_match_results(match_results, filename="match_results.pkl"):
+    """Save match results to a file using pickle."""
+    with open(filename, "wb") as f:
+        pickle.dump(match_results, f)
 
-
-
-print(f"Saving to map to: {SAVED_MAP}")
-map.to_file(SAVED_MAP)
-
+def load_match_results(filename="match_results.pkl"):
+    """Load match results from a file if it exists."""
+    if os.path.exists(filename):
+        with open(filename, "rb") as f:
+            return pickle.load(f)
+    return None
 
 # Ensure the road network has a CRS (Coordinate Reference System)
 
@@ -44,99 +52,57 @@ def mapmatch(data):
     Returns:
         dict: Mapping of agent_id to a dict with trajectory and matched road segments
     """
+
+    print(f"Loading Map")
+    nx_map = NxMap.from_file(SAVED_MAP)
+    matcher = LCSSMatcher(nx_map)
     match_results = {}
 
     # Convert road network to a GeoDataFrame if not already
-    if not isinstance(roads, gpd.GeoDataFrame):
-        roads_gdf = gpd.GeoDataFrame(roads)
-    else:
-        roads_gdf = roads
 
     # Process only the first taxi's trajectory
     for taxi_id, group in tqdm(data.groupby("agent_id"), desc="Map-matching trajectories"):
-        print(f"Headers for taxi_id {taxi_id}: {list(group.columns)}")
+        print(f"Mapmatching taxi_{taxi_id}")
         
         # Convert the group of GPS points to a GeoDataFrame
-        geometry = [Point(xy) for xy in zip(group["lng"], group["lat"])]
-        traj_gdf = gpd.GeoDataFrame(group, geometry=geometry, crs="EPSG:4326")
+        trace = Trace.from_dataframe(
+            group,
+            lat_column= "lat",
+            lon_column= "lng",
+            xy= True
+        )
+        match : MatchResult = matcher.match_trace(trace)
+        match_results[taxi_id] = match
 
-        # List to store matched road IDs or coordinates for this taxi
-        matched_segments = []
 
 
         # Store both trajectory and matches for this taxi
-        match_results[taxi_id] = {
-            "trajectory": traj_gdf,
-            "matches": matched_segments
-        }
-        break  # Only process one taxi
 
     return match_results
 
-def plot_mapmatch_results_folium(results, taxi_id, output_file="mapmatch_results.html"):
-    # Get the trajectory to center the map
-    trajectory = results[taxi_id]["trajectory"]
-    center_lat = trajectory["lat"].mean()
-    center_lon = trajectory["lng"].mean()
 
-    # Create a Folium map centered on the trajectory
-    m = folium.Map(location=[center_lat, center_lon], zoom_start=15, tiles="OpenStreetMap")
 
-    # Define a small bounding box around the trajectory for context
-    buffer = 0.01  # ~1 km in Beijing
-    bounds = [
-        trajectory.total_bounds[0] - buffer,  # minx
-        trajectory.total_bounds[1] - buffer,  # miny
-        trajectory.total_bounds[2] + buffer,  # maxx
-        trajectory.total_bounds[3] + buffer   # maxy
-    ]
-    roads_subset = roads.cx[bounds[0]:bounds[2], bounds[1]:bounds[3]]
 
-    # Add road network (gray lines)
-    folium.GeoJson(
-        roads_subset,
-        style_function=lambda x: {"color": "gray", "weight": 1, "opacity": 0.5},
-        name="Road Network"
-    ).add_to(m)
+def plot_mapmatched_trajectory(data, match_results):
+    """
+    Plot original and map-matched trajectories on a Folium map.
+    
+    Parameters:
+        data (pd.DataFrame): Original trajectory data with ['agent_id', 'lng', 'lat', 'time']
+        match_results (dict): Map-matched results from `mapmatch()` function
+    """
+    map_center = [data.iloc[0]['lat'], data.iloc[0]['lng']]
+    folium_map = folium.Map(location=map_center, zoom_start=14)
+    print(match_results)
+    for taxi_id, group in tqdm(data.groupby("agent_id"), desc="Map-matching trajectories"):
+        tr = Trace.from_dataframe(
+            group,
+            lat_column= "lat",
+            lon_column= "lng",
+            xy= True
+        )
+        folium_map = plot_matches(matches=match_results[taxi_id])
+        plot_trace(trace=tr, m=folium_map)
+        break
 
-    # Add matched road segments (blue lines)
-    matched_geometries = [match["geometry"] for match in results[taxi_id]["matches"]]
-    matched_gdf = gpd.GeoDataFrame(geometry=matched_geometries, crs="EPSG:4326")
-    folium.GeoJson(
-        matched_gdf,
-        style_function=lambda x: {"color": "blue", "weight": 3, "opacity": 0.8},
-        name="Matched Roads"
-    ).add_to(m)
-
-    # Add original GPS points (red markers)
-    for idx, row in trajectory.iterrows():
-        folium.Marker(
-            location=[row["lat"], row["lng"]],
-            popup=f"Time: {row['time']}",
-            icon=folium.Icon(color="red", icon="circle")
-        ).add_to(m)
-
-    # Add layer control
-    folium.LayerControl().add_to(m)
-
-    # Save the map
-    m.save(output_file)
-    print(f"Map saved as {output_file}. Open it in a web browser to view.")
-
-# Example usage
-if __name__ == "__main__":
-    print('henlo')
-    # # Sample data for one taxi
-    # sample_data = pd.DataFrame({
-    #     "agent_id": [1, 1, 1],
-    #     "lng": [116.305, 116.306, 116.307],
-    #     "lat": [39.965, 39.966, 39.967],
-    #     "time": ["2008-02-02 13:30:00", "2008-02-02 13:30:10", "2008-02-02 13:30:20"]
-    # })
-    #
-    # # Run map matching
-    # results = mapmatch(sample_data)
-    #
-    # # Plot results for the first taxi
-    # taxi_id = list(results.keys())[0]
-    # plot_mapmatch_results_folium(results, taxi_id)
+    return folium_map
