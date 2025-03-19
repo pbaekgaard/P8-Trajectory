@@ -173,6 +173,7 @@ def normalize_df(df):
     df['latitude'] = (df['latitude'] - df['latitude'].min()) / (df['latitude'].max() - df['latitude'].min())
     return df
 
+
 if __name__ == "__main__":
     data = [
         # Beijing Trajectories
