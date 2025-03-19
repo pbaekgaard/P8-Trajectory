@@ -2,6 +2,7 @@ import os
 import pickle
 
 import folium
+import osmnx as ox
 from mappymatch.constructs.match import Match
 from mappymatch.constructs.trace import Trace
 from mappymatch.maps.nx.nx_map import NxMap
@@ -11,21 +12,26 @@ from mappymatch.matchers.lcss.lcss import LCSSMatcher, MatchResult
 from mappymatch.utils.plot import plot_matches, plot_trace
 from tqdm import tqdm  # For progress bars
 
-# Define the path to the OSM file (Beijing road network)
-# ROADMAP = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../Beijing.osm"))
-SAVED_MAP = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../map.json"))
-# # Create Graph
-# # G = ox.graph.graph_from_place("Beijing, China")
-# print(f"Creating Graph")
-# G = ox.graph.graph_from_place("Beijing, China")
-#
-# print(f"Creating NxMap")
-# nx_map = NxMap(parse_osmnx_graph(G, network_type=NetworkType.DRIVE))
-#
-#
-# # Load road network
-# print(f"Saving to map to: {SAVED_MAP}")
-# nx_map.to_file(SAVED_MAP)
+
+def getMap():
+    # Define the path to the OSM file (Beijing road network)
+    # ROADMAP = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../Beijing.osm"))
+    SAVED_MAP = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../map.json"))
+    if os.path.exists(SAVED_MAP):
+        print(f"Found existing Map!")
+        nx_map = NxMap.from_file(SAVED_MAP)
+        return nx_map
+    print(f"Creating Graph")
+    G = ox.graph.graph_from_place("Beijing, China")
+    #
+    # print(f"Creating NxMap")
+    nx_map = NxMap(parse_osmnx_graph(G, network_type=NetworkType.DRIVE))
+    #
+    #
+    # Load road network
+    print(f"Saving to map to: {SAVED_MAP}")
+    nx_map.to_file(SAVED_MAP)
+    return nx_map
 
 
 def save_match_results(match_results, filename="match_results.pkl"):
@@ -42,7 +48,7 @@ def load_match_results(filename="match_results.pkl"):
 
 # Ensure the road network has a CRS (Coordinate Reference System)
 
-def mapmatch(data):
+def mapmatch(data, map : NxMap):
     """
     Perform map matching on trajectory data.
     
@@ -54,8 +60,7 @@ def mapmatch(data):
     """
 
     print(f"Loading Map")
-    nx_map = NxMap.from_file(SAVED_MAP)
-    matcher = LCSSMatcher(nx_map)
+    matcher = LCSSMatcher(map)
     match_results = {}
 
     # Convert road network to a GeoDataFrame if not already

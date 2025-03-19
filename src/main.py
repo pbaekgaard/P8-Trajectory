@@ -2,7 +2,7 @@
 import os
 
 from components.loaddata import main as load_data
-from components.mapmatching import (load_match_results, mapmatch,
+from components.mapmatching import (getMap, load_match_results, mapmatch,
                                     plot_mapmatched_trajectory)
 
 
@@ -11,7 +11,8 @@ def main():
     data = load_data(dataType='parquet')
 
     print("Performing Map Matching")
-    results = mapmatch(data)
+    map = getMap()
+    results = mapmatch(data, map)
     # results = load_match_results('../match_results.pkl')
 
     # Plot results for the first taxi
