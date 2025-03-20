@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 import os
 import pickle
+from typing import List
+
+from mappymatch.matchers.lcss.lcss import MatchResult
+from mappymatch.utils import plot
 
 from components.loaddata import main as load_data
-from components.mapmatching import (getMap, load_match_results, mapmatch,
-                                    plot_mapmatched_trajectory)
+from components.mapmatching import (getMap, list_of_id_traj_tuples_to_dfs,
+                                    load_match_results, mapmatch)
 
 MATCHED_DATA = os.path.abspath(os.path.join(os.path.dirname(__file__), "../mapmatched.pkl"))
 
@@ -30,7 +34,9 @@ def main():
 
     # Plot results for the first taxi
     print("Plotting")
-    # folium_map = plot_mapmatched_trajectory(data, results)
+    test = list_of_id_traj_tuples_to_dfs(results)
+    print(test)
+
     # folium_map.show_in_browser(
     # )
     

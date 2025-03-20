@@ -1,8 +1,9 @@
 import os
 import pickle
+from typing import List, Tuple
 
-import folium
 import osmnx as ox
+import pandas as pd
 from mappymatch.constructs.match import Match
 from mappymatch.constructs.trace import Trace
 from mappymatch.maps.nx.nx_map import NxMap
@@ -10,6 +11,8 @@ from mappymatch.maps.nx.readers.osm_readers import (NetworkType,
                                                     parse_osmnx_graph)
 from mappymatch.matchers.lcss.lcss import LCSSMatcher, MatchResult
 from mappymatch.utils.plot import plot_matches, plot_trace
+from pyproj import Transformer
+from shapely.geometry.linestring import LineString
 from tqdm import tqdm  # For progress bars
 
 
@@ -67,8 +70,9 @@ def mapmatch(data, map : NxMap):
 
     traces = []
     # Process only the first taxi's trajectory
-    for taxi_id, group in tqdm(data.groupby("agent_id"), desc="Map-matching trajectories"):
-        print(f"Mapmatching taxi_{taxi_id}")
+    i : int = 0
+    for taxi_id, group in tqdm(data.groupby("agent_id"), desc="Creating Traces"):
+        i += 1
         
         # Convert the group of GPS points to a GeoDataFrame
         trace = Trace.from_dataframe(
@@ -78,37 +82,54 @@ def mapmatch(data, map : NxMap):
             xy= True
         )
         traces.append((taxi_id, trace))
+        if i > 10:
+            break
 
 
-    matches = [(id, matcher.match_trace(t)) for id, t in traces]
+    matches = [(id, matcher.match_trace(t)) for id, t in tqdm(traces, desc="Processing traces")]
+    for (id, mat) in matches:
+        for match in mat:
+            match : MatchResult
+            match.crs
+        
+    print(matches[0][1].matches[1].coordinate)
 
         # Store both trajectory and matches for this taxi
 
     return matches
 
 
+def list_of_id_traj_tuples_to_dfs(data: List[Tuple[int, MatchResult]]):
+    trajectories = []
+    i = 0
+    for traj_id, traj in data:
+        trajectory = pd.DataFrame(columns=["traj_id", "lng", "lat", "timestamp"])
+        prev_time = 0.0
+        for match in traj.matches:
+            match : Match
+            if(match.road is None):
+                continue
+            linestr : LineString = match.road.geom
+            lng, lat = linestr.xy
+            trans_lng, trans_lat = transform_to_wgs84(lng, lat)
+            rows=[]
+            prev_time = prev_time + match.road.metadata.get("travel_time", None)
+            for plip, plop in zip(trans_lng, trans_lat):
+                rows.append({
+                    "traj_id": traj_id,
+                    "lng": plip,
+                    "lat": plop,
+                    "timestamp": prev_time
+                })
+            new_traj = pd.DataFrame(rows)
+            trajectory = pd.concat([trajectory, new_traj], ignore_index=True)
+        i = i+1
+        print(f"Processed trajectory {i} out of {len(data)}")
+        trajectories.append(trajectory)
+    return trajectories
+
+def transform_to_wgs84(x, y, from_epsg="EPSG:3857"):
+    transformer = Transformer.from_crs(from_epsg, "EPSG:4326", always_xy=True)
+    return transformer.transform(x, y)
 
 
-def plot_mapmatched_trajectory(data, match_results):
-    """
-    Plot original and map-matched trajectories on a Folium map.
-    
-    Parameters:
-        data (pd.DataFrame): Original trajectory data with ['agent_id', 'lng', 'lat', 'time']
-        match_results (dict): Map-matched results from `mapmatch()` function
-    """
-    map_center = [data.iloc[0]['lat'], data.iloc[0]['lng']]
-    folium_map = folium.Map(location=map_center, zoom_start=14)
-    print(match_results)
-    for taxi_id, group in tqdm(data.groupby("agent_id"), desc="Map-matching trajectories"):
-        tr = Trace.from_dataframe(
-            group,
-            lat_column= "lat",
-            lon_column= "lng",
-            xy= True
-        )
-        folium_map = plot_matches(matches=match_results[taxi_id])
-        plot_trace(trace=tr, m=folium_map)
-        break
-
-    return folium_map
