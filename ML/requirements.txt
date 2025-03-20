@@ -1,5 +1,5 @@
-pandas
+pandas==2.2.1
 numpy==1.26.4
-torch
-scikit-learn
-scikit-learn-extra
+torch==2.6.0
+scikit-learn==1.4.1.post1
+scikit-learn-extra==0.3.0

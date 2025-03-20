@@ -313,8 +313,8 @@ dtw_distance_matrix = compute_dtw_distance_matrix(trajectories)
 print("DTW distance matrix shape:", dtw_distance_matrix.shape)
 
 # Apply MDS to reduce DTW distances to 2D
-mds = MDS(n_components=2, dissimilarity="precomputed", random_state=42)
-dtw_reduced_embeddings = mds.fit_transform(dtw_distance_matrix)
+pca = PCA(n_components=2)
+dtw_reduced_embeddings = pca.fit_transform(dtw_distance_matrix)
 print(f"DTW reduced embeddings shape: {dtw_reduced_embeddings.shape}")
 
 end_event.record()
