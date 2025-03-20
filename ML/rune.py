@@ -125,7 +125,7 @@ def df_to_tensor(df: pd.DataFrame):
     return batch_tensor, mask_tensor
 
 
-def visualize_in_PCA(trajectory_representations: np.ndarray, representative_indices: np.ndarray):
+def visualize_in_PCA(trajectory_representations: np.ndarray, representative_indices: np.ndarray, cluster_labels = None):
     """
     Visualizes the trajectory embeddings in 2D using PCA and labels them with their indices.
 
@@ -143,7 +143,7 @@ def visualize_in_PCA(trajectory_representations: np.ndarray, representative_indi
     plt.figure(figsize=(10, 7))
 
     # Plot all trajectories in light blue
-    plt.scatter(trajectory_pca[:, 0], trajectory_pca[:, 1], c="blue", label="All Trajectories", alpha=0.6)
+    plt.scatter(trajectory_pca[:, 0], trajectory_pca[:, 1], c=(cluster_labels if cluster_labels is not None else "blue"), label="All Trajectories", alpha=0.6)
 
     # Plot representative trajectories in red with larger markers
     plt.scatter(
@@ -155,9 +155,6 @@ def visualize_in_PCA(trajectory_representations: np.ndarray, representative_indi
     # Add trajectory indices as labels
     for i, (x, y) in enumerate(trajectory_pca):
         plt.text(x, y, str(i), fontsize=12, ha='right', va='bottom', color='black')
-
-    plt.xlim([-1,1])
-    plt.ylim([-1,1])
 
     # Labels and legend
     plt.xlabel("PCA Component 1")
@@ -173,38 +170,6 @@ def normalize_df(df):
     df['longitude'] = (df['longitude'] - df['longitude'].min()) / (df['longitude'].max() - df['longitude'].min())
     df['latitude'] = (df['latitude'] - df['latitude'].min()) / (df['latitude'].max() - df['latitude'].min())
     return df
-
-
-def select_and_process_trajectories(df: pd.DataFrame, x: int, max_len: int) -> tuple:
-    """
-    Select x trajectories from a DataFrame and convert them into a tensor of shape (x, max_len, 3).
-    Each trajectory is processed into feature vectors [latitude, longitude, time_delta],
-    padded or truncated to max_len.
-    """
-    unique_ids = df['trajectory_id'].unique()
-    selected_ids = unique_ids[:x]
-
-    groups = df.groupby('trajectory_id')
-    feature_vectors = []
-
-    for traj_id in selected_ids:
-        traj_df = groups.get_group(traj_id).sort_values('timestamp')
-        traj_df['timestamp'] = pd.to_datetime(traj_df['timestamp'])
-        traj_df['t_.relative'] = (traj_df['timestamp'] - traj_df['timestamp'].shift(1)).dt.total_seconds().fillna(0.0)
-        features = traj_df[['latitude', 'longitude', 'time_delta']].values.tolist()
-
-        if len(features) > max_len:
-            features = features[:max_len]
-        else:
-            while len(features) < max_len:
-                features.append([0.0, 0.0, 0.0])
-        print("id ", traj_id)
-        print(features)
-        feature_vectors.append(features)
-
-    tensor = torch.tensor(feature_vectors, dtype=torch.float32)
-    return tensor, selected_ids
-
 
 def generate_reference_set(df: pd.DataFrame) -> (pd.DataFrame, pd.DataFrame, [], []):
     print("processing data...")
@@ -256,9 +221,10 @@ def generate_reference_set(df: pd.DataFrame) -> (pd.DataFrame, pd.DataFrame, [],
 
     # print(representative_trajectories)
 
-    visualize_in_PCA(trajectory_representations, representative_indices)
+    visualize_in_PCA(trajectory_representations, representative_indices, cluster_labels)
 
     return df, representative_trajectories, reference_set, unique_trajectories
+
 
 if __name__ == "__main__":
     faulthandler.enable()
