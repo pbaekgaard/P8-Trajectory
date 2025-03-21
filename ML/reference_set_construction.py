@@ -139,6 +139,7 @@ def normalize_df(df):
     df['latitude'] = (df['latitude'] - df['latitude'].min()) / (df['latitude'].max() - df['latitude'].min())
     return df
 
+
 def get_first_x_trajectories(num_trajectories: int, trajectories: pd.DataFrame) -> (pd.DataFrame, List):
     """
     :param num_trajectories: how many trajectories you want
@@ -176,7 +177,7 @@ def generate_reference_set(df: pd.DataFrame, unique_trajectories: List, clusteri
         padded_df = pad_batches(batch)
         batch_tensor, mask_tensor = df_to_tensor(padded_df)
         # print("Batch Tensor Shape:", batch_tensor.shape)  # Should be (batch_size, seq_len, 3)
-        encoded_output = model(batch_tensor, mask_tensor)
+        encoded_output = model.forward(batch_tensor, mask_tensor)
         # print("Encoded Representation Shape:", encoded_output.shape)  # Should be (batch_size, 64)
         trajectory_representations.append(encoded_output)
 

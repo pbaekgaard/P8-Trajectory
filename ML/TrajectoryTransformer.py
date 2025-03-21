@@ -33,9 +33,14 @@ class TrajectoryTransformer(nn.Module):
         encoder_layer = nn.TransformerEncoderLayer(d_model=d_model * 2, nhead=num_heads, batch_first=True)
         self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
 
-        self.output_proj = nn.Linear(d_model * 2, output_dim)
+        self.output_proj = nn.Linear(d_model * 2, output_dim, bias=True)
 
     def forward(self, x: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+        """
+        :param x: (num_trajectories, max length of rows, [0: tid, 1,2: coords])
+        :param mask: samme som x:  (num_trajectories, max length of rows, True|False)
+        :return: Embedded Tensor of size (num_trajectories, output_dim)
+        """
         t_relative = x[:, :, 0]  # Extract time
         coords = x[:, :, 1:]  # Extract (longitude, latitude)
 
