@@ -1,6 +1,9 @@
 #include <iostream>
 #include <unordered_map>
 #include <vector>
+#if _WIN32
+    #include <cstdint>
+#endif
 
 struct SamplePoint
 {

@@ -1,0 +1,8 @@
+[
+{
+  "directory": "C:/Tidligere_skrivebord/UNI_SOFTWARE/8. semester/Project/P8-Trajectory/OSTC/cmake-build-debug",
+  "command": "C:\\Users\\rudnu\\AppData\\Local\\Programs\\CLion\\bin\\mingw\\bin\\g++.exe -I\"C:/Tidligere_skrivebord/UNI_SOFTWARE/8. semester/Project/P8-Trajectory/OSTC/include\" -g -std=c++23 -fdiagnostics-color=always -o CMakeFiles\\OSTC.dir\\src\\main.cpp.obj -c \"C:\\Tidligere_skrivebord\\UNI_SOFTWARE\\8. semester\\Project\\P8-Trajectory\\OSTC\\src\\main.cpp\"",
+  "file": "C:\\Tidligere_skrivebord\\UNI_SOFTWARE\\8. semester\\Project\\P8-Trajectory\\OSTC\\src\\main.cpp",
+  "output": "CMakeFiles\\OSTC.dir\\src\\main.cpp.obj"
+}
+]

@@ -1,0 +1,3 @@
+C:/Tidligere_skrivebord/UNI_SOFTWARE/8. semester/Project/P8-Trajectory/OSTC/cmake-build-debug/CMakeFiles/OSTC.dir
+C:/Tidligere_skrivebord/UNI_SOFTWARE/8. semester/Project/P8-Trajectory/OSTC/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Tidligere_skrivebord/UNI_SOFTWARE/8. semester/Project/P8-Trajectory/OSTC/cmake-build-debug/CMakeFiles/rebuild_cache.dir
