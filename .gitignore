@@ -10,10 +10,14 @@ __pycache__/
 */.cache/
 cache/
 *.osm*
+*/build/
 map.json
+
+*/cmake-build-debug/
 *.pkl*
 o C extensions
 *.so
+*/.gitignore
 
 # Distribution / packaging
 .Python

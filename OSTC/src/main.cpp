@@ -1,8 +1,12 @@
+#include <algorithm>
+#include <atomic>
+#include <cmath>
 #include <iostream>
 #include <unordered_map>
 #include <vector>
+#include <math.h>
 #if _WIN32
-    #include <cstdint>
+#include <cstdint>
 #endif
 
 struct SamplePoint
@@ -63,31 +67,37 @@ struct std::hash<Trajectory>
 
 std::unordered_map<Trajectory, std::vector<Trajectory>> M;
 
+const double euclideanDistance(SamplePoint a, SamplePoint b) { return sqrt(pow(a.x - b.x, 2) + pow(a.y - b.y, 2)); }
+const double maxDtw(Trajectory a, Trajectory b)
+{
+    if (a.points == b.points && b.points.empty()) {
+        std::cout << "Is Empty!" << std::endl;
+        return 0;
+    } else if (a.points.empty() || b.points.empty()) {
+        std::cout << "Is Empty!" << std::endl;
+        return MAXFLOAT;
+    }
+
+    return std::max(euclideanDistance(a.points.back(), b.points.back()),
+                    std::min(std::min(maxDtw(a(0, a.points.size() - 2), b(0, b.points.size() - 2)),
+                                      maxDtw(a, b(0, b.points.size() - 2))),
+                             maxDtw(a(0, a.points.size() - 2), b)));
+}
+
 int main()
 {
     Trajectory t1(1, std::vector{SamplePoint(3, 15.5, 0), SamplePoint(5, 15.5, 1), SamplePoint(7, 15.5, 2),
                                  SamplePoint(8.5, 15.5, 3)});
 
-    const Trajectory sub_t1 = t1(0, 1);
-    const Trajectory sub_t2 = t1(2, 3);
+    Trajectory sub_t1 = t1(0, 1);
+    Trajectory sub_t2 = t1(2, 3);
+    Trajectory sub_t3 = t1(2, 3);
 
-    std::cout << "t1" << std::endl;
-    for (const auto& sub : sub_t1.points) {
-        std::cout << sub.x << ", " << sub.y << ", " << sub.t << std::endl;
-    }
+    auto euc = euclideanDistance(sub_t2.points.back(), sub_t3.points.back());
+    std::cout << "euc = " << euc << std::endl;
 
-    std::cout << "t2" << std::endl;
-    for (const auto& sub : sub_t2.points) {
-        std::cout << sub.x << ", " << sub.y << ", " << sub.t << std::endl;
-    }
+    auto test = maxDtw(sub_t1, sub_t3);
+    std::cout << "MaxDTW = " << test << std::endl;
 
-    std::cout << "sub_t1 == sub_t2" << std::endl;
-    std::cout << (sub_t1 == sub_t2) << std::endl;
-
-    auto ref1 = ReferenceTrajectory(1, 2, 3);
-
-    std::cout << sizeof(ref1) << std::endl;
-
-    std::cout << "Hello, World!" << std::endl;
     return 0;
 }
