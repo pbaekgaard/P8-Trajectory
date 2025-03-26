@@ -10,7 +10,7 @@ __pycache__/
 */.cache/
 cache/
 *.osm*
-*.json
+map.json
 *.pkl*
 o C extensions
 *.so
