@@ -3,3 +3,4 @@ numpy==1.26.4
 torch
 scikit-learn
 scikit-learn-extra
+haversine==2.9.0
