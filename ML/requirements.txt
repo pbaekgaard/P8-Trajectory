@@ -4,3 +4,4 @@ torch
 scikit-learn
 scikit-learn-extra
 haversine==2.9.0
+shapely==2.0.7
