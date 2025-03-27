@@ -1,9 +1,11 @@
 #ifndef __TRAJECTORY_HPP__
 #define __TRAJECTORY_HPP__
+
 #include <cmath>
 #include <cstdint>
 #include <vector>
 #include <math.h>
+
 struct SamplePoint
 {
     double x;  // longitude
