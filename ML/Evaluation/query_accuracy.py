@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 from haversine import haversine, Unit
+from shapely.geometry import Point, LineString
 
 def query_accuracy_evaluation(queries):
     # compressed_data, original_dataset = _load_compressed_data(), _load_data()
@@ -130,39 +131,66 @@ def calculate_distance(position_df: pd.DataFrame) -> int:
     return total_distance
 
 def when_query_processing(when_query, group_by_df):
-    temp_list = []
+    when_query_results = []
     for trajectory_id, group_df in group_by_df:
-        less_than = group_df[group_df["timestamp"] <= when_query]
-        if less_than.empty: continue
-        first_less_than = less_than.iloc[-1][["timestamp", "longitude", "latitude"]].to_frame().T.reset_index(drop=True)
+        nearby_points = is_point_on_trajectory(Point(when_query["longitude"], when_query["latitude"]), trajectory_to_linestring(group_df))
+        if nearby_points.empty: continue
+        when_query_as_df = pd.DataFrame({"latitude": [when_query["latitude"]], "longitude": when_query["longitude"]})
+        point_before = group_df[((group_df["latitude"] == nearby_points.iloc[:1]["latitude"].iloc[0]) & (group_df["longitude"] == nearby_points.iloc[:1]["longitude"].iloc[0]))]
+        point_after = group_df[((group_df["longitude"] == nearby_points.iloc[1:]["longitude"].iloc[0]) & (group_df["latitude"] == nearby_points.iloc[1:]["latitude"].iloc[0]))]
 
-        greater_than = group_df[group_df["timestamp"] >= when_query]
-        if greater_than.empty: continue
-        first_greater_than = greater_than.iloc[0][["timestamp", "longitude", "latitude"]].to_frame().T.reset_index(
-            drop=True)
+        total_distance = calculate_distance(pd.concat([nearby_points.iloc[:1], when_query_as_df, nearby_points.iloc[1:]]).reset_index(drop=True))
+        distance_to_point_before = calculate_distance(pd.concat([nearby_points.iloc[:1], when_query_as_df]).reset_index(drop=True))
+        percentage_distance = distance_to_point_before / total_distance if total_distance != 0 else 0
 
-        concatenated_df = None
-        concatenated_df = pd.concat([first_less_than, first_greater_than], axis=1)
+        diff_timestamp = pd.to_datetime(point_after["timestamp"]).reset_index(drop=True) - pd.to_datetime(point_before["timestamp"]).reset_index(drop=True)
+        time_in_when_query_point = pd.to_datetime(point_before["timestamp"]).reset_index(drop=True) + (percentage_distance * diff_timestamp)
 
-        new_row = pd.DataFrame([[trajectory_id] + concatenated_df.values.flatten().tolist()],
-                               columns=["trajectory_id", "less_than_time", "less_than_longitude",
-                                        "less_than_latitude", "greater_than_time",
-                                        "greater_than_longitude", "greater_than_latitude"])
+        when_query_results.append(pd.DataFrame({"trajectory_id": [trajectory_id], "timestamp": [time_in_when_query_point]}))
 
-        temp_list.append(new_row)
+    if len(when_query_results) == 0:
+        return pd.DataFrame(columns=["trajectory_id", "timestamp"])
+    when_query_result = pd.concat(when_query_results, ignore_index=True)
+    return when_query_result
 
-    when_query_df = pd.concat(temp_list, ignore_index=True)
+def trajectory_to_linestring(traj_df):
+    """Convert a DataFrame of points into a Shapely LineString.
+       Assumes points are in order by timestamp."""
+    points = [Point(lon, lat) for lon, lat in zip(traj_df["longitude"], traj_df["latitude"])]
+    return LineString(points)
 
 
+def is_point_on_trajectory(query_point, trajectory_line, threshold: float = 0.001):
+    """
+    Check if query_point is within a threshold distance to trajectory_line.
+    Returns a tuple:
+      (True/False, distance, (pt1, pt2))
+    where (pt1, pt2) are the endpoints of the segment that the query point projects onto.
+    """
+    distance = query_point.distance(trajectory_line)
+    on_traj = distance < threshold
+    seg_endpoints = None
+    if on_traj:
+        seg_endpoints = find_segment_endpoints(trajectory_line, query_point)
+    return pd.DataFrame(seg_endpoints, columns=["longitude", "latitude"])
 
-    # when_query_df = pd.DataFrame([], columns=["trajectory_id", "less_than_time", "less_than_longitude",
-    #                                                    "less_than_latitude", "greater_than_time",
-    #                                                    "greater_than_longitude", "greater_than_latitude"])
-
-    pos_before = None
-
-    pos_after = None
-
+def find_segment_endpoints(line, query_point):
+    """
+    Given a LineString and its coordinate list, compute the distance along the line where
+    query_point projects and return the two consecutive coordinate pairs (segment endpoints)
+    that contain this projection.
+    """
+    proj_distance = line.project(query_point)
+    coords = list(line.coords)
+    cumulative = 0.0
+    for i in range(len(coords) - 1):
+        seg = LineString([coords[i], coords[i+1]])
+        seg_length = seg.length
+        if cumulative + seg_length >= proj_distance:
+            return coords[i], coords[i+1]
+        cumulative += seg_length
+    # Fallback: return the last segment if projection is at the very end
+    return coords[-2], coords[-1]
 
 def query_compressed_data():
     pass
@@ -179,13 +207,17 @@ def create_queries():
             "time_last": "2008-02-02 13:31:08"
         }],
         "when": [
-            {    # 15:38
+            {    # 15:38, 15:41
                 "longitude": 116.51230,
                 "latitude": 39.92180
             },
             {   # 18:02:30
                 "longitude": 116.595000,
                 "latitude": 39.991000
+            },
+            {
+                "longitude": 1160.51230,
+                "latitude": 390.991000
             }
         ]
     }
