@@ -2,6 +2,7 @@
 #include "distance.hpp"
 #include <unordered_map>
 #include <iostream>
+
 int main()
 {
     std::unordered_map<Trajectory, std::vector<Trajectory>> M;
