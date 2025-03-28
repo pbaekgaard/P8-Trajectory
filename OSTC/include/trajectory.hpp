@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include <iostream>
+#include <unordered_map>
 #include <cstdint>
 #include <iomanip>
 #include <string>
@@ -26,6 +27,14 @@ inline std::ostream& operator<<(std::ostream& os, const SamplePoint& point)
        << ", Latitude: " << point.latitude << ", Timestamp: " << point.timestamp << ")";
     return os;
 }
+struct ReferenceTrajectory
+{
+    uint32_t id;
+    short start_index = -1;
+    short end_index = -1;
+
+    ReferenceTrajectory(uint32_t id, short start_index, short end_index);
+};
 
 struct Trajectory
 {
@@ -40,6 +49,7 @@ struct Trajectory
     Trajectory operator()(int start, int end);
 
     bool operator==(const Trajectory& other) const;
+
     friend std::ostream& operator<<(std::ostream& os, const Trajectory& traj)
     {
         os << "Trajectory ID: " << traj.id << "\n";
@@ -49,15 +59,10 @@ struct Trajectory
         }
         return os;
     }
-};
-
-struct ReferenceTrajectory
-{
-    uint32_t id;
-    short start_index = -1;
-    short end_index = -1;
-
-    ReferenceTrajectory(uint32_t id, short start_index, short end_index);
+    std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> MRTSearch(std::vector<Trajectory>& Trajectories,
+                                                                               std::vector<uint32_t> RefSet,
+                                                                               const double epsilon);
+    std::vector<ReferenceTrajectory> OSTC(std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> M);
 };
 
 template <>

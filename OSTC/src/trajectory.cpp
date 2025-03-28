@@ -1,6 +1,10 @@
 #include <cmath>
 #include <vector>
 #include "trajectory.hpp"
+
+#include <algorithm>
+
+#include "distance.hpp"
 #include <cmath>
 #if _WIN32
 #include <cstdint>
@@ -26,13 +30,145 @@ bool Trajectory::operator==(const Trajectory& other) const
     return (id == other.id && start_index == other.start_index && end_index == other.end_index);
 }
 
-ReferenceTrajectory::ReferenceTrajectory(const uint32_t id, const short start_index, const short end_index):
-    id(id), start_index(start_index), end_index(end_index)
-{}
 
 std::size_t std::hash<Trajectory>::operator()(const Trajectory& t) const noexcept
 {
     return ((hash<uint32_t>()(t.id) ^ (hash<int>()(t.start_index) << 2) ^ (hash<int>()(t.end_index) >> 1) ^
              (hash<uint32_t>()(t.points.size()) << 1)) >>
             1);
+}
+
+ReferenceTrajectory::ReferenceTrajectory(const uint32_t id, const short start_index, const short end_index):
+    id(id), start_index(start_index), end_index(end_index)
+{}
+std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> Trajectory::MRTSearch(std::vector<Trajectory>& Trajectories,
+                                                                                std::vector<uint32_t> RefSet,
+                                                                                const double epsilon)
+{
+    std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> M;
+
+    // Step 1: Compute MRT sets for all length-2 sub-trajectories T^(i,i+1)
+    for (int i = 0; i < static_cast<int>(points.size()) - 1; ++i) {
+        Trajectory subTraj = (*this)(i, i + 1);
+
+        // Store MRTs as ReferenceTrajectory objects
+        std::vector<ReferenceTrajectory> mrtSet;
+
+        // Compare against all reference sub-trajectories in R
+        for (uint32_t refIdx : RefSet) {
+            Trajectory& refTraj = Trajectories[refIdx];
+            for (int k = 0; k < static_cast<int>(refTraj.points.size()) - 1; ++k) {
+                Trajectory refSubTraj = refTraj(k, k + 1);
+                if (maxDTW(subTraj, refSubTraj) <= epsilon) {
+                    // Store the (id, start, end) triplet instead of the full Trajectory
+                    mrtSet.emplace_back(refSubTraj.id, refSubTraj.start_index, refSubTraj.end_index);
+                }
+            }
+        }
+
+        // Store the MRT set in M
+        M[subTraj] = mrtSet;
+    }
+
+    // Step 2: Compute MRT sets for sub-trajectories of length 3 to |T|
+    for (int n = 3; n <= static_cast<int>(points.size()); ++n) {
+        bool hasMRT = false;
+
+        // For each sub-trajectory T^(i,j) of length n
+        for (int i = 0; i <= static_cast<int>(points.size()) - n; ++i) {
+            int j = i + n - 1;
+            Trajectory subTraj = (*this)(i, j);
+
+            // Store MRTs as ReferenceTrajectory objects
+            std::vector<ReferenceTrajectory> mrtSet;
+
+            // Get the MRT sets of T^(i,j-1) and T^(j-1,j)
+            Trajectory subTraj1 = (*this)(i, j - 1); // T^(i,j-1)
+            Trajectory subTraj2 = (*this)(j - 1, j); // T^(j-1,j)
+            auto it1 = M.find(subTraj1);
+            auto it2 = M.find(subTraj2);
+            if (it1 == M.end() || it2 == M.end()) continue;
+
+            const std::vector<ReferenceTrajectory>& mrtSet1 = it1->second; // M(T^(i,j-1))
+            const std::vector<ReferenceTrajectory>& mrtSet2 = it2->second; // M(T^(j-1,j))
+
+            // Step 3: Check if MRTs of T^(i,j-1) can be extended to T^(i,j)
+            for (const ReferenceTrajectory& Tmn : mrtSet1) {
+                // Reconstruct the Trajectory object for Tmn to compute MaxDTW
+                Trajectory TmnTraj = Trajectories[Tmn.id](Tmn.start_index, Tmn.end_index);
+                if (maxDTW(subTraj, TmnTraj) <= epsilon) {
+                    mrtSet.push_back(Tmn);
+                }
+            }
+
+            // Step 4: Join MRTs of T^(i,j-1) and T^(j-1,j) if they are contiguous
+            for (const ReferenceTrajectory& Tmn : mrtSet1) {
+                for (const ReferenceTrajectory& Tst : mrtSet2) {
+                    // Check if Tmn and Tst are from the same trajectory and contiguous
+                    if (Tmn.id == Tst.id && Tmn.end_index + 1 == Tst.start_index) {
+                        // Create the joined sub-trajectory T_a^(m,t) as a ReferenceTrajectory
+                        ReferenceTrajectory joinedRefTraj(Tmn.id, Tmn.start_index, Tst.end_index);
+                        // Reconstruct the Trajectory object to compute MaxDTW
+                        Trajectory joinedTraj = Trajectories[Tmn.id](Tmn.start_index, Tst.end_index);
+                        if (maxDTW(subTraj, joinedTraj) <= epsilon) {
+                            mrtSet.push_back(joinedRefTraj);
+                        }
+                    }
+                }
+            }
+
+            // Store the MRT set in M
+            if (!mrtSet.empty()) {
+                hasMRT = true;
+                M[subTraj] = mrtSet;
+            }
+        }
+
+        // Step 5: Early termination if no sub-trajectories of length n have MRTs
+        if (!hasMRT) {
+            break;
+        }
+    }
+
+    return M;
+}
+
+std::vector<ReferenceTrajectory> Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> M)
+{
+    std::vector<int64_t> FT(points.size() + 1, std::numeric_limits<int64_t>::max());
+    FT[0] = 0;
+    std::vector<int> prev(points.size() + 1, -1);
+
+    for (int i = 1; i <= static_cast<int>(points.size()); ++i) {
+        for (int j = 1; j <= i; ++j) {
+            Trajectory subTraj = (*this)(j - 1, i - 1);
+            auto it = M.find(subTraj);
+            if (it != M.end() && !it->second.empty()) {
+                int64_t cost = FT[j - 1] + 8;
+                if (cost < FT[i]) {
+                    FT[i] = cost;
+                    prev[i] = j;
+                }
+            }
+        }
+    }
+
+    std::vector<ReferenceTrajectory> T_prime;
+    int i = points.size();
+    while (i > 0) {
+        int j = prev[i];
+        if (j == -1) {
+            break;
+        }
+        Trajectory subTraj = (*this)(j - 1, i - 1);
+        auto it = M.find(subTraj);
+        if (it != M.end() && !it->second.empty()) {
+            T_prime.push_back(it->second[0]);
+        }
+        i = j - 1;
+    }
+    //gets built in reverse, so we need to reverse it again
+    std::ranges::reverse(T_prime.begin(), T_prime.end());
+
+    return T_prime;
 }
