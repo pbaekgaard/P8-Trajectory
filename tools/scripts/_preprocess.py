@@ -13,6 +13,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # Adds the current 
 from _deduplicate import main as deduplicate
 from _load_data import main as load_data
 from _timestamporder import main as timestamporder
+from _remove_illegal_points import main as remove_illegal_points
 
 
 def parse_only(value):
@@ -69,22 +70,23 @@ def main(only=None):
     # Fix for when the 'only' parameter contains a single string with comma-separated values
     if only and isinstance(only, str) and ',' in only:
         only = [step.strip() for step in only.strip('{}').split(',')]
-    
+
     # Convert to list if it's a single string
     if only and isinstance(only, str):
         only = [only]
-    
+
     if only:
         # Dictionary for proper capitalization and word formatting
         step_names = {
             'deduplication': 'Deduplication',
             'timestamporder': 'Timestamp Ordering',
-            'limit_samplerate': 'Limiting to avg. Sample Rate'
+            'limit_samplerate': 'Limiting to avg. Sample Rate',
+            'remove_illegal':  'remove illegal coordinates.'
         }
-        
+
         # Format each step
         formatted_steps = [step_names.get(step, step.capitalize()) for step in only]
-        
+
         # Format output
         if len(formatted_steps) == 1:
             formatted_output = formatted_steps[0]
@@ -93,6 +95,9 @@ def main(only=None):
             formatted_output = f"{formatted_steps[0]} and {formatted_steps[1]}"
             print(f"Preprocessing only the following steps: {formatted_output}")
         elif len(formatted_steps) == 3:
+            formatted_output = f"{formatted_steps[0]} and {formatted_steps[1]} and {formatted_steps[2]}"
+            print(f"Preprocessing only the following steps: {formatted_output}")
+        elif len(formatted_steps) == 4:
             print("Preprocessing all steps.")
         # Insert selective preprocessing logic here.
     else:
@@ -104,8 +109,9 @@ def main(only=None):
     if not only:
         only = [
         'deduplication',
+        'remove_illegal',
+        'limit_samplerate',
         'timestamporder',
-        'limit_samplerate'
         ]
 
     data = load_data()
@@ -115,6 +121,9 @@ def main(only=None):
         if step == "deduplication":
             print(f"Performing Deduplication...")
             data = deduplicate(data)
+        elif step == "remove_illegal":
+            print(f"Removing illegal coordinates...")
+            data = remove_illegal_points(data)
         elif step == "timestamporder":
             print(f"Performing Timestamp Ordering...")
             data = timestamporder(data)
@@ -122,6 +131,7 @@ def main(only=None):
 
     # ... your processing logic here ...
     print(f"Preprocessing complete! Removed {length_before - len(data)} entries.")
+    return data
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Preprocess downloaded data.")
