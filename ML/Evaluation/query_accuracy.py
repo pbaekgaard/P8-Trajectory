@@ -70,10 +70,15 @@ def query_original_dataset(dataset, queries):
     # for count_query in count_queries:
     #     count_queries_results.append(count_query_processing(count_query, group_by_df))
 
-    knn_queries = queries["knn"]
-    knn_queries_results = []
-    for knn_query in knn_queries:
-        knn_queries_results.append(knn_query_processing(knn_query, dataset))
+    # knn_queries = queries["knn"]
+    # knn_queries_results = []
+    # for knn_query in knn_queries:
+    #     knn_queries_results.append(knn_query_processing(knn_query, dataset))
+
+    window_queries = queries["window"]
+    window_queries_results = []
+    for window_query in window_queries:
+        window_queries_results.append(window_query_processing(window_query, dataset))
 
     # return where_queries_results, distance_queries_results, when_queries_results, how_long_queries_results, count_queries_results
 
@@ -287,10 +292,10 @@ def get_bounding_box(lat, lon, distance):
 
 
 def knn_query_processing(knn_query, df):
+    #TODO: Fix timestamp til pd.datetime. lav func til dette. det bruges også i window_qury_processing
     df_filtered = df[(df["timestamp"] > knn_query["time_first"]) & (df["timestamp"] < knn_query["time_last"])]
 
     before_point = df[df["timestamp"] <= knn_query["time_first"]].groupby("trajectory_id").tail(1)
-
     after_point = df[df["timestamp"] >= knn_query["time_last"]].groupby("trajectory_id").head(1)
 
     df_result = pd.concat([before_point, df_filtered, after_point])
@@ -298,13 +303,14 @@ def knn_query_processing(knn_query, df):
 
     heap = MaxHeap(knn_query["k"])
     point = {"longitude": knn_query["longitude"], "latitude": knn_query["latitude"]}
-    df_grouped = df_result.groupby("trajectory_id")
-    df_result = df_grouped.apply(lambda x: update_heap(x, heap, point))
+    df_result.groupby("trajectory_id").apply(lambda x: update_heap(x, heap, point))
 
     result = heap.get_elements()
     return result
 
+
 def update_heap(trajectory_df, heap, point):
+    #TODO: Fix implementation. Closest point er ligegyldigt! bare lav trajectory line til hele trajectorien.
     trajectory_df['distance'] = trajectory_df.apply(lambda row: calculate_distance(pd.DataFrame({
         "longitude": [row["longitude"], point["longitude"]],
         "latitude": [row["latitude"], point["latitude"]]
@@ -320,6 +326,18 @@ def update_heap(trajectory_df, heap, point):
     distance = Point(transformer.transform(point["longitude"], point["latitude"])).distance(trajectory_line)
 
     heap.push(({"trajectory_id": trajectory_df["trajectory_id"].iloc[0], "distance": distance}))
+
+
+def window_query_processing(window_query, df):
+    df["timestamp"] = pd.to_datetime(df["timestamp"])
+    t1, t2 = pd.to_datetime(window_query["t1"]), pd.to_datetime(window_query["t2"])
+    df_filtered = df[(df["timestamp"] > t1) & (df["timestamp"] < t2)]
+
+    df_before = df[df["timestamp"] <= t1].groupby("trajectory_id").tail(1)
+    df_after = df[df["timestamp"] >= t2].groupby("trajectory_id").head(1)
+    result_df = pd.concat([df_before, df_filtered, df_after]).sort_values(by=["trajectory_id", "timestamp"])
+
+    print("")
 
 def query_compressed_data():
     pass
@@ -388,9 +406,20 @@ def create_queries():
                 "time_first": "2008-02-02 13:31:08",
                 "time_last": "2008-02-02 13:31:08",
                 "k": 5,
-             }
+             },
+        ],
+        "window": [
+            {
+                "first_point":
+                    {"longitude": 116.244311, "latitude": 39.911225},
+                "last_point":
+                    {"longitude": 116.51230, "latitude": 39.92180},
+                "t1": "2008-02-02 12:38:00",
+                "t2": "2008-02-02 17:58:09",
+            }
         ]
     }
+
 if __name__ == '__main__':
     queries = create_queries()
     query_accuracy_evaluation(queries)
