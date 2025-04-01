@@ -1,17 +1,19 @@
-from rich import columns
-
 from tools.scripts._preprocess import main as _load_data
 from tools.scripts._load_data import load_compressed_data as _load_compressed_data
+from ML.Evaluation.MaxHeap import *
 import numpy as np
 import pandas as pd
 from datetime import datetime
 from haversine import haversine, Unit
 from shapely.geometry import Point, LineString
 import math
+from pyproj import Transformer
+
+transformer = Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
 
 def query_accuracy_evaluation(queries):
     # compressed_data, original_dataset = _load_compressed_data(), _load_data()
-    original_dataset = _load_data()
+    # original_dataset = _load_data()
     data = [
         # Beijing Trajectories
         [0, "2008-02-02 15:36:08", 116.51172, 39.92123],  # Trajectory 1
@@ -36,7 +38,7 @@ def query_accuracy_evaluation(queries):
         [5, "2008-02-02 18:10:00", 116.61000, 39.99300]
     ]
 
-    # original_dataset = pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
+    original_dataset = pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
 
     query_original_dataset(original_dataset, queries)
 
@@ -63,10 +65,15 @@ def query_original_dataset(dataset, queries):
     # for how_long_query in how_long_queries:
     #     how_long_queries_results.append(how_long_query_processing(how_long_query, group_by_df))
 
-    count_queries = queries["count"]
-    count_queries_results = []
-    for count_query in count_queries:
-        count_queries_results.append(count_query_processing(count_query, group_by_df))
+    # count_queries = queries["count"]
+    # count_queries_results = []
+    # for count_query in count_queries:
+    #     count_queries_results.append(count_query_processing(count_query, group_by_df))
+
+    knn_queries = queries["knn"]
+    knn_queries_results = []
+    for knn_query in knn_queries:
+        knn_queries_results.append(knn_query_processing(knn_query, dataset))
 
     # return where_queries_results, distance_queries_results, when_queries_results, how_long_queries_results, count_queries_results
 
@@ -144,7 +151,7 @@ def calculate_distance(position_df: pd.DataFrame) -> int:
 def when_query_processing(when_query, group_by_df):
     when_query_results = []
     for trajectory_id, group_df in group_by_df:
-        nearby_points = is_point_on_trajectory(Point(when_query["longitude"], when_query["latitude"]), trajectory_to_linestring(group_df))
+        nearby_points = is_point_on_trajectory(Point(transformer.transform(when_query["longitude"], when_query["latitude"])), trajectory_to_linestring(group_df))
         if nearby_points.empty: continue
         when_query_as_df = pd.DataFrame({"latitude": [when_query["latitude"]], "longitude": when_query["longitude"]})
         point_before = group_df[((group_df["latitude"] == nearby_points.iloc[:1]["latitude"].iloc[0]) & (group_df["longitude"] == nearby_points.iloc[:1]["longitude"].iloc[0]))]
@@ -167,15 +174,15 @@ def when_query_processing(when_query, group_by_df):
 def trajectory_to_linestring(traj_df):
     """Convert a DataFrame of points into a Shapely LineString.
        Assumes points are in order by timestamp."""
-    points = [Point(lon, lat) for lon, lat in zip(traj_df["longitude"], traj_df["latitude"])]
+    points = [Point(transformer.transform(lon, lat)) for lon, lat in zip(traj_df["longitude"], traj_df["latitude"])]
     return LineString(points)
 
 
 def is_point_on_trajectory(query_point, trajectory_line, threshold: float = 0.001):
     """
     Check if query_point is within a threshold distance to trajectory_line.
-    Returns a tuple:
-      (True/False, distance, (pt1, pt2))
+    Returns:
+      (pt1, pt2)
     where (pt1, pt2) are the endpoints of the segment that the query point projects onto.
     """
     distance = query_point.distance(trajectory_line)
@@ -231,7 +238,6 @@ def count_query_processing(count_query, group_by_df):
         # we are now inside the bounding box.
         count += len(group_df[group_df.apply(lambda row: haversine((count_query["latitude"], count_query["longitude"]), (row['latitude'], row['longitude']), unit=Unit.METERS) <= count_query["radius"], axis=1)])
 
-    print(count)
     return count
 
 
@@ -279,6 +285,41 @@ def get_bounding_box(lat, lon, distance):
         "max_longitude": max_lon
     }
 
+
+def knn_query_processing(knn_query, df):
+    df_filtered = df[(df["timestamp"] > knn_query["time_first"]) & (df["timestamp"] < knn_query["time_last"])]
+
+    before_point = df[df["timestamp"] <= knn_query["time_first"]].groupby("trajectory_id").tail(1)
+
+    after_point = df[df["timestamp"] >= knn_query["time_last"]].groupby("trajectory_id").head(1)
+
+    df_result = pd.concat([before_point, df_filtered, after_point])
+    df_result = df_result.groupby("trajectory_id").filter(lambda x: len(x) > 1)
+
+    heap = MaxHeap(knn_query["k"])
+    point = {"longitude": knn_query["longitude"], "latitude": knn_query["latitude"]}
+    df_grouped = df_result.groupby("trajectory_id")
+    df_result = df_grouped.apply(lambda x: update_heap(x, heap, point))
+
+    result = heap.get_elements()
+    return result
+
+def update_heap(trajectory_df, heap, point):
+    trajectory_df['distance'] = trajectory_df.apply(lambda row: calculate_distance(pd.DataFrame({
+        "longitude": [row["longitude"], point["longitude"]],
+        "latitude": [row["latitude"], point["latitude"]]
+    })), axis=1)
+
+    closest_point = trajectory_df.loc[trajectory_df['distance'].idxmin()]
+    closest_point_index = closest_point.name
+    closest_point = closest_point[['trajectory_id', 'longitude', 'latitude', 'distance']].to_frame().T
+    before_point = trajectory_df[(trajectory_df.index < closest_point_index)].iloc[-1:]
+    after_point = trajectory_df[(trajectory_df.index > closest_point_index)].iloc[:1]
+
+    trajectory_line = trajectory_to_linestring(pd.concat([before_point, closest_point, after_point]))
+    distance = Point(transformer.transform(point["longitude"], point["latitude"])).distance(trajectory_line)
+
+    heap.push(({"trajectory_id": trajectory_df["trajectory_id"].iloc[0], "distance": distance}))
 
 def query_compressed_data():
     pass
@@ -332,6 +373,22 @@ def create_queries():
                 "latitude": 39.911225,
                 "radius": 10
             }
+        ],
+        "knn": [
+            {
+                "longitude": 116.51230,
+                "latitude": 39.92180,
+                "time_first": "2008-02-02 12:38:08",
+                "time_last": "2008-02-02 17:58:08",
+                "k": 3,
+            },
+            {
+                "longitude": 116.244311,
+                "latitude": 39.911225,
+                "time_first": "2008-02-02 13:31:08",
+                "time_last": "2008-02-02 13:31:08",
+                "k": 5,
+             }
         ]
     }
 if __name__ == '__main__':
