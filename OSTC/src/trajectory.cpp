@@ -6,6 +6,7 @@
 
 #include "distance.hpp"
 #include <cmath>
+#include <iostream>
 #if _WIN32
 #include <cstdint>
 #endif
@@ -140,18 +141,35 @@ std::vector<ReferenceTrajectory> Trajectory::OSTC(std::unordered_map<Trajectory,
     std::vector<int> prev(points.size() + 1, -1);
 
     for (int i = 1; i <= static_cast<int>(points.size()); ++i) {
+        int64_t minCost = FT[i - 1] + 8; // Cost of storing the i-th point as an original sample
+        int bestJ = i; // Default to storing the point directly
+
         for (int j = 1; j <= i; ++j) {
             Trajectory subTraj = (*this)(j - 1, i - 1);
             auto it = M.find(subTraj);
             if (it != M.end() && !it->second.empty()) {
-                int64_t cost = FT[j - 1] + 8;
-                if (cost < FT[i]) {
-                    FT[i] = cost;
-                    prev[i] = j;
+                int64_t cost = FT[j - 1] + 8; // Cost of using an MRT
+                if (cost < minCost) {
+                    minCost = cost;
+                    bestJ = j;
                 }
             }
         }
+
+        FT[i] = minCost;
+        prev[i] = bestJ;
     }
+
+    // Debug: Print FT and prev
+    std::cout << "FT: ";
+    for (int i = 0; i <= points.size(); ++i) {
+        std::cout << FT[i] << " ";
+    }
+    std::cout << "\nprev: ";
+    for (int i = 0; i <= points.size(); ++i) {
+        std::cout << prev[i] << " ";
+    }
+    std::cout << "\n";
 
     std::vector<ReferenceTrajectory> T_prime;
     int i = points.size();
@@ -160,14 +178,18 @@ std::vector<ReferenceTrajectory> Trajectory::OSTC(std::unordered_map<Trajectory,
         if (j == -1) {
             break;
         }
-        Trajectory subTraj = (*this)(j - 1, i - 1);
-        auto it = M.find(subTraj);
-        if (it != M.end() && !it->second.empty()) {
-            T_prime.push_back(it->second[0]);
+        if (j == i) { // Store the original point
+            // Note: Adjust this based on how you want to represent original points in T_prime
+            i--;
+        } else { // Use an MRT
+            Trajectory subTraj = (*this)(j - 1, i - 1);
+            auto it = M.find(subTraj);
+            if (it != M.end() && !it->second.empty()) {
+                T_prime.push_back(it->second[0]);
+            }
+            i = j - 1;
         }
-        i = j - 1;
     }
-    //gets built in reverse, so we need to reverse it again
     std::ranges::reverse(T_prime.begin(), T_prime.end());
 
     return T_prime;
