@@ -2,20 +2,30 @@
 #define __TRAJECTORY_HPP__
 
 #include <cmath>
+#include <iostream>
 #include <cstdint>
+#include <iomanip>
+#include <string>
 #include <vector>
-#include <math.h>
+#include <cmath>
 
 struct SamplePoint
 {
-    double x;  // longitude
-    double y;  // latitude
-    double t;  // timestamp
+    double longitude;       // longitude
+    double latitude;        // latitude
+    std::string timestamp;  // timestamp
 
-    SamplePoint(double x, double y, double t);
+    SamplePoint(double x, double y, std::string t): longitude(x), latitude(y), timestamp(std::move(t)) {}
 
     bool operator==(const SamplePoint& other) const;
 };
+
+inline std::ostream& operator<<(std::ostream& os, const SamplePoint& point)
+{
+    os << std::fixed << std::setprecision(15) << "SamplePoint(Longitude: " << point.longitude
+       << ", Latitude: " << point.latitude << ", Timestamp: " << point.timestamp << ")";
+    return os;
+}
 
 struct Trajectory
 {
@@ -24,12 +34,21 @@ struct Trajectory
     int start_index = -1;
     int end_index = -1;
 
-    Trajectory(uint32_t id, const std::vector<SamplePoint>& points);
-    Trajectory(uint32_t id, const std::vector<SamplePoint>& points, int start_index, int end_index);
+    Trajectory(const uint32_t id, const std::vector<SamplePoint>& points);
+    Trajectory(const uint32_t id, const std::vector<SamplePoint>& points, int start_index, int end_index);
 
     Trajectory operator()(int start, int end);
 
     bool operator==(const Trajectory& other) const;
+    friend std::ostream& operator<<(std::ostream& os, const Trajectory& traj)
+    {
+        os << "Trajectory ID: " << traj.id << "\n";
+        os << "Points:\n";
+        for (const auto& point : traj.points) {
+            os << "  " << point << "\n";
+        }
+        return os;
+    }
 };
 
 struct ReferenceTrajectory

@@ -6,9 +6,11 @@
 #include <cstdint>
 #endif
 
-SamplePoint::SamplePoint(const double x, const double y, const double t): x(x), y(y), t(t) {}
+bool SamplePoint::operator==(const SamplePoint& other) const
+{
+    return longitude == other.longitude && latitude == other.latitude && timestamp == other.timestamp;
+}
 
-bool SamplePoint::operator==(const SamplePoint& other) const { return x == other.x && y == other.y && t == other.t; }
 Trajectory::Trajectory(const uint32_t id, const std::vector<SamplePoint>& points): id(id), points(points) {}
 Trajectory::Trajectory(const uint32_t id, const std::vector<SamplePoint>& points, const int start_index,
                        const int end_index): id(id), points(points), start_index(start_index), end_index(end_index)

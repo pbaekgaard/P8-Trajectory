@@ -1,7 +1,11 @@
 #include "trajectory.hpp"
 #include "distance.hpp"
+#include <iostream>
 
-double euclideanDistance(SamplePoint a, SamplePoint b) { return sqrt(pow(a.x - b.x, 2) + pow(a.y - b.y, 2)); }
+double euclideanDistance(SamplePoint a, SamplePoint b)
+{
+    return sqrt(pow(a.longitude - b.longitude, 2) + pow(a.latitude - b.latitude, 2));
+}
 double maxDtw(Trajectory a, Trajectory b)
 {
     if (a.points == b.points && b.points.empty()) {
