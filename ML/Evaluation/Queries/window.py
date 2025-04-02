@@ -50,6 +50,10 @@ def does_overlap(df_within, df_before, df_after, window_query, overlap_threshold
         if trajectory_line_within_timeframe.distance(query_line) <= overlap_threshold:
             return True
 
+    elif len(trajectory_points_within_timeframe) == 1:
+        #TODO: Check om dette ene punkt er i windowet, jah? er det overhovedet nødvendigt? Kun relevant for trajectories med et punkt, jah?
+        pass
+
     if df_before.empty and df_after.empty:
         return False
 
