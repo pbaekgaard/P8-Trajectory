@@ -22,11 +22,11 @@ option(Debug "Enable executable build instead of Python module" OFF)
 
 if(Debug)
     # Debug build (Executable)
-    add_executable(ostc_exec
+    add_executable(OSTC
         src/main.cpp  # Change this if needed
     )
-    target_link_libraries(ostc_exec PRIVATE ostc_lib)
-    target_compile_definitions(ostc_exec PRIVATE Debug)  # Define Debug for preprocessor
+    target_link_libraries(OSTC PRIVATE ostc_lib)
+    target_compile_definitions(OSTC PRIVATE Debug)  # Define Debug for preprocessor
 else()
     # Default build (Python extension)
     pybind11_add_module(ostc
