@@ -10,6 +10,7 @@ from pandas.io import parquet
 
 # Get the current frame
 frame = inspect.currentframe()
+CACHE_DIR = os.path.join(os.path.dirname(__file__), "../__CACHE/")
 
 # Check if frame is not None
 if frame is not None:
@@ -47,17 +48,16 @@ def main():
     df : pd.DataFrame
     unique_trajectories : pd.DataFrame
 
-    if os.path.exists("__CACHE/sample_dataframe.parquet"):
-        df = parquet.read_parquet("__CACHE/sample_dataframe.parquet")
-        unique_trajectories = parquet.read_parquet("__CACHE/sample_unique_trajectories.parquet")
+    if os.path.exists(CACHE_DIR):
+        df = parquet.read_parquet(os.path.join(CACHE_DIR, "sample_dataframe.parquet"))
+        unique_trajectories = parquet.read_parquet(os.path.join(CACHE_DIR, "sample_unique_trajectories.parquet"))
     else:
-        if not os.path.exists("__CACHE"):
-            os.makedirs("__CACHE")
+        os.makedirs(CACHE_DIR)
         get_data()
         traj_df = load_data()
         df, unique_trajectories = get_first_x_trajectories(10, traj_df)
-        df.to_parquet("__CACHE/sample_dataframe.parquet")
-        unique_trajectories.to_parquet("__CACHE/sample_unique_trajectories.parquet")
+        df.to_parquet(os.path.join(CACHE_DIR, "sample_dataframe.parquet"))
+        unique_trajectories.to_parquet(os.path.join(CACHE_DIR, "sample_unique_trajectories.parquet"))
 
 
     nparray : np.ndarray = df.to_numpy()
