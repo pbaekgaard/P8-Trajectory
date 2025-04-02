@@ -6,9 +6,18 @@
 __pycache__/
 *.py[cod]
 *$py.class
+.idea/
+*/.cache/
+cache/
+*.osm*
+*/build/
+map.json
 
-# C extensions
+*/cmake-build-debug/
+*.pkl*
+o C extensions
 *.so
+*/.gitignore
 
 # Distribution / packaging
 .Python

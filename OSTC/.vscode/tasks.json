@@ -1,0 +1,37 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Ninja Build",
+      "type": "shell",
+      "command": "[ -d build ] || cmake -GNinja -B build; ninja -C build",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Ninja Build Clean",
+      "type": "shell",
+      "command": "ninja clean; ninja",
+      "options": {
+        "cwd": "${workspaceFolder}/build"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Run OSTC",
+      "type": "shell",
+      "command": "./OSTC",
+      "options": {
+        "cwd": "${workspaceFolder}/build"
+      }
+    }
+  ]
+}
