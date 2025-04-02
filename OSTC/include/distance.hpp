@@ -4,5 +4,5 @@
 #include "trajectory.hpp"
 
 double euclideanDistance(SamplePoint a, SamplePoint b);
-double maxDtw(Trajectory a, Trajectory b);
+double maxDTW(Trajectory a, Trajectory b);
 #endif

@@ -1,24 +1,22 @@
 #include "trajectory.hpp"
 #include "distance.hpp"
-#include <iostream>
 
 double euclideanDistance(SamplePoint a, SamplePoint b)
 {
     return sqrt(pow(a.longitude - b.longitude, 2) + pow(a.latitude - b.latitude, 2));
 }
-double maxDtw(Trajectory a, Trajectory b)
+
+double maxDTW(Trajectory a, Trajectory b)
 {
     if (a.points == b.points && b.points.empty()) {
-        std::cout << "Is Empty!" << std::endl;
         return 0;
     } else if (a.points.empty() || b.points.empty()) {
-        std::cout << "Is Empty!" << std::endl;
-        return MAXFLOAT;
+        return std::numeric_limits<double>::max();
     }
 
     return std::max(euclideanDistance(a.points.back(), b.points.back()),
-                    std::min(std::min(maxDtw(a(0, static_cast<int>(a.points.size()) - 2),
+                    std::min(std::min(maxDTW(a(0, static_cast<int>(a.points.size()) - 2),
                                              b(0, static_cast<int>(b.points.size()) - 2)),
-                                      maxDtw(a, b(0, static_cast<int>(b.points.size()) - 2))),
-                             maxDtw(a(0, static_cast<int>(a.points.size()) - 2), b)));
+                                      maxDTW(a, b(0, static_cast<int>(b.points.size()) - 2))),
+                             maxDTW(a(0, static_cast<int>(a.points.size()) - 2), b)));
 }

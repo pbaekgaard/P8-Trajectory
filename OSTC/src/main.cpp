@@ -43,20 +43,29 @@ void print_numpy(py::object array)
 // This function is to demonstrate how you could expose C++ logic to Python
 void run_example()
 {
-    std::unordered_map<Trajectory, std::vector<Trajectory>> M;
-
-    Trajectory t1(1, std::vector{SamplePoint(3, 15.5, "ts"), SamplePoint(5, 15.5, "ts"), SamplePoint(7, 15.5, "ts"),
-                                 SamplePoint(8.5, 15.5, "ts")});
-
-    Trajectory sub_t1 = t1(0, 1);
-    Trajectory sub_t2 = t1(2, 3);
-    Trajectory sub_t3 = t1(2, 3);
-
-    auto euc = euclideanDistance(sub_t2.points.back(), sub_t3.points.back());
-    std::cout << "euc = " << euc << std::endl;
-
-    auto test = maxDtw(sub_t1, sub_t3);
-    std::cout << "MaxDTW = " << test << std::endl;
+    Trajectory t1(1, std::vector{SamplePoint(3.0, 16.0, "ts"), SamplePoint(5.2, 17.5, "ts"),
+                                 SamplePoint(6.7, 17.5, "ts"), SamplePoint(9.0, 16.0, "ts")});
+    Trajectory t2(2, std::vector{SamplePoint(4.0, 15.0, "ts"), SamplePoint(5.0, 15.0, "ts"),
+                                 SamplePoint(6.3, 17.4, "ts"), SamplePoint(7.8, 17.4, "ts")});
+    Trajectory t3(3, std::vector{SamplePoint(2.0, 14.0, "ts"), SamplePoint(4.0, 14.0, "ts"),
+                                 SamplePoint(6.0, 14.0, "ts"), SamplePoint(7.0, 14.0, "ts")});
+    Trajectory t4(4, std::vector{SamplePoint(5.0, 17.0, "ts"), SamplePoint(6.5, 17.0, "ts"),
+                                 SamplePoint(8.0, 17.0, "ts"), SamplePoint(9.5, 17.0, "ts")});
+    Trajectory t5(5, std::vector{SamplePoint(3.5, 19.0, "ts"), SamplePoint(5.5, 19.0, "ts"),
+                                 SamplePoint(7.0, 19.0, "ts"), SamplePoint(8.0, 19.0, "ts")});
+    std::vector<Trajectory> Trajectories{t1, t2, t3, t4, t5};
+    std::vector<uint32_t> RefSet{0, 1, 1, 3, 3};
+    // std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> M = t4.MRTSearch(Trajectories, RefSet, 0.9);
+    // try {
+    //     std::vector<ReferenceTrajectory> T_prime = t4.OSTC(M);
+    //     std::cout << "Compressed trajectory T':\n";
+    //     for (const auto& mrt : T_prime) {
+    //         std::cout << "MRT: (id=" << mrt.id << ", start=" << mrt.start_index << ", end=" << mrt.end_index <<
+    //         ")\n";
+    //     }
+    // } catch (const std::exception& e) {
+    //     std::cerr << "Error: " << e.what() << "\n";
+    // }
 }
 
 // Binding the functions to Python
