@@ -8,18 +8,29 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Find Python and Pybind11
 find_package(Python COMPONENTS Interpreter Development REQUIRED)
-add_subdirectory(extern/pybind11)  # Ensure this path is correct
+add_subdirectory(extern/pybind11)
 include_directories(include)
 
-# Add your source files
+# Add source files
 add_library(ostc_lib STATIC
     src/trajectory.cpp
     src/distance.cpp
 )
 
-# Create the Python extension module
-pybind11_add_module(ostc 
-    src/main.cpp  # Contains the pybind11 module definition
-)
+# Check for Debug flag
+option(Debug "Enable executable build instead of Python module" OFF)
 
-target_link_libraries(ostc PRIVATE ostc_lib pybind11::pybind11)
+if(Debug)
+    # Debug build (Executable)
+    add_executable(ostc_exec
+        src/main.cpp  # Change this if needed
+    )
+    target_link_libraries(ostc_exec PRIVATE ostc_lib)
+    target_compile_definitions(ostc_exec PRIVATE Debug)  # Define Debug for preprocessor
+else()
+    # Default build (Python extension)
+    pybind11_add_module(ostc
+        src/main.cpp
+    )
+    target_link_libraries(ostc PRIVATE ostc_lib pybind11::pybind11)
+endif()

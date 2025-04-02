@@ -1,12 +1,39 @@
 #include "trajectory.hpp"
 #include "distance.hpp"
-#include <pybind11/pybind11.h>
 #include <unordered_map>
 #include <iostream>
-#include <pybind11/numpy.h>
-#include <pybind11/stl.h>
 #include <string>
 #include <iomanip>
+
+void run_example()
+{
+    Trajectory t1(1, std::vector{SamplePoint(3.0, 16.0, "ts"), SamplePoint(5.2, 17.5, "ts"),
+                                 SamplePoint(6.7, 17.5, "ts"), SamplePoint(9.0, 16.0, "ts")});
+    Trajectory t2(2, std::vector{SamplePoint(4.0, 15.0, "ts"), SamplePoint(5.0, 15.0, "ts"),
+                                 SamplePoint(6.3, 17.4, "ts"), SamplePoint(7.8, 17.4, "ts")});
+    Trajectory t3(3, std::vector{SamplePoint(2.0, 14.0, "ts"), SamplePoint(4.0, 14.0, "ts"),
+                                 SamplePoint(6.0, 14.0, "ts"), SamplePoint(7.0, 14.0, "ts")});
+    Trajectory t4(4, std::vector{SamplePoint(5.0, 17.0, "ts"), SamplePoint(6.5, 17.0, "ts"),
+                                 SamplePoint(8.0, 17.0, "ts"), SamplePoint(9.5, 17.0, "ts")});
+    Trajectory t5(5, std::vector{SamplePoint(3.5, 19.0, "ts"), SamplePoint(5.5, 19.0, "ts"),
+                                 SamplePoint(7.0, 19.0, "ts"), SamplePoint(8.0, 19.0, "ts")});
+    std::vector<Trajectory> Trajectories{t1, t2, t3, t4, t5};
+    std::vector<uint32_t> RefSet{0, 1, 1, 3, 3};
+    std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> M = t4.MRTSearch(Trajectories, RefSet, 0.9);
+    try {
+        std::vector<ReferenceTrajectory> T_prime = t4.OSTC(M);
+        std::cout << "Compressed trajectory T':\n";
+        for (const auto& mrt : T_prime) {
+            std::cout << "MRT: (id=" << mrt.id << ", start=" << mrt.start_index << ", end=" << mrt.end_index << ")\n";
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << "\n";
+    }
+}
+#ifndef Debug
+#include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
+#include <pybind11/stl.h>
 
 namespace py = pybind11;
 // Custom format descriptor for std::tuple<int, std::string, double, double>
@@ -41,32 +68,6 @@ void print_numpy(py::object array)
 }
 
 // This function is to demonstrate how you could expose C++ logic to Python
-void run_example()
-{
-    Trajectory t1(1, std::vector{SamplePoint(3.0, 16.0, "ts"), SamplePoint(5.2, 17.5, "ts"),
-                                 SamplePoint(6.7, 17.5, "ts"), SamplePoint(9.0, 16.0, "ts")});
-    Trajectory t2(2, std::vector{SamplePoint(4.0, 15.0, "ts"), SamplePoint(5.0, 15.0, "ts"),
-                                 SamplePoint(6.3, 17.4, "ts"), SamplePoint(7.8, 17.4, "ts")});
-    Trajectory t3(3, std::vector{SamplePoint(2.0, 14.0, "ts"), SamplePoint(4.0, 14.0, "ts"),
-                                 SamplePoint(6.0, 14.0, "ts"), SamplePoint(7.0, 14.0, "ts")});
-    Trajectory t4(4, std::vector{SamplePoint(5.0, 17.0, "ts"), SamplePoint(6.5, 17.0, "ts"),
-                                 SamplePoint(8.0, 17.0, "ts"), SamplePoint(9.5, 17.0, "ts")});
-    Trajectory t5(5, std::vector{SamplePoint(3.5, 19.0, "ts"), SamplePoint(5.5, 19.0, "ts"),
-                                 SamplePoint(7.0, 19.0, "ts"), SamplePoint(8.0, 19.0, "ts")});
-    std::vector<Trajectory> Trajectories{t1, t2, t3, t4, t5};
-    std::vector<uint32_t> RefSet{0, 1, 1, 3, 3};
-    // std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> M = t4.MRTSearch(Trajectories, RefSet, 0.9);
-    // try {
-    //     std::vector<ReferenceTrajectory> T_prime = t4.OSTC(M);
-    //     std::cout << "Compressed trajectory T':\n";
-    //     for (const auto& mrt : T_prime) {
-    //         std::cout << "MRT: (id=" << mrt.id << ", start=" << mrt.start_index << ", end=" << mrt.end_index <<
-    //         ")\n";
-    //     }
-    // } catch (const std::exception& e) {
-    //     std::cerr << "Error: " << e.what() << "\n";
-    // }
-}
 
 // Binding the functions to Python
 
@@ -102,3 +103,14 @@ PYBIND11_MODULE(ostc, m)
         Some other explanation about the run_example function.
     )pbdoc");
 }
+
+#endif
+
+#ifdef Debug
+int main()
+{
+    std::cout << "Hello from Debug Main" << std::endl;
+    run_example();
+    return 0;
+}
+#endif
