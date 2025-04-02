@@ -55,16 +55,17 @@ void run_example()
                                  SamplePoint(7.0, 19.0, "ts"), SamplePoint(8.0, 19.0, "ts")});
     std::vector<Trajectory> Trajectories{t1, t2, t3, t4, t5};
     std::vector<uint32_t> RefSet{0, 1, 1, 3, 3};
-    std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> M = t4.MRTSearch(Trajectories, RefSet, 0.9);
-    try {
-        std::vector<ReferenceTrajectory> T_prime = t4.OSTC(M);
-        std::cout << "Compressed trajectory T':\n";
-        for (const auto& mrt : T_prime) {
-            std::cout << "MRT: (id=" << mrt.id << ", start=" << mrt.start_index << ", end=" << mrt.end_index << ")\n";
-        }
-    } catch (const std::exception& e) {
-        std::cerr << "Error: " << e.what() << "\n";
-    }
+    // std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> M = t4.MRTSearch(Trajectories, RefSet, 0.9);
+    // try {
+    //     std::vector<ReferenceTrajectory> T_prime = t4.OSTC(M);
+    //     std::cout << "Compressed trajectory T':\n";
+    //     for (const auto& mrt : T_prime) {
+    //         std::cout << "MRT: (id=" << mrt.id << ", start=" << mrt.start_index << ", end=" << mrt.end_index <<
+    //         ")\n";
+    //     }
+    // } catch (const std::exception& e) {
+    //     std::cerr << "Error: " << e.what() << "\n";
+    // }
 }
 
 // Binding the functions to Python

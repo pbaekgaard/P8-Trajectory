@@ -1,11 +1,12 @@
+#include <algorithm>
 #include <cmath>
 #include <vector>
 #include "trajectory.hpp"
-
-#include <algorithm>
+#include <ranges>
 
 #include "distance.hpp"
 #include <cmath>
+#include <unordered_map>
 #include <iostream>
 #if _WIN32
 #include <cstdint>
@@ -31,7 +32,6 @@ bool Trajectory::operator==(const Trajectory& other) const
     return (id == other.id && start_index == other.start_index && end_index == other.end_index);
 }
 
-
 std::size_t std::hash<Trajectory>::operator()(const Trajectory& t) const noexcept
 {
     return ((hash<uint32_t>()(t.id) ^ (hash<int>()(t.start_index) << 2) ^ (hash<int>()(t.end_index) >> 1) ^
@@ -42,9 +42,9 @@ std::size_t std::hash<Trajectory>::operator()(const Trajectory& t) const noexcep
 ReferenceTrajectory::ReferenceTrajectory(const uint32_t id, const short start_index, const short end_index):
     id(id), start_index(start_index), end_index(end_index)
 {}
-std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> Trajectory::MRTSearch(std::vector<Trajectory>& Trajectories,
-                                                                                std::vector<uint32_t> RefSet,
-                                                                                const double epsilon)
+
+std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> Trajectory::MRTSearch(
+    std::vector<Trajectory>& Trajectories, std::vector<uint32_t> RefSet, const double epsilon)
 {
     std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> M;
 
@@ -84,14 +84,15 @@ std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> Trajectory::MRT
             std::vector<ReferenceTrajectory> mrtSet;
 
             // Get the MRT sets of T^(i,j-1) and T^(j-1,j)
-            Trajectory subTraj1 = (*this)(i, j - 1); // T^(i,j-1)
-            Trajectory subTraj2 = (*this)(j - 1, j); // T^(j-1,j)
+            Trajectory subTraj1 = (*this)(i, j - 1);  // T^(i,j-1)
+            Trajectory subTraj2 = (*this)(j - 1, j);  // T^(j-1,j)
             auto it1 = M.find(subTraj1);
             auto it2 = M.find(subTraj2);
-            if (it1 == M.end() || it2 == M.end()) continue;
+            if (it1 == M.end() || it2 == M.end())
+                continue;
 
-            const std::vector<ReferenceTrajectory>& mrtSet1 = it1->second; // M(T^(i,j-1))
-            const std::vector<ReferenceTrajectory>& mrtSet2 = it2->second; // M(T^(j-1,j))
+            const std::vector<ReferenceTrajectory>& mrtSet1 = it1->second;  // M(T^(i,j-1))
+            const std::vector<ReferenceTrajectory>& mrtSet2 = it2->second;  // M(T^(j-1,j))
 
             // Step 3: Check if MRTs of T^(i,j-1) can be extended to T^(i,j)
             for (const ReferenceTrajectory& Tmn : mrtSet1) {
@@ -141,14 +142,14 @@ std::vector<ReferenceTrajectory> Trajectory::OSTC(std::unordered_map<Trajectory,
     std::vector<int> prev(points.size() + 1, -1);
 
     for (int i = 1; i <= static_cast<int>(points.size()); ++i) {
-        int64_t minCost = FT[i - 1] + 8; // Cost of storing the i-th point as an original sample
-        int bestJ = i; // Default to storing the point directly
+        int64_t minCost = FT[i - 1] + 8;  // Cost of storing the i-th point as an original sample
+        int bestJ = i;                    // Default to storing the point directly
 
         for (int j = 1; j <= i; ++j) {
             Trajectory subTraj = (*this)(j - 1, i - 1);
             auto it = M.find(subTraj);
             if (it != M.end() && !it->second.empty()) {
-                int64_t cost = FT[j - 1] + 8; // Cost of using an MRT
+                int64_t cost = FT[j - 1] + 8;  // Cost of using an MRT
                 if (cost < minCost) {
                     minCost = cost;
                     bestJ = j;
@@ -178,10 +179,10 @@ std::vector<ReferenceTrajectory> Trajectory::OSTC(std::unordered_map<Trajectory,
         if (j == -1) {
             break;
         }
-        if (j == i) { // Store the original point
+        if (j == i) {  // Store the original point
             // Note: Adjust this based on how you want to represent original points in T_prime
             i--;
-        } else { // Use an MRT
+        } else {  // Use an MRT
             Trajectory subTraj = (*this)(j - 1, i - 1);
             auto it = M.find(subTraj);
             if (it != M.end() && !it->second.empty()) {
@@ -191,6 +192,5 @@ std::vector<ReferenceTrajectory> Trajectory::OSTC(std::unordered_map<Trajectory,
         }
     }
     std::ranges::reverse(T_prime.begin(), T_prime.end());
-
     return T_prime;
 }

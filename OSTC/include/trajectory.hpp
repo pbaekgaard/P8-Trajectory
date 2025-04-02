@@ -27,6 +27,7 @@ inline std::ostream& operator<<(std::ostream& os, const SamplePoint& point)
        << ", Latitude: " << point.latitude << ", Timestamp: " << point.timestamp << ")";
     return os;
 }
+
 struct ReferenceTrajectory
 {
     uint32_t id;

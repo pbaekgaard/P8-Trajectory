@@ -6,7 +6,7 @@ double euclideanDistance(SamplePoint a, SamplePoint b)
     return sqrt(pow(a.longitude - b.longitude, 2) + pow(a.latitude - b.latitude, 2));
 }
 
-double maxDtw(Trajectory a, Trajectory b)
+double maxDTW(Trajectory a, Trajectory b)
 {
     if (a.points == b.points && b.points.empty()) {
         return 0;
