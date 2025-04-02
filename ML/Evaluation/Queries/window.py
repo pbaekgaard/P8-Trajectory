@@ -1,6 +1,8 @@
 import pandas as pd
 from shapely.geometry import LineString
 
+from ML.Evaluation.Queries._helper_functions_and_classes import get_adjusted_trajectory_segment
+
 
 def window_query_processing(window_query, df):
     df["timestamp"] = pd.to_datetime(df["timestamp"])
@@ -92,47 +94,15 @@ def does_overlap(df_within, df_before, df_after, window_query, overlap_threshold
                     return True
 
     elif not df_before.empty and not df_after.empty:
-        before_point = df_before.iloc[-1][["longitude", "latitude"]].to_list()
+        before_point = df_before.iloc[0][["longitude", "latitude"]].to_list()
         after_point = df_after.iloc[0][["longitude", "latitude"]].to_list()
         trajectory_line_outside_timeframe = LineString([before_point, after_point])
 
         if trajectory_line_outside_timeframe.distance(query_line) <= overlap_threshold:
-            before_time = df_before.iloc[-1]["timestamp"]
+            before_time = df_before.iloc[0]["timestamp"]
             after_time = df_after.iloc[0]["timestamp"]
             adjusted_segment = get_adjusted_trajectory_segment(before_point, after_point, before_time, after_time, window_query["t1"], window_query["t2"])
             if adjusted_segment and adjusted_segment.distance(query_line) <= overlap_threshold:
                 return True
 
     return False
-
-
-def get_interpolated_point(point1, point2, time1, time2, target_time):
-    """
-    Given two points (longitude, latitude) with corresponding timestamps,
-    interpolate to find the exact position at `target_time`, assuming constant speed.
-    """
-    if time1 == time2:  # Avoid division by zero
-        return point1
-
-    ratio = (target_time - time1) / (time2 - time1)  # Linear interpolation factor
-    interpolated_longitude = point1[0] + ratio * (point2[0] - point1[0])
-    interpolated_latitude = point1[1] + ratio * (point2[1] - point1[1])
-
-    return (interpolated_longitude, interpolated_latitude)
-
-
-def get_adjusted_trajectory_segment(point1, point2, time1, time2, query_t1, query_t2):
-    """
-    Returns the adjusted LineString segment that falls within the timeframe.
-    If the entire segment is outside the timeframe, return None.
-    """
-    # If the entire segment is outside the timeframe, return None
-    if time2 < query_t1 or time1 > query_t2:
-        return None
-
-    # Determine the actual segment that falls within the timeframe
-    new_start = point1 if time1 >= query_t1 else get_interpolated_point(point1, point2, time1, time2, query_t1)
-    new_end = point2 if time2 <= query_t2 else get_interpolated_point(point1, point2, time1, time2, query_t2)
-
-    # Create and return the adjusted trajectory segment
-    return LineString([new_start, new_end])

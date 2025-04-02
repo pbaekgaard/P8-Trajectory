@@ -71,11 +71,12 @@ def query_original_dataset(dataset, queries):
     # for count_query in count_queries:
     #     count_queries_results.append(count_query_processing(count_query, group_by_df))
     #
-    # knn_queries = queries["knn"]
-    # knn_queries_results = []
-    # for knn_query in knn_queries:
-    #     knn_queries_results.append(knn_query_processing(knn_query, dataset))
-    #
+    knn_queries = queries["knn"]
+    knn_queries_results = []
+    for knn_query in knn_queries:
+        knn_queries_results.append(knn_query_processing(knn_query, dataset))
+    print(knn_queries_results)
+
     window_queries = queries["window"]
     window_queries_results = []
     for window_query in window_queries:
@@ -141,6 +142,7 @@ def create_queries():
                 "radius": 10
             }
         ],
+        # TODO: Der kommer nogengange en runtime warning på .distance. sæt query to t1 og t2 til 13:31:08 for at se. Tror det er fordi tiden er den samme. Der kommer også warnings i de andre queries
         "knn": [
             {
                 "longitude": 116.51230,
@@ -152,8 +154,8 @@ def create_queries():
             {
                 "longitude": 116.244311,
                 "latitude": 39.911225,
-                "time_first": "2008-02-02 13:31:08",
-                "time_last": "2008-02-02 13:31:08",
+                "time_first": "2008-02-02 15:45:08",
+                "time_last": "2008-02-02 16:31:08",
                 "k": 5,
              },
         ],
