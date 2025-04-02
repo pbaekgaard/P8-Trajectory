@@ -8,6 +8,7 @@ __pycache__/
 *$py.class
 .idea/
 */.cache/
+*venv*
 cache/
 *.osm*
 */build/

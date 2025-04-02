@@ -51,7 +51,7 @@ class CMakeBuild(build_ext):
         subprocess.check_call(['cmake', '--build', '.'] + build_args, cwd=self.build_temp)
 
     def generate_stubs(self, ext):
-        stubs_dir = os.path.join(self.build_lib)
+        stubs_dir = os.path.join(self.build_lib, "ostc")
         os.makedirs(stubs_dir, exist_ok=True)
         env = os.environ.copy()
         if 'PYTHONPATH' not in env:
@@ -60,21 +60,22 @@ class CMakeBuild(build_ext):
             env['PYTHONPATH'] += ':' + os.path.abspath(self.build_lib)
 
         try:
-            subprocess.check_call(['pybind11-stubgen', 'ostc', '-o', stubs_dir], env=env)
-            print(f"Generated stubs for {ext.name} in '{stubs_dir}'.")
+            subprocess.check_call(['pybind11-stubgen', 'ostc', '-o', self.build_lib], env=env)
+            print(f"Generated stubs for {ext.name} in '{self.build_lib}'.")
         except subprocess.CalledProcessError:
             print(f"Failed to generate stubs for {ext.name}", file=sys.stderr)
-        py_typed_path = os.path.join(self.build_lib, 'py.typed')
+        py_typed_path = os.path.join(stubs_dir, 'py.typed')
         open(py_typed_path, 'w').close()  # Create an empty file
 
 
 setup(
-    name='ostc',
+    name='OSTC',
     version='1.0.0',
-    author='Geoffrey Hunter',
-    author_email='gbmhunter@gmail.com',
-    description='A test project using pybind11 and CMake',
+    author='P8Project AAU 2025',
+    author_email='cs-25-sw-8-06@student.aau.dk',
+    description='A package for performing OSTC Compression',
     long_description='',
+    setup_requires=["pybind11_stubgen"],
     packages=find_packages(),
     package_data={'ostc': ['*']},
     ext_modules=[CMakeExtension('ostc', ".")],
