@@ -27,7 +27,8 @@ def when_query_processing(when_query, group_by_df):
 
         when_query_results.append(pd.DataFrame({"trajectory_id": [trajectory_id], "timestamp": [time_in_when_query_point.iloc[0]]}))
 
-    if len(when_query_results) == 0:
-        return pd.DataFrame(columns=["trajectory_id", "timestamp"])
-    when_query_result = pd.concat(when_query_results, ignore_index=True)
+    if when_query_results:
+        when_query_result = pd.concat(when_query_results, ignore_index=True)
+    else:
+        when_query_result = pd.DataFrame(columns=["trajectory_id", "timestamp"])
     return when_query_result
