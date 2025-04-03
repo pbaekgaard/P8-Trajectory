@@ -7,5 +7,4 @@ TEST(Trajectories, trajectories_are_equal)
     auto traj2 = Trajectory(2, std::vector<SamplePoint>{SamplePoint(3, 4, "")});
     EXPECT_TRUE(true);
     EXPECT_EQ(traj1, traj1);
-    EXPECT_TRUE(false);
 }
