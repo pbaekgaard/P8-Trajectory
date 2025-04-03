@@ -1,9 +1,7 @@
 #include "trajectory.hpp"
-#include "distance.hpp"
 #include <unordered_map>
 #include <iostream>
 #include <string>
-#include <iomanip>
 
 void run_example()
 {
