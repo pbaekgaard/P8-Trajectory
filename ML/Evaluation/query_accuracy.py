@@ -50,17 +50,21 @@ def query_original_dataset(dataset, queries):
     where_queries_results = []
     for where_query in where_queries:
         where_queries_results.append(where_query_processing(where_query, group_by_df))
-    print("where", where_queries_results)
-    # distance_queries = queries["distance"]
-    # distance_queries_results = []
-    # for distance_query in distance_queries:
-    #     distance_queries_results.append(distance_query_processing(distance_query, group_by_df))
-    #
-    # when_queries = queries["when"]
-    # when_queries_results = []
-    # for when_query in when_queries:
-    #     when_queries_results.append(when_query_processing(when_query, group_by_df))
-    #
+    print("where")
+    print(where_queries_results)
+    distance_queries = queries["distance"]
+    distance_queries_results = []
+    for distance_query in distance_queries:
+        distance_queries_results.append(distance_query_processing(distance_query, group_by_df))
+    print("distance")
+    print(distance_queries_results)
+    when_queries = queries["when"]
+    when_queries_results = []
+    for when_query in when_queries:
+        when_queries_results.append(when_query_processing(when_query, group_by_df))
+    print("when")
+    print(when_queries_results)
+
     # how_long_queries = queries["how_long"]
     # how_long_queries_results = []
     # for how_long_query in how_long_queries:
@@ -112,10 +116,10 @@ def create_queries():
                 "longitude": 116.595000,
                 "latitude": 39.991000
             },
-            {
-                "longitude": 1160.51230,
-                "latitude": 390.991000
-            }
+            # {
+            #     "longitude": 1160.51230,
+            #     "latitude": 390.991000
+            # }
         ],
         "how_long": [
             # 00:19, 00:01
