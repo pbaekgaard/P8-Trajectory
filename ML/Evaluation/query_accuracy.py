@@ -46,11 +46,11 @@ def query_original_dataset(dataset, queries):
     group_by_df = dataset.groupby("trajectory_id")
     # TODO: Det ligner der er noget galt med de første to. CHECK!
 
-    # where_queries = queries["where"]
-    # where_queries_results = []
-    # for where_query in where_queries:
-    #     where_queries_results.append(where_query_processing(where_query, group_by_df))
-    #
+    where_queries = queries["where"]
+    where_queries_results = []
+    for where_query in where_queries:
+        where_queries_results.append(where_query_processing(where_query, group_by_df))
+    print("where", where_queries_results)
     # distance_queries = queries["distance"]
     # distance_queries_results = []
     # for distance_query in distance_queries:
@@ -75,13 +75,13 @@ def query_original_dataset(dataset, queries):
     knn_queries_results = []
     for knn_query in knn_queries:
         knn_queries_results.append(knn_query_processing(knn_query, dataset))
-    print(knn_queries_results)
+    print("knn ", knn_queries_results)
 
     window_queries = queries["window"]
     window_queries_results = []
     for window_query in window_queries:
         window_queries_results.append(window_query_processing(window_query, dataset))
-    print(window_queries_results)
+    print("window ", window_queries_results)
     #
     # return where_queries_results, distance_queries_results, when_queries_results, count_queries_results, knn_queries_results, window_queries_results
 
