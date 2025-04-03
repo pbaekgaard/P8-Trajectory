@@ -32,6 +32,16 @@
       "options": {
         "cwd": "${workspaceFolder}/Debug"
       }
+    },
+    {
+      "label": "Run Tests",
+      "type": "shell",
+      "command": "
+GTEST_COLOR=1 ctest --test-dir Debug --output-on-failure -V
+",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
     }
   ]
 }
