@@ -1,5 +1,5 @@
 import pandas as pd
-from shapely.geometry import LineString
+from shapely.geometry import Point, LineString
 
 from ML.Evaluation.Queries._helper_functions_and_classes import get_adjusted_trajectory_segment
 
@@ -52,9 +52,9 @@ def does_overlap(df_within, df_before, df_after, window_query, overlap_threshold
         if trajectory_line_within_timeframe.distance(query_line) <= overlap_threshold:
             return True
 
-    elif len(trajectory_points_within_timeframe) == 1:
-        #TODO: Check om dette ene punkt er i windowet, jah? er det overhovedet nødvendigt? Kun relevant for trajectories med et punkt, jah?
-        pass
+    elif len(trajectory_points_within_timeframe) == 1 and (df_before.empty and df_after.empty):
+        if Point(trajectory_points_within_timeframe[0]).distance(query_line) <= overlap_threshold:
+            return True
 
     if df_before.empty and df_after.empty:
         return False
