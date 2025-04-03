@@ -1,8 +1,7 @@
 import pandas as pd
-from shapely.geometry import Point, LineString
 from pyproj import Transformer
 
-from ML.Evaluation.Queries._helper_functions_and_classes import MaxHeap, calculate_distance, trajectory_df_to_linestring
+from ML.Evaluation.Queries._helper_functions_and_classes import MaxHeap
 
 transformer = Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
 

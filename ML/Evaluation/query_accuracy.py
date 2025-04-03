@@ -116,10 +116,10 @@ def create_queries():
                 "longitude": 116.595000,
                 "latitude": 39.991000
             },
-            # {
-            #     "longitude": 1160.51230,
-            #     "latitude": 390.991000
-            # }
+            {
+                "longitude": 116.51230,
+                "latitude": 39.991000
+            }
         ],
         "how_long": [
             # 00:19, 00:01
