@@ -1,7 +1,8 @@
+import pyproj
 from haversine import haversine, Unit
 import pandas as pd
 from shapely.geometry import Point, LineString
-from pyproj import Transformer
+from pyproj import Transformer, enums
 import math
 import heapq
 
@@ -101,7 +102,7 @@ def trajectory_df_to_linestring(traj_df):
     return LineString(points)
 
 
-def is_point_on_trajectory(query_point, trajectory_line, threshold: float = 0.001):
+def closest_endpoints_on_trajectory_if_within_threshold(query_point, group_df, threshold: float = 100):
     #TODO: RENAME!!!
     """
     Check if query_point is within a threshold distance to trajectory_line.
@@ -109,14 +110,15 @@ def is_point_on_trajectory(query_point, trajectory_line, threshold: float = 0.00
       (pt1, pt2)
     where (pt1, pt2) are the endpoints of the segment that the query point projects onto.
     """
+    trajectory_line = trajectory_df_to_linestring(group_df)
     distance = query_point.distance(trajectory_line)
     on_traj = distance < threshold
-    seg_endpoints = None
+    seg_endpoints = pd.DataFrame()
     if on_traj:
-        seg_endpoints = find_segment_endpoints(trajectory_line, query_point)
-    return pd.DataFrame(seg_endpoints, columns=["longitude", "latitude"])
+        seg_endpoints = find_segment_endpoints(trajectory_line, group_df,  query_point)
+    return seg_endpoints
 
-def find_segment_endpoints(line, query_point):
+def find_segment_endpoints(line, df, query_point):
     """
     Given a LineString and its coordinate list, compute the distance along the line where
     query_point projects and return the two consecutive coordinate pairs (segment endpoints)
@@ -129,10 +131,10 @@ def find_segment_endpoints(line, query_point):
         seg = LineString([coords[i], coords[i+1]])
         seg_length = seg.length
         if cumulative + seg_length >= proj_distance:
-            return coords[i], coords[i+1]
+            return df.iloc[[i, i+1]]
         cumulative += seg_length
     # Fallback: return the last segment if projection is at the very end
-    return coords[-2], coords[-1]
+    return df.iloc[[-2, -1]]
 
 
 def get_bounding_box(lat, lon, distance):
