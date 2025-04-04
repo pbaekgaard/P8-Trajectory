@@ -50,7 +50,7 @@ id(t.id), start_index(t.start_index), end_index(t.end_index)
 std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> Trajectory::MRTSearch(
     std::vector<Trajectory>& RefSet, const double epsilon)
 {
-    std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> M;
+    std::unordered_map<Trajectory, std::vector<Trajectory>> M;
 
     for (auto i = 0; i < points.size(); ++i) {
         auto j = i+1;
