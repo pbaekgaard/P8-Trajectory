@@ -19,7 +19,7 @@ struct SamplePoint
     double latitude;        // latitude
     std::string timestamp;  // timestamp
 
-    SamplePoint(double x, double y, std::string t): longitude(x), latitude(y), timestamp(std::move(t)) {}
+    SamplePoint(double x, double y, std::string t = ""): longitude(x), latitude(y), timestamp(std::move(t)) {}
 
     bool operator==(const SamplePoint& other) const;
 };
