@@ -10,6 +10,9 @@
 #include <vector>
 #include <cmath>
 
+
+struct Trajectory;
+
 struct SamplePoint
 {
     double longitude;       // longitude
@@ -35,19 +38,20 @@ struct ReferenceTrajectory
     short end_index = -1;
 
     ReferenceTrajectory(uint32_t id, short start_index, short end_index);
+    ReferenceTrajectory(const Trajectory& t);
 };
 
 struct Trajectory
 {
     uint32_t id;
     std::vector<SamplePoint> points;
-    int start_index = -1;
-    int end_index = -1;
-
+    short start_index = -1;
+    short end_index = -1;
+    
     Trajectory(const uint32_t id, const std::vector<SamplePoint>& points);
-    Trajectory(const uint32_t id, const std::vector<SamplePoint>& points, int start_index, int end_index);
+    Trajectory(const uint32_t id, const std::vector<SamplePoint>& points, short start_index, short end_index);
 
-    Trajectory operator()(int start, int end);
+    Trajectory operator()(short start, short end);
 
     bool operator==(const Trajectory& other) const;
 
@@ -60,8 +64,7 @@ struct Trajectory
         }
         return os;
     }
-    std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> MRTSearch(std::vector<Trajectory>& Trajectories,
-                                                                               std::vector<uint32_t> RefSet,
+    std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> MRTSearch(std::vector<Trajectory>& RefSet,
                                                                                const double epsilon);
     std::vector<ReferenceTrajectory> OSTC(std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> M);
 };

@@ -5,28 +5,62 @@
 
 void run_example()
 {
-    Trajectory t1(1, std::vector{SamplePoint(3.0, 16.0, "ts"), SamplePoint(5.2, 17.5, "ts"),
-                                 SamplePoint(6.7, 17.5, "ts"), SamplePoint(9.0, 16.0, "ts")});
-    Trajectory t2(2, std::vector{SamplePoint(4.0, 15.0, "ts"), SamplePoint(5.0, 15.0, "ts"),
-                                 SamplePoint(6.3, 17.4, "ts"), SamplePoint(7.8, 17.4, "ts")});
-    Trajectory t3(3, std::vector{SamplePoint(2.0, 14.0, "ts"), SamplePoint(4.0, 14.0, "ts"),
-                                 SamplePoint(6.0, 14.0, "ts"), SamplePoint(7.0, 14.0, "ts")});
-    Trajectory t4(4, std::vector{SamplePoint(5.0, 17.0, "ts"), SamplePoint(6.5, 17.0, "ts"),
-                                 SamplePoint(8.0, 17.0, "ts"), SamplePoint(9.5, 17.0, "ts")});
-    Trajectory t5(5, std::vector{SamplePoint(3.5, 19.0, "ts"), SamplePoint(5.5, 19.0, "ts"),
-                                 SamplePoint(7.0, 19.0, "ts"), SamplePoint(8.0, 19.0, "ts")});
-    std::vector<Trajectory> Trajectories{t1, t2, t3, t4, t5};
-    std::vector<uint32_t> RefSet{0, 1, 1, 3, 3};
-    std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> M = t4.MRTSearch(Trajectories, RefSet, 0.9);
-    try {
-        std::vector<ReferenceTrajectory> T_prime = t4.OSTC(M);
-        std::cout << "Compressed trajectory T':\n";
-        for (const auto& mrt : T_prime) {
-            std::cout << "MRT: (id=" << mrt.id << ", start=" << mrt.start_index << ", end=" << mrt.end_index << ")\n";
-        }
-    } catch (const std::exception& e) {
-        std::cerr << "Error: " << e.what() << "\n";
-    }
+        Trajectory t(0, std::vector<SamplePoint>{
+        SamplePoint(3, 15.5, "ts"), SamplePoint(5, 15.5, "ts"), SamplePoint(7, 15.5, "ts"),
+        SamplePoint(8.5, 15.5, "ts"), SamplePoint(9.5, 15.5, "ts"), SamplePoint(10, 15.5, "ts"),
+        SamplePoint(11, 15.5, "ts"), SamplePoint(11.5, 14, "ts"), SamplePoint(11.5, 12, "ts"),
+        SamplePoint(11.5, 11, "ts"), SamplePoint(11.5, 10, "ts"), SamplePoint(11.5, 8, "ts"),
+        SamplePoint(11.5, 5.5, "ts"), SamplePoint(13, 4, "ts"), SamplePoint(14, 3, "ts"),
+        SamplePoint(14, 2, "ts"), SamplePoint(16, 2, "ts"), SamplePoint(18.5, 2, "ts"),
+        SamplePoint(20.5, 2, "ts"), SamplePoint(21.5, 2, "ts")
+    });
+
+
+    Trajectory t1(1, std::vector<SamplePoint>{
+        SamplePoint(3, 14.5, "ts"), SamplePoint(5, 14.5, "ts"), SamplePoint(7, 14.5, "ts")
+    });
+
+    Trajectory t2(2, std::vector<SamplePoint>{
+        SamplePoint(5, 16, "ts"), SamplePoint(8, 16, "ts"), SamplePoint(8.5, 16, "ts"),
+        SamplePoint(9.5, 16, "ts"), SamplePoint(12, 15.5, "ts"), SamplePoint(12.5, 14.5, "ts"),
+        SamplePoint(12.5, 13.5, "ts"), SamplePoint(12.5, 12, "ts")
+    });
+
+    Trajectory t3(3, std::vector<SamplePoint>{
+        SamplePoint(8, 14.5, "ts"), SamplePoint(10, 14.5, "ts"), SamplePoint(11, 14, "ts"),
+        SamplePoint(11.5, 12, "ts")
+    });
+
+    Trajectory t4(4, std::vector<SamplePoint>{
+        SamplePoint(11.5, 11, "ts"), SamplePoint(11.5, 10, "ts"), SamplePoint(11.5, 8.5, "ts"),
+        SamplePoint(11.5, 8, "ts"), SamplePoint(11.5, 6, "ts"), SamplePoint(11.5, 5, "ts"),
+        SamplePoint(12.5, 4, "ts"), SamplePoint(13, 3.5, "ts"), SamplePoint(13.5, 3, "ts"),
+        SamplePoint(13.5, 2, "ts")
+    });
+
+    Trajectory t5(5, std::vector<SamplePoint>{
+        SamplePoint(12.5, 11, "ts"), SamplePoint(12.5, 10, "ts"), SamplePoint(12.5, 8, "ts"),
+        SamplePoint(12.5, 6, "ts"), SamplePoint(13.5, 4.5, "ts"), SamplePoint(14.5, 3.5, "ts")
+    });
+
+    Trajectory t6(6, std::vector<SamplePoint>{
+        SamplePoint(14.5, 2.5, "ts"), SamplePoint(16, 2.5, "ts")
+    });
+
+    Trajectory t7(7, std::vector<SamplePoint>{
+        SamplePoint(18, 2.5, "ts"), SamplePoint(20, 2.5, "ts"), SamplePoint(22, 2.5, "ts")
+    });
+    std::vector<Trajectory> RefSet{ t1, t2, t3, t4, t5,t6, t7};
+    std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> M = t.MRTSearch(RefSet, 0.9);
+    // try {
+    //     std::vector<ReferenceTrajectory> T_prime = t.OSTC(M);
+    //     std::cout << "Compressed trajectory T':\n";
+    //     for (const auto& mrt : T_prime) {
+    //         std::cout << "MRT: (id=" << mrt.id << ", start=" << mrt.start_index << ", end=" << mrt.end_index << ")\n";
+    //     }
+    // } catch (const std::exception& e) {
+    //     std::cerr << "Error: " << e.what() << "\n";
+    // }
 }
 #ifndef Debug
 #include <pybind11/pybind11.h>
