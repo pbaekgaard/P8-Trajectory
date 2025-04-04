@@ -1,3 +1,4 @@
+#include "gtest/gtest.h"
 #include <gtest/gtest.h>
 #include <trajectory.hpp>
 
@@ -25,6 +26,7 @@ TEST(Trajectories, subtrajectories_are_subsets_of_parent_trajectory)
 TEST(Trajectories, mrtset_is_correct_format)
 {
     // SKIPPED: Skipped until mrtsearch is done.
+    GTEST_SKIP_("SKIP UNTIL MRTSEARCH IS DONE");
     auto T1 =
         Trajectory(1, std::vector<SamplePoint>{SamplePoint(2.0, 2.5), SamplePoint(1.5, 3.0), SamplePoint(1.5, 4.0),
                                                SamplePoint(1.5, 5.5), SamplePoint(1.5, 7.0), SamplePoint(1.5, 8.5),
@@ -88,6 +90,9 @@ TEST(Trajectories, mrtset_is_correct_format)
                SamplePoint(12.0, 5.5),  SamplePoint(13.0, 4.0),  SamplePoint(14.0, 3.0),  SamplePoint(14.0, 2.0),
                SamplePoint(16.0, 2.0),  SamplePoint(18.5, 2.0),  SamplePoint(20.5, 2.0),  SamplePoint(21.5, 2.0),
            });
-    // EXCEPT: T(2,9).mrtsearch(references,0.9) gives unordered map with M(T(2,9) = {T2(1,8)})
-    // auto M = T.MRTSearch(references, 0.9);
+    auto M = T.MRTSearch(references, 0.9);
+    auto expected_M1 = std::vector<ReferenceTrajectory>{T2(1, 9)};
+    auto expected_M2 = std::vector<ReferenceTrajectory>{T4(6, 14), T5(7, 12)};
+    EXPECT_EQ(M[T(2, 9)], expected_M1);
+    EXPECT_EQ(M[T(10, 15)], expected_M2);
 }
