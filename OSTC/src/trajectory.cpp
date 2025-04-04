@@ -44,20 +44,20 @@ ReferenceTrajectory::ReferenceTrajectory(const uint32_t id, const short start_in
 {}
 
 ReferenceTrajectory::ReferenceTrajectory(const Trajectory& t):
-id(t.id), start_index(t.start_index), end_index(t.end_index)
+    id(t.id), start_index(t.start_index), end_index(t.end_index)
 {}
 
-std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> Trajectory::MRTSearch(
-    std::vector<Trajectory>& RefSet, const double epsilon)
+std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> Trajectory::MRTSearch(std::vector<Trajectory>& RefSet,
+                                                                                       const double epsilon)
 {
     std::unordered_map<Trajectory, std::vector<Trajectory>> M;
 
     for (auto i = 0; i < points.size(); ++i) {
-        auto j = i+1;
-        auto current_sub_traj = (*this)(i,j);
+        auto j = i + 1;
+        auto current_sub_traj = (*this)(i, j);
         for (auto& ref_trajectory : RefSet) {
             for (auto k = 0; k < ref_trajectory.points.size(); ++k) {
-                auto l = k+1;
+                auto l = k + 1;
                 auto ref_sub_traj = ref_trajectory(k, l);
 
                 if (maxDTW(current_sub_traj, ref_sub_traj) < epsilon) {
@@ -68,8 +68,8 @@ std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> Trajectory::MRT
     }
 
     for (auto n = 3; n < points.size(); ++n) {
-        for (auto k = 0; k+n-1 < points.size(); ++k) {
-            auto lengthNSubtrajectory = (*this)(k, k+n-1);
+        for (auto k = 0; k + n - 1 < points.size(); ++k) {
+            auto lengthNSubtrajectory = (*this)(k, k + n - 1);
 
             auto T_a_vector = M[(*this)(lengthNSubtrajectory.start_index, lengthNSubtrajectory.end_index - 1)];
             auto T_b_vector = M[(*this)(lengthNSubtrajectory.end_index - 1, lengthNSubtrajectory.end_index)];
@@ -103,7 +103,6 @@ std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> Trajectory::MRT
     // TODO: Convert M values to ReferenceTrajectory
 
     return M1;
-
 }
 
 std::vector<ReferenceTrajectory> Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> M)
