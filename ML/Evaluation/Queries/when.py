@@ -19,7 +19,6 @@ def when_query_processing(when_query, group_by_df):
         point_before = nearby_points_df.iloc[[0]]
         point_after = nearby_points_df.iloc[[1]]
         when_query_as_df = pd.DataFrame({"latitude": [when_query["latitude"]], "longitude": when_query["longitude"]})
-
         total_distance = calculate_distance(pd.concat([point_before, when_query_as_df, point_after]).reset_index(drop=True))
         distance_to_point_before = calculate_distance(pd.concat([point_before, when_query_as_df]).reset_index(drop=True))
         percentage_distance = distance_to_point_before / total_distance if total_distance != 0 else 0
@@ -28,7 +27,6 @@ def when_query_processing(when_query, group_by_df):
         time_in_when_query_point = pd.to_datetime(point_before["timestamp"]).reset_index(drop=True) + (percentage_distance * diff_timestamp)
 
         when_query_results.append(pd.DataFrame({"trajectory_id": [trajectory_id], "timestamp": [time_in_when_query_point.iloc[0]]}))
-        print("")
     if when_query_results:
         when_query_result = pd.concat(when_query_results, ignore_index=True)
     else:
