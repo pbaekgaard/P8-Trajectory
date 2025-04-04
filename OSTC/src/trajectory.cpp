@@ -81,12 +81,14 @@ std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> Trajectory::MRT
 
             for (const auto& T_a : T_a_vector) {
                 if (maxDTW(lengthNSubtrajectory, T_a) <= epsilon) {
+                    std::cout << "T_a: " <<T_a << std::endl;
                     M[lengthNSubtrajectory].push_back(T_a);
                 }
             }
 
             for (const auto& T_b : T_b_vector) {
                 if (maxDTW(lengthNSubtrajectory, T_b) <= epsilon) {
+                    std::cout <<"T_b: " << T_b << std::endl;
                     M[lengthNSubtrajectory].push_back(T_b);
                 }
             }
@@ -94,6 +96,7 @@ std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> Trajectory::MRT
             for (auto& T_a : T_a_vector) {
                 for (const auto& T_b : T_b_vector) {
                     if (T_a.id == T_b.id && T_a.end_index == T_b.start_index) {
+                        std::cout << "Merged: " <<T_a(T_a.start_index, T_b.end_index) << std::endl;
                         M[lengthNSubtrajectory].push_back(T_a(T_a.start_index, T_b.end_index));
                     }
                 }
