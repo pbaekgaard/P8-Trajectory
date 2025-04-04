@@ -9,7 +9,8 @@ def distance_query_processing(distance_query, group_by_df):
 
     distance_query_results = []
     for trajectory_id, group_df in group_by_df:
-        if trajectory_id not in first_positions["trajectory_id"].values or trajectory_id not in last_positions["trajectory_id"].values: continue # ignore because we need at least two points to calculate distance
+        if trajectory_id not in first_positions["trajectory_id"].values or trajectory_id not in last_positions["trajectory_id"].values:
+            continue # ignore because we need at least two points to calculate distance
         is_point_between = (distance_query["time_first"] < group_df["timestamp"]) & (group_df["timestamp"] < distance_query["time_last"])
         middle_positions = group_df[is_point_between]
 
@@ -17,5 +18,7 @@ def distance_query_processing(distance_query, group_by_df):
 
         distance_query_results.append(pd.DataFrame({"trajectory_id": [trajectory_id], "distance": [calculate_distance(position_df)]}))
 
+    if not distance_query_results:
+        return pd.DataFrame(columns=["trajectory_id", "distance"])
     distance_query_result = pd.concat(distance_query_results, ignore_index=True)
     return distance_query_result

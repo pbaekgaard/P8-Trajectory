@@ -98,7 +98,11 @@ def calculate_distance(position_df: pd.DataFrame) -> int:
 def trajectory_df_to_linestring(traj_df):
     """Convert a DataFrame of points into a Shapely LineString.
        Assumes points are in order by timestamp."""
+    if traj_df.empty:
+        return None
     points = [Point(transformer.transform(lon, lat)) for lon, lat in zip(traj_df["longitude"], traj_df["latitude"])]
+    if len(points) == 1:
+        return points[0]
     return LineString(points)
 
 
@@ -111,6 +115,8 @@ def closest_endpoints_on_trajectory_if_within_threshold(query_point, group_df, t
     where (pt1, pt2) are the endpoints of the segment that the query point projects onto.
     """
     trajectory_line = trajectory_df_to_linestring(group_df)
+    if trajectory_line is None:
+        return None
     distance = query_point.distance(trajectory_line)
     on_traj = distance < threshold
     seg_endpoints = pd.DataFrame()
@@ -124,6 +130,8 @@ def find_segment_endpoints(line, df, query_point):
     query_point projects and return the two consecutive coordinate pairs (segment endpoints)
     that contain this projection.
     """
+    if type(line) == Point:
+        return df.iloc[[0]]
     proj_distance = line.project(query_point)
     coords = list(line.coords)
     cumulative = 0.0
