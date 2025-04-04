@@ -32,6 +32,11 @@ bool Trajectory::operator==(const Trajectory& other) const
     return (id == other.id && start_index == other.start_index && end_index == other.end_index);
 }
 
+bool ReferenceTrajectory::operator==(const ReferenceTrajectory& other) const
+{
+    return (id == other.id && start_index == other.start_index && end_index == other.end_index);
+}
+
 std::size_t std::hash<Trajectory>::operator()(const Trajectory& t) const noexcept
 {
     return ((hash<uint32_t>()(t.id) ^ (hash<short>()(t.start_index) << 2) ^ (hash<short>()(t.end_index) >> 1) ^
