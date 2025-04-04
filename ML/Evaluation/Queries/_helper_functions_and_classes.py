@@ -80,7 +80,7 @@ class MaxHeap:
         return [obj["trajectory_id"] for _, obj in sorted(self.heap, key=lambda x: x[0], reverse=True)]
 
 
-# FUNCTION:
+# FUNCTIONS:
 
 transformer = Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
 
