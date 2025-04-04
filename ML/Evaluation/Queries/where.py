@@ -24,8 +24,9 @@ def where_query_processing(where_query, group_by_df):
 
         temp_list.append(new_row)
 
-
-    where_query_df = pd.concat(temp_list, ignore_index=True)
+    where_query_df = pd.concat(temp_list, ignore_index=True) if temp_list else None
+    if where_query_df is None:
+        return pd.DataFrame(columns=["trajectory_id", "longitude", "latitude"])
     denominator = (pd.to_datetime(where_query_df["greater_than_time"]) - pd.to_datetime(where_query_df["less_than_time"])).dt.total_seconds()
     denominator = denominator.replace(0, np.nan)
 

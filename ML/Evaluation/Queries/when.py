@@ -14,7 +14,7 @@ def when_query_processing(when_query, group_by_df):
     when_query_results = []
     for trajectory_id, group_df in group_by_df:
         nearby_points_df = closest_endpoints_on_trajectory_if_within_threshold(Point(transformer.transform(when_query["longitude"], when_query["latitude"])), group_df)
-        if nearby_points_df.empty:
+        if nearby_points_df is None or nearby_points_df.size < 2:
             continue
         point_before = nearby_points_df.iloc[[0]]
         point_after = nearby_points_df.iloc[[1]]
