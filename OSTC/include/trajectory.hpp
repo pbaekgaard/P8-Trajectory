@@ -10,7 +10,6 @@
 #include <vector>
 #include <cmath>
 
-
 struct Trajectory;
 
 struct SamplePoint
@@ -19,7 +18,7 @@ struct SamplePoint
     double latitude;        // latitude
     std::string timestamp;  // timestamp
 
-    SamplePoint(double x, double y, std::string t): longitude(x), latitude(y), timestamp(std::move(t)) {}
+    SamplePoint(double x, double y, std::string t = ""): longitude(x), latitude(y), timestamp(std::move(t)) {}
 
     bool operator==(const SamplePoint& other) const;
 };
@@ -38,6 +37,7 @@ struct ReferenceTrajectory
     short end_index = -1;
 
     ReferenceTrajectory(uint32_t id, short start_index, short end_index);
+    bool operator==(const ReferenceTrajectory& other) const;
     ReferenceTrajectory(const Trajectory& t);
 };
 
@@ -47,7 +47,7 @@ struct Trajectory
     std::vector<SamplePoint> points;
     short start_index = -1;
     short end_index = -1;
-    
+
     Trajectory(const uint32_t id, const std::vector<SamplePoint>& points);
     Trajectory(const uint32_t id, const std::vector<SamplePoint>& points, short start_index, short end_index);
 
