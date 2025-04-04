@@ -76,6 +76,7 @@ void run_example()
     });
     std::vector<Trajectory> RefSet{ t1, t2, t3, t4, t5,t6, t7};
     std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> M = t.MRTSearch(RefSet, 0.9);
+    std::cout << M.size() << std::endl;
     // try {
     //     std::vector<ReferenceTrajectory> T_prime = t.OSTC(M);
     //     std::cout << "Compressed trajectory T':\n";

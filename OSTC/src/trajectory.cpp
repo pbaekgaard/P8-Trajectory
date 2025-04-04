@@ -27,6 +27,14 @@ Trajectory Trajectory::operator()(const short start, const short end)
     return Trajectory(id, std::vector<SamplePoint>(points.begin() + start, points.begin() + end + 1), start, end);
 }
 
+Trajectory Trajectory::operator+(Trajectory other)
+{
+    auto mergedPoints = points;
+    std::copy(other.points.begin()+1, other.points.end(), std::back_inserter(mergedPoints));
+
+    return Trajectory(id, mergedPoints, start_index, other.end_index);
+}
+
 bool Trajectory::operator==(const Trajectory& other) const
 {
     return (id == other.id && start_index == other.start_index && end_index == other.end_index);
@@ -76,19 +84,21 @@ std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> Trajectory::MRT
         for (auto k = 0; k + n - 1 < points.size(); ++k) {
             auto lengthNSubtrajectory = (*this)(k, k + n - 1);
 
-            auto T_a_vector = M[(*this)(lengthNSubtrajectory.start_index, lengthNSubtrajectory.end_index - 1)];
-            auto T_b_vector = M[(*this)(lengthNSubtrajectory.end_index - 1, lengthNSubtrajectory.end_index)];
+            auto T_a_entry = M.find((*this)(lengthNSubtrajectory.start_index, lengthNSubtrajectory.end_index - 1));
+            auto T_b_entry = M.find((*this)(lengthNSubtrajectory.end_index - 1, lengthNSubtrajectory.end_index));
+
+
+            auto T_a_vector = T_a_entry != M.end() ? T_a_entry->second : std::vector<Trajectory>();
+            auto T_b_vector = T_b_entry != M.end() ? T_b_entry->second : std::vector<Trajectory>();
 
             for (const auto& T_a : T_a_vector) {
                 if (maxDTW(lengthNSubtrajectory, T_a) <= epsilon) {
-                    std::cout << "T_a: " <<T_a << std::endl;
                     M[lengthNSubtrajectory].push_back(T_a);
                 }
             }
 
             for (const auto& T_b : T_b_vector) {
                 if (maxDTW(lengthNSubtrajectory, T_b) <= epsilon) {
-                    std::cout <<"T_b: " << T_b << std::endl;
                     M[lengthNSubtrajectory].push_back(T_b);
                 }
             }
@@ -96,8 +106,7 @@ std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> Trajectory::MRT
             for (auto& T_a : T_a_vector) {
                 for (const auto& T_b : T_b_vector) {
                     if (T_a.id == T_b.id && T_a.end_index == T_b.start_index) {
-                        std::cout << "Merged: " <<T_a(T_a.start_index, T_b.end_index) << std::endl;
-                        M[lengthNSubtrajectory].push_back(T_a(T_a.start_index, T_b.end_index));
+                        M[lengthNSubtrajectory].push_back(T_a + T_b);
                     }
                 }
             }
@@ -105,7 +114,16 @@ std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> Trajectory::MRT
     }
 
     std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> M1;
-    // TODO: Convert M values to ReferenceTrajectory
+    for (const auto& pair : M) {
+        std::vector<ReferenceTrajectory> refTrajectories;
+        refTrajectories.reserve(pair.second.size());
+
+        for (const auto& ref_trajectory : pair.second) {
+            refTrajectories.emplace_back(ref_trajectory);
+        }
+
+        M1[pair.first] = refTrajectories;
+    }
 
     return M1;
 }

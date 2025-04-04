@@ -53,6 +53,8 @@ struct Trajectory
 
     Trajectory operator()(short start, short end);
 
+    Trajectory operator+(Trajectory other);
+
     bool operator==(const Trajectory& other) const;
 
     friend std::ostream& operator<<(std::ostream& os, const Trajectory& traj)
