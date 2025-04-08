@@ -24,6 +24,10 @@ Trajectory::Trajectory(const uint32_t id, const std::vector<SamplePoint>& points
 
 Trajectory Trajectory::operator()(const short start, const short end)
 {
+    if (end + 1 > points.size()) {
+        return Trajectory(id, std::vector<SamplePoint>(points.begin() + start, points.begin() + end), start, end);
+    }
+
     return Trajectory(id, std::vector<SamplePoint>(points.begin() + start, points.begin() + end + 1), start, end);
 }
 
@@ -65,11 +69,11 @@ std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> Trajectory::MRT
 {
     std::unordered_map<Trajectory, std::vector<Trajectory>> M;
 
-    for (auto i = 0; i < points.size(); ++i) {
+    for (auto i = 0; i < points.size(); i++) {
         auto j = i + 1;
         auto current_sub_traj = (*this)(i, j);
         for (auto& ref_trajectory : RefSet) {
-            for (auto k = 0; k < ref_trajectory.points.size(); ++k) {
+            for (auto k = 0; k < ref_trajectory.points.size(); k++) {
                 auto l = k + 1;
                 auto ref_sub_traj = ref_trajectory(k, l);
 
@@ -80,8 +84,8 @@ std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> Trajectory::MRT
         }
     }
 
-    for (auto n = 3; n < points.size(); ++n) {
-        for (auto k = 0; k + n - 1 < points.size(); ++k) {
+    for (auto n = 3; n < points.size(); n++) {
+        for (auto k = 0; k + n - 1 < points.size(); k++) {
             auto lengthNSubtrajectory = (*this)(k, k + n - 1);
 
             auto T_a_entry = M.find((*this)(lengthNSubtrajectory.start_index, lengthNSubtrajectory.end_index - 1));
@@ -124,66 +128,16 @@ std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> Trajectory::MRT
 
         M1[pair.first] = refTrajectories;
     }
-
+    auto found = M.find((*this)(9,14));
     return M1;
 }
 
+
 std::vector<ReferenceTrajectory> Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> M)
 {
-    std::vector<int64_t> FT(points.size() + 1, std::numeric_limits<int64_t>::max());
-    FT[0] = 0;
-    std::vector<int> prev(points.size() + 1, -1);
-
-    for (int i = 1; i <= static_cast<int>(points.size()); ++i) {
-        int64_t minCost = FT[i - 1] + 8;  // Cost of storing the i-th point as an original sample
-        int bestJ = i;                    // Default to storing the point directly
-
-        for (int j = 1; j <= i; ++j) {
-            Trajectory subTraj = (*this)(j - 1, i - 1);
-            auto it = M.find(subTraj);
-            if (it != M.end() && !it->second.empty()) {
-                int64_t cost = FT[j - 1] + 8;  // Cost of using an MRT
-                if (cost < minCost) {
-                    minCost = cost;
-                    bestJ = j;
-                }
-            }
-        }
-
-        FT[i] = minCost;
-        prev[i] = bestJ;
-    }
-
-    // Debug: Print FT and prev
-    std::cout << "FT: ";
-    for (int i = 0; i <= points.size(); ++i) {
-        std::cout << FT[i] << " ";
-    }
-    std::cout << "\nprev: ";
-    for (int i = 0; i <= points.size(); ++i) {
-        std::cout << prev[i] << " ";
-    }
-    std::cout << "\n";
-
+    std::vector<uint16_t> Ft{0};
     std::vector<ReferenceTrajectory> T_prime;
-    int i = points.size();
-    while (i > 0) {
-        int j = prev[i];
-        if (j == -1) {
-            break;
-        }
-        if (j == i) {  // Store the original point
-            // Note: Adjust this based on how you want to represent original points in T_prime
-            i--;
-        } else {  // Use an MRT
-            Trajectory subTraj = (*this)(j - 1, i - 1);
-            auto it = M.find(subTraj);
-            if (it != M.end() && !it->second.empty()) {
-                T_prime.push_back(it->second[0]);
-            }
-            i = j - 1;
-        }
-    }
-    std::ranges::reverse(T_prime.begin(), T_prime.end());
+
     return T_prime;
 }
+
