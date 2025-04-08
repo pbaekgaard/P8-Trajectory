@@ -51,9 +51,9 @@ struct Trajectory
     Trajectory(const uint32_t id, const std::vector<SamplePoint>& points);
     Trajectory(const uint32_t id, const std::vector<SamplePoint>& points, short start_index, short end_index);
 
-    Trajectory operator()(short start, short end);
+    Trajectory operator()(short start, short end) const;
 
-    Trajectory operator+(Trajectory other);
+    Trajectory operator+(const Trajectory& other) const;
 
     bool operator==(const Trajectory& other) const;
 

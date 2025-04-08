@@ -3,17 +3,17 @@
 #include "distance.hpp"    // Include the header for euclideanDistance function
 
 // Test the EuclideanDistance function for correctness
-TEST(EuclideanDistance, IsCorrectDistance)
+TEST(distance, IsCorrectDistance)
 {
     // Arrange: Create two SamplePoint objects
     auto point1 = SamplePoint(3.0, 16.0, "ts");
     auto point2 = SamplePoint(1.0, 20.0, "ts");
 
     // Act: Calculate the Euclidean distance
-    auto distance = euclideanDistance(point1, point2);
+    auto dist = distance(point1, point2);
     // Assert: Check if the calculated distance is correct
     double expectedDistance = std::sqrt(std::pow(3.0 - 1.0, 2) + std::pow(16.0 - 20.0, 2));  // Calculate manually
-    EXPECT_EQ(distance, expectedDistance);  // Expect the distance to be within a small tolerance (1e-6)
+    EXPECT_EQ(dist, expectedDistance);  // Expect the distance to be within a small tolerance (1e-6)
 }
 
 TEST(MaxDTW, IsCorrectDistance)
