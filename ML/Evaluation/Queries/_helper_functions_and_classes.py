@@ -219,8 +219,8 @@ def get_adjusted_trajectory_segment(point1, point2, time1, time2, query_t1, quer
     If the entire segment is outside the timeframe, return None.
     """
     # Convert query timestamps to Timestamp instead of strings
-    query_t1 = datetime.strptime(query_t1, "%Y-%m-%d %H:%M:%S")
-    query_t2 = datetime.strptime(query_t2, "%Y-%m-%d %H:%M:%S")
+    # query_t1 = datetime.strptime(query_t1, "%Y-%m-%d %H:%M:%S")
+    # query_t2 = datetime.strptime(query_t2, "%Y-%m-%d %H:%M:%S")
 
     # If the entire segment is outside the timeframe, return None
     if time2 < query_t1 or time1 > query_t2:
