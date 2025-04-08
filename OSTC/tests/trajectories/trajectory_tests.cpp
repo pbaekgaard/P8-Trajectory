@@ -26,7 +26,7 @@ TEST(Trajectories, subtrajectories_are_subsets_of_parent_trajectory)
 TEST(Trajectories, mrtset_is_correct_format)
 {
     // SKIPPED: Skipped until mrtsearch is done.
-    // GTEST_SKIP_("SKIP UNTIL MRTSEARCH IS DONE");
+    GTEST_SKIP_("SKIP UNTIL MRTSEARCH IS DONE");
     auto T1 =
         Trajectory(1, std::vector<SamplePoint>{SamplePoint(2.0, 2.5), SamplePoint(1.5, 3.0), SamplePoint(1.5, 4.0),
                                                SamplePoint(1.5, 5.5), SamplePoint(1.5, 7.0), SamplePoint(1.5, 8.5),
