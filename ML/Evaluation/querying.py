@@ -11,15 +11,15 @@ def query_original_dataset(dataset, queries):
     #TODO: MAYBE: maybe make universal query_dataset_function with query_functions as argument
     group_by_df = dataset.groupby("trajectory_id")
 
-    # where_queries = queries["where"]
-    # where_queries_results = []
-    # for where_query in where_queries:
-    #     where_queries_results.append(where_query_processing(where_query, group_by_df))
+    where_queries = queries["where"]
+    where_queries_results = []
+    for where_query in where_queries:
+        where_queries_results.append(where_query_processing(where_query, group_by_df))
     print("where done")
-    # distance_queries = queries["distance"]
-    # distance_queries_results = []
-    # for distance_query in distance_queries:
-    #     distance_queries_results.append(distance_query_processing(distance_query, group_by_df))
+    distance_queries = queries["distance"]
+    distance_queries_results = []
+    for distance_query in distance_queries:
+        distance_queries_results.append(distance_query_processing(distance_query, group_by_df))
     print("distance done")
     when_queries = queries["when"]
     when_queries_results = []
