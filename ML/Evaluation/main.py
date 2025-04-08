@@ -1,6 +1,9 @@
 import os
 import argparse
 import pandas as pd
+import sys
+
+sys.path.append(os.path.dirname(os.path.abspath(__file__ + "/../../")))
 
 from tools.scripts._preprocess import main as _load_data
 from tools.scripts._load_data import load_compressed_data as _load_compressed_data
@@ -41,17 +44,17 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # create all that does not exist
-    if not os.path.exists("./files/queries_for_evaluation.pkl") or args.force:
+    if not os.path.exists(os.path.abspath(__file__ + "./files/queries_for_evaluation.pkl")) or args.force:
         create_queries(amount_of_individual_queries=7)
     queries = load_data_from_file({
         "filename": "queries_for_evaluation",
     })
     #queries = dummy_create_queries()
-    if not os.path.exists("./files/original_query_results.pkl") or args.force:
+    if not os.path.exists(os.path.abspath(__file__ + "./files/original_query_results.pkl")) or args.force:
         dataset = _load_data()
         #dataset = pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
         query_original_dataset(dataset, queries)
-    if not os.path.exists("./files/compressed_query_results.pkl") or args.force:
+    if not os.path.exists(os.path.abspath(__file__ + "./files/compressed_query_results.pkl")) or args.force:
         pass
 
     query_results = load_data_from_file({
