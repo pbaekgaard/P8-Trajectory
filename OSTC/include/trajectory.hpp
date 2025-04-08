@@ -66,9 +66,11 @@ struct Trajectory
         }
         return os;
     }
+
     std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> MRTSearch(std::vector<Trajectory>& RefSet,
                                                                                const double epsilon);
     std::vector<ReferenceTrajectory> OSTC(std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> M);
+
 };
 
 template <>

@@ -69,11 +69,11 @@ std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> Trajectory::MRT
 {
     std::unordered_map<Trajectory, std::vector<Trajectory>> M;
 
-    for (auto i = 0; i < points.size(); i++) {
+    for (auto i = 0; i < points.size()-1; i++) {
         auto j = i + 1;
         auto current_sub_traj = (*this)(i, j);
         for (auto& ref_trajectory : RefSet) {
-            for (auto k = 0; k < ref_trajectory.points.size(); k++) {
+            for (auto k = 0; k < ref_trajectory.points.size()-1; k++) {
                 auto l = k + 1;
                 auto ref_sub_traj = ref_trajectory(k, l);
 
@@ -135,16 +135,41 @@ std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> Trajectory::MRT
     std::sort(vec.begin(), vec.end(), [](const auto& a, const auto& b) {
         return a.first.start_index < b.first.start_index;  // or any other sort criteria
     });
-
+    auto found = M1.find((*this)(2,9));
+    if (found != M1.end() && !found->second.empty()) {
+        for (const auto f : found->second) {
+            std::cout<< "id: " << f.id << " Start: " <<f.start_index << " end: " << f.end_index<< std::endl;
+        }
+    }
     return M1;
 }
 
-
 std::vector<ReferenceTrajectory> Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> M)
 {
-    std::vector<uint16_t> Ft{0};
-    std::vector<ReferenceTrajectory> T_prime;
+    std::vector<int> Ft(points.size(), 0);
+    std::vector<int> pre(points.size(), -1);
+    std::vector<ReferenceTrajectory> T_prime {};
+    for (short i=0; i<points.size(); i++) {
+        //i og j skal måske være 1 før det virker, pga Ft[0] = 0 i pseudo koden.
+        //Men så skal trajectories 0-indexeres, og så skal fx mrt search ændres også
+        int min = 8*points.size(); //obs på om denne narrowing giver fejl
+        for (short j=0; j<i; j++) { // maybe stop condition giver fejl sowwy
+            auto key = (*this)(j, i);
+            auto it = M.find(key);
 
+            if (it != M.end() && !it -> second.empty()) {
+                if (j>0 && Ft[j-1] + 8 < min) {
+                    min = Ft[j-1] + 8;
+                    pre[i] = j - 1;
+                }
+            }
+        }
+        Ft[i] = min;
+    }
+    auto i = points.size();
+    while (i>0 && i<= points.size()) {
+
+    }
     return T_prime;
 }
 
