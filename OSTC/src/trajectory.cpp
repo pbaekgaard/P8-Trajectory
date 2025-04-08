@@ -128,7 +128,14 @@ std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> Trajectory::MRT
 
         M1[pair.first] = refTrajectories;
     }
-    auto found = M.find((*this)(9,14));
+
+    std::vector<std::pair<Trajectory, std::vector<Trajectory>>> vec(M.begin(), M.end());
+
+    // Sort by the Trajectory's id (or whatever other logic you'd like)
+    std::sort(vec.begin(), vec.end(), [](const auto& a, const auto& b) {
+        return a.first.start_index < b.first.start_index;  // or any other sort criteria
+    });
+
     return M1;
 }
 
