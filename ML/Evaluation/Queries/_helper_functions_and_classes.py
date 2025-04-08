@@ -1,11 +1,13 @@
-import pyproj
-from haversine import haversine, Unit
-import pandas as pd
-from shapely.geometry import Point, LineString
-from pyproj import Transformer, enums
-import math
 import heapq
+import math
 from datetime import datetime
+
+import pandas as pd
+import pyproj
+from haversine import Unit, haversine
+from pyproj import Transformer, enums
+from shapely.geometry import LineString, Point
+
 
 # CLASSES:
 class MaxHeap:
@@ -97,16 +99,6 @@ def calculate_distance(position_df: pd.DataFrame) -> int:
 
     return total_distance
 
-def trajectory_df_to_linestring(traj_df):
-    """Convert a DataFrame of points into a Shapely LineString.
-       Assumes points are in order by timestamp."""
-    if traj_df.empty:
-        return None
-    points = [Point(transformer.transform(lon, lat)) for lon, lat in zip(traj_df["longitude"], traj_df["latitude"])]
-    if len(points) == 1:
-        return points[0]
-    return LineString(points)
-
 
 def closest_endpoints_on_trajectory_if_within_threshold(query_point, group_df, threshold: float = 100):
     #TODO: RENAME!!!
@@ -127,6 +119,18 @@ def closest_endpoints_on_trajectory_if_within_threshold(query_point, group_df, t
         seg_endpoints = find_segment_endpoints(trajectory_line, group_df,  query_point)
     return seg_endpoints
 
+
+def trajectory_df_to_linestring(traj_df):
+    """Convert a DataFrame of points into a Shapely LineString.
+       Assumes points are in order by timestamp."""
+    if traj_df.empty:
+        return None
+    points = [Point(transformer.transform(lon, lat)) for lon, lat in zip(traj_df["longitude"], traj_df["latitude"])]
+    if len(points) == 1:
+        return points[0]
+    return LineString(points)
+
+
 def find_segment_endpoints(line, df, query_point):
     """
     Given a LineString and its coordinate list, compute the distance along the line where
@@ -135,15 +139,16 @@ def find_segment_endpoints(line, df, query_point):
     """
     if type(line) == Point:
         return df.iloc[[0]]
-    proj_distance = line.project(query_point)
+    #TODO: line.project gives warning!
+    proj_distance = line.project(query_point, normalized=False)
     coords = list(line.coords)
-    cumulative = 0.0
+    cumulative_distance = 0.0
     for i in range(len(coords) - 1):
         seg = LineString([coords[i], coords[i+1]])
         seg_length = seg.length
-        if cumulative + seg_length >= proj_distance:
+        if cumulative_distance + seg_length >= proj_distance:
             return df.iloc[[i, i+1]]
-        cumulative += seg_length
+        cumulative_distance += seg_length
     # Fallback: return the last segment if projection is at the very end
     return df.iloc[[-2, -1]]
 
