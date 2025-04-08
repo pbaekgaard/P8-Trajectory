@@ -16,21 +16,25 @@ def query_original_dataset(dataset, queries):
     for where_query in where_queries:
         where_queries_results.append(where_query_processing(where_query, group_by_df))
     print("where done")
+
     distance_queries = queries["distance"]
     distance_queries_results = []
     for distance_query in distance_queries:
         distance_queries_results.append(distance_query_processing(distance_query, group_by_df))
     print("distance done")
+
     when_queries = queries["when"]
     when_queries_results = []
     for when_query in when_queries:
         when_queries_results.append(when_query_processing(when_query, group_by_df))
     print("when done")
+
     how_long_queries = queries["how_long"]
     how_long_queries_results = []
     for how_long_query in how_long_queries:
         how_long_queries_results.append(how_long_query_processing(how_long_query, group_by_df))
     print("how long done")
+
     count_queries = queries["count"]
     count_queries_results = []
     for count_query in count_queries:
