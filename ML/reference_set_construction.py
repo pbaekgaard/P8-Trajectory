@@ -11,6 +11,7 @@ import tools.scripts._get_data as _get_data
 import tools.scripts._load_data as _load_data
 import faulthandler
 from enum import Enum
+
 from ML.TrajectoryTransformer import TrajectoryTransformer
 
 
@@ -140,7 +141,7 @@ def normalize_df(df):
     return df
 
 
-def get_first_x_trajectories(num_trajectories: int, trajectories: pd.DataFrame) -> (pd.DataFrame, List):
+def get_first_x_trajectories(trajectories: pd.DataFrame, num_trajectories: int = None) -> (pd.DataFrame, List):
     """
     :param num_trajectories: how many trajectories you want
     :param trajectories: from where to get the trajectories
@@ -149,7 +150,10 @@ def get_first_x_trajectories(num_trajectories: int, trajectories: pd.DataFrame) 
         - unique_trajectories: lookup table for the selected trajectories
     selects the first x (num_trajectories) trajectories with a unique trajectory_id.
     """
-    unique_trajectories = trajectories['trajectory_id'].unique()[:num_trajectories]
+    if num_trajectories == None:
+        unique_trajectories = trajectories['trajectory_id'].unique()
+    else:
+        unique_trajectories = trajectories['trajectory_id'].unique()[:num_trajectories]
     df = traj_df[traj_df['trajectory_id'].isin(unique_trajectories)]
 
     return df, unique_trajectories
@@ -241,7 +245,7 @@ if __name__ == "__main__":
     _get_data.main()
     traj_df = _load_data.main()
 
-    df, unique_trajectories = get_first_x_trajectories(num_trajectories, traj_df)
+    df, unique_trajectories = get_first_x_trajectories(trajectories=traj_df, num_trajectories=None)
 
     df, representative_trajectories, reference_set, representative_indices, trajectory_representations = generate_reference_set(
         batch_size=batch_size,
