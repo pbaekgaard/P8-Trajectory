@@ -6,9 +6,20 @@
 __pycache__/
 *.py[cod]
 *$py.class
+OSTC/Debug/
+.idea/
+*/.cache/
+*venv*
+cache/
+*.osm*
+*/build/
+map.json
 
-# C extensions
+*/cmake-build-debug/
+*.pkl*
+o C extensions
 *.so
+*/.gitignore
 
 # Distribution / packaging
 .Python
@@ -175,3 +186,4 @@ poetry.toml
 pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python
+OSTC/tests/Testing/Temporary

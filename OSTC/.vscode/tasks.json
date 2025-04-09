@@ -1,0 +1,47 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Ninja Build",
+      "type": "shell",
+      "command": "[ -d build ] || cmake -GNinja -B Debug -DDebug=1; ninja -C Debug",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Ninja Build Clean",
+      "type": "shell",
+      "command": "ninja clean; ninja",
+      "options": {
+        "cwd": "${workspaceFolder}/Debug"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Run OSTC",
+      "type": "shell",
+      "command": "./OSTC",
+      "options": {
+        "cwd": "${workspaceFolder}/Debug"
+      }
+    },
+    {
+      "label": "Run Tests",
+      "type": "shell",
+      "command": "
+GTEST_COLOR=1 ctest --test-dir Debug --output-on-failure -V
+",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      }
+    }
+  ]
+}
