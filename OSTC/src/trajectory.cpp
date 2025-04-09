@@ -73,7 +73,7 @@ std::unordered_map<Trajectory, std::vector<ReferenceTrajectory> > Trajectory::MR
                 auto l = k + 1;
                 auto ref_sub_traj = ref_trajectory(k, l);
 
-                if (maxDTW(current_sub_traj, ref_sub_traj) < epsilon) {
+                if (MaxDTW(current_sub_traj, ref_sub_traj) < epsilon) {
                     M[current_sub_traj].push_back(ref_sub_traj);
                 }
             }
@@ -93,12 +93,12 @@ std::unordered_map<Trajectory, std::vector<ReferenceTrajectory> > Trajectory::MR
             auto T_b_vector = T_b_entry != M.end() ? T_b_entry->second : std::vector<Trajectory>();
 
             for (auto &T_a: T_a_vector) {
-                if (maxDTW(lengthNSubtrajectory, T_a) <= epsilon) {
+                if (MaxDTW(lengthNSubtrajectory, T_a) <= epsilon) {
                     found = true;
                     M[lengthNSubtrajectory].push_back(T_a);
                 }
                 for (const auto &T_b: T_b_vector) {
-                    if (maxDTW(lengthNSubtrajectory, T_b) <= epsilon) {
+                    if (MaxDTW(lengthNSubtrajectory, T_b) <= epsilon) {
                         found = true;
                         M[lengthNSubtrajectory].push_back(T_b);
                     }
@@ -130,7 +130,7 @@ std::unordered_map<Trajectory, std::vector<ReferenceTrajectory> > Trajectory::MR
     std::sort(vec.begin(), vec.end(), [](const auto &a, const auto &b) {
         return a.first.start_index < b.first.start_index; // or any other sort criteria
     });
-    auto found = M1.find((*this)(2, 9));
+    auto found = M1.find((*this)(9, 14));
     if (found != M1.end() && !found->second.empty()) {
         for (const auto f: found->second) {
             std::cout << "id: " << f.id << " Start: " << f.start_index << " end: " << f.end_index << std::endl;
@@ -140,54 +140,42 @@ std::unordered_map<Trajectory, std::vector<ReferenceTrajectory> > Trajectory::MR
 }
 
 std::vector<ReferenceTrajectory> Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<ReferenceTrajectory> > M) {
-    std::vector<int> Ft(points.size(), 0);
-    std::vector<short> pre(points.size(), 0);
-    std::vector<ReferenceTrajectory> T_prime{};
+    std::vector<int> Ft(points.size() + 1, 0); // +1 for F_T[0] = 0
+    std::vector<short> pre(points.size() + 1, -1); // -1 indicates no predecessor
+    std::vector<ReferenceTrajectory> T_prime;
 
-    for (short i = 1; i < points.size(); i++) {
-        //i og j skal måske være 1 før det virker, pga Ft[0] = 0 i pseudo koden.
-        //Men så skal trajectories 0-indexeres, og så skal fx mrt search ændres også
-        int min = 8 * points.size(); //obs på om denne narrowing giver fejl
-        for (short j = 1; j <= i; j++) {
-            // maybe stop condition giver fejl sowwy
-            auto key = (*this)(j-1, i-1);
-            auto it = M.find(key);
-
-            if (it != M.end()) {
-                const int cost = Ft[j - 1] + 8;
-                if (cost < min) {
-                    min = cost;
+    for (size_t i = 1; i <= points.size(); ++i) {
+        int min_cost = Ft[i - 1] + 8; // Fallback: use original point
+        pre[i] = i - 1; // Default to previous point
+        for (size_t j = 1; j <= i; ++j) {
+            Trajectory sub_traj = (*this)(j - 1, i - 1); // 0-based sub-trajectory
+            auto it = M.find(sub_traj);
+            if (it != M.end() && !it->second.empty()) {
+                int cost = Ft[j - 1] + 8; // 8 bytes for MRT
+                if (cost < min_cost) {
+                    min_cost = cost;
                     pre[i] = j - 1;
                 }
             }
         }
-        Ft[i] = min;
+        Ft[i] = min_cost;
     }
-    short i = points.size()-1;
-    while (i > 0 && i <= points.size()) {
-        if (pre[i] == i - 1) {
-            T_prime.push_back((*this)(i,i));
-            i--;
-        } else {
-            auto it = M.find((*this)(pre[i]+1,i));
-            if (it != M.end()) {
-                auto reference_trajectories = it->second;
 
-                auto longest_index = 0;
-                auto longest_trajectory = 0;
-
-                for (auto reference_traj : reference_trajectories) {
-                    auto traj_length = reference_traj.end_index - reference_traj.start_index;
-                    if (traj_length > longest_trajectory) {
-                        longest_trajectory = traj_length;
-                        longest_index = reference_traj.id;
-                    }
-                }
-
-                T_prime.push_back(reference_trajectories[0]);
+    int i = points.size();
+    while (i > 0) {
+        if (pre[i] == i - 1) { // Use original point
+            T_prime.push_back((*this)(i - 1, i - 1)); // Single point as ReferenceTrajectory
+            --i;
+        } else { // Use MRT
+            Trajectory sub_traj = (*this)(pre[i], i - 1);
+            auto it = M.find(sub_traj);
+            if (it != M.end() && !it->second.empty()) {
+                T_prime.push_back(it->second[0]); // Arbitrary MRT (could optimize for longest)
             }
             i = pre[i];
         }
     }
+
+    std::reverse(T_prime.begin(), T_prime.end());
     return T_prime;
 }

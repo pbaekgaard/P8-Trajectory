@@ -88,7 +88,7 @@ void run_example()
                                     SamplePoint(17.5, 4, "ts"), SamplePoint(18, 3, "ts"), SamplePoint(18, 2.5, "ts"),
                                     SamplePoint(20, 2.5, "ts"), SamplePoint(22, 2.5, "ts")});
     std::vector<Trajectory> RefSet{t1, t2, t3(2, 14), t4, t5, t6, t7};
-    std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> M = t.MRTSearch(RefSet, 1);
+    std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> M = t.MRTSearch(RefSet, 0.9);
     t.OSTC(M);
     std::cout << M.size() << std::endl;
     // try {

@@ -2,7 +2,6 @@
 #define __DISTANCE_HPP__
 
 #include "trajectory.hpp"
-
-double euclideanDistance(SamplePoint a, SamplePoint b);
-double maxDTW(Trajectory a, Trajectory b);
+double euclideanDistance(const SamplePoint& a, const SamplePoint& b);
+double MaxDTW(const Trajectory& A, const Trajectory& B);
 #endif
