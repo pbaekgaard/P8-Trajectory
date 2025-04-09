@@ -95,6 +95,7 @@ def dummy_create_queries():
 
 
 def create_queries(amount_of_individual_queries):
+    print("Creating queries...")
     queries = {}
     queries["where"] = create_where_queries(from_date="2008-02-02 13:30:44", to_date="2008-02-08 17:39:19",
                                             times=amount_of_individual_queries)

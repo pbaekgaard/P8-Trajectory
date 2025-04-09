@@ -5,6 +5,7 @@ from shapely.geometry import Point, LineString
 from pyproj import Transformer, enums
 import math
 import heapq
+from datetime import datetime
 import numpy as np
 
 # CLASSES:
@@ -19,18 +20,18 @@ class MaxHeap:
         obj["distance"] = -obj["distance"]
 
         if len(self.heap) < self.max_size:
-            heapq.heappush(self.heap, (obj["distance"], obj))
+            heapq.heappush(self.heap, (obj["distance"], obj["trajectory_id"]))
         else:
             # If the new distance is lower than the max in the heap, replace the max element
             if obj["distance"] > self.heap[0][0]:
-                heapq.heappushpop(self.heap, (obj["distance"], obj))
+                heapq.heappushpop(self.heap, (obj["distance"], obj["trajectory_id"]))
 
     def _pop(self):
         """Removes and returns the smallest distance element"""
         if self.heap:
-            _, obj = heapq.heappop(self.heap)
-            obj["distance"] = -obj["distance"]  # Restore original value
-            return obj
+            distance, trajectory_id = heapq.heappop(self.heap)
+            distance = -distance  # Restore original value
+            return distance, trajectory_id
         return None
 
     def _peek(self):
@@ -70,7 +71,8 @@ class MaxHeap:
                 interpolated_after_point = get_interpolated_point(last_point_within, after_point, timestamp_of_last_time_within, after_time, t2)
                 trajectory_points_within_timeframe.append(interpolated_after_point)
 
-            trajectory_line = LineString(trajectory_points_within_timeframe)
+            trajectory_line = LineString(trajectory_points_within_timeframe) if len(trajectory_points_within_timeframe) > 1 else Point(trajectory_points_within_timeframe[0])
+
         # TODO: distance er ikke i meter. Det er ikke et problem, men kan være svært at debugge.
         distance = query_point.distance(trajectory_line)
 
@@ -78,7 +80,7 @@ class MaxHeap:
 
     def get_elements(self):
         """Returns elements sorted by smallest distance"""
-        return [obj["trajectory_id"] for _, obj in sorted(self.heap, key=lambda x: x[0], reverse=True)]
+        return [trajectory_id for _, trajectory_id in sorted(self.heap, key=lambda x: x[0], reverse=True)]
 
 
 # FUNCTIONS:
@@ -108,6 +110,7 @@ def closest_endpoints_on_trajectory_if_within_threshold(query_point, group_df, t
     trajectory_line = trajectory_df_to_linestring(group_df)
     if trajectory_line is None:
         return None
+    # This line gives this warning: "invalid value encountered in distance". We still get a distance even with the warning
     distance = query_point.distance(trajectory_line)
     on_traj = distance < threshold
     seg_endpoints = pd.DataFrame()
@@ -214,6 +217,12 @@ def get_adjusted_trajectory_segment(point1, point2, time1, time2, query_t1, quer
     Returns the adjusted LineString segment that falls within the timeframe.
     If the entire segment is outside the timeframe, return None.
     """
+    # Convert query timestamps to Timestamp instead of strings
+    if type(query_t1) == str:
+        query_t1 = datetime.strptime(query_t1, "%Y-%m-%d %H:%M:%S")
+    if type(query_t2) == str:
+        query_t2 = datetime.strptime(query_t2, "%Y-%m-%d %H:%M:%S")
+
     # If the entire segment is outside the timeframe, return None
     if time2 < query_t1 or time1 > query_t2:
         return None
