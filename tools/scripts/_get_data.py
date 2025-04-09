@@ -13,7 +13,7 @@ ZIP_URL = "https://www.kaggle.com/api/v1/datasets/download/arashnic/tdriver"
 
 # Cache directory
 CACHE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.cache"))
-DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data"))
+DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/raw"))
 # Derive a filename from the URL using a hash
 CACHE_FILENAME = os.path.join(CACHE_DIR, hashlib.md5(ZIP_URL.encode()).hexdigest() + ".zip")
 
