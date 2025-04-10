@@ -1,17 +1,19 @@
-import os
 import argparse
-import pandas as pd
+import os
 import sys
+
+import pandas as pd
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__ + "/../../")))
 
-from tools.scripts._preprocess import main as _load_data
-from tools.scripts._load_data import load_compressed_data as _load_compressed_data
-from ML.Evaluation.query_creation import create_queries, dummy_create_queries
 from ML.Evaluation._file_access_helper_functions import load_data_from_file
-from ML.Evaluation.querying import query_original_dataset, query_compressed_dataset
 from ML.Evaluation.query_accuracy import query_accuracy_evaluation
-
+from ML.Evaluation.query_creation import create_queries, dummy_create_queries
+from ML.Evaluation.querying import (query_compressed_dataset,
+                                    query_original_dataset)
+from tools.scripts._load_data import \
+    load_compressed_data as _load_compressed_data
+from tools.scripts._preprocess import main as _load_data
 
 data = [
             # Beijing Trajectories

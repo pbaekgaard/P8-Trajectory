@@ -59,5 +59,18 @@ def query_original_dataset(dataset, queries):
     }, result)
 
 
-def query_compressed_dataset(dataset, queries):
-    pass
+def query_compressed_dataset(compressed_dataset, merged_df, queries):
+    df = reconstruct_trajectories(compressed_dataset, merged_df)
+
+
+def reconstruct_trajectories(compressed_dataset, merged_df):
+    reconstructed_trajectories = []
+    for new_id, compressed_trajectory in compressed_dataset.items():
+        reconstructed_points = []
+        for (trajectory_id, start_index, end_index) in compressed_trajectory:
+            trajectory = merged_df[merged_df["trajectory_id"] == trajectory_id].iloc[start_index:end_index + 1]
+            trajectory["trajectory_id"] = new_id
+            trajectory["timestamp"] = trajectory.apply(lambda t: get_correct_timestamp(t, new_id), axis=1)
+
+def get_correct_timestamp(t, new_id):
+    return t["timestamp_corrected"][new_id] if t["timestamp_corrected"] and new_id in t["timestamp_corrected"] else t["timestamp"]
