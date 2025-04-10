@@ -61,7 +61,7 @@ ReferenceTrajectory::ReferenceTrajectory(const Trajectory &t): id(t.id), start_i
                                                                end_index(t.end_index) {
 }
 
-std::unordered_map<Trajectory, std::vector<ReferenceTrajectory> > Trajectory::MRTSearch(std::vector<Trajectory> &RefSet,
+std::unordered_map<Trajectory, std::vector<Trajectory> > Trajectory::MRTSearch(std::vector<Trajectory> &RefSet,
     const double epsilon) {
     std::unordered_map<Trajectory, std::vector<Trajectory> > M;
 
@@ -112,46 +112,51 @@ std::unordered_map<Trajectory, std::vector<ReferenceTrajectory> > Trajectory::MR
         if (!found) { break; }
     }
 
-    std::unordered_map<Trajectory, std::vector<ReferenceTrajectory> > M1;
-    for (const auto &pair: M) {
-        std::vector<ReferenceTrajectory> refTrajectories;
-        refTrajectories.reserve(pair.second.size());
-
-        for (const auto &ref_trajectory: pair.second) {
-            refTrajectories.emplace_back(ref_trajectory);
-        }
-
-        M1[pair.first] = refTrajectories;
-    }
-
-    std::vector<std::pair<Trajectory, std::vector<Trajectory> > > vec(M.begin(), M.end());
-
-    // Sort by the Trajectory's id (or whatever other logic you'd like)
-    std::sort(vec.begin(), vec.end(), [](const auto &a, const auto &b) {
-        return a.first.start_index < b.first.start_index; // or any other sort criteria
-    });
-    auto found = M1.find((*this)(9, 14));
-    if (found != M1.end() && !found->second.empty()) {
-        for (const auto f: found->second) {
-            std::cout << "id: " << f.id << " Start: " << f.start_index << " end: " << f.end_index << std::endl;
-        }
-    }
-    return M1;
+    return M;
 }
 
-std::vector<ReferenceTrajectory> Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<ReferenceTrajectory> > M) {
+std::vector<ReferenceTrajectory> Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajectory>> M, const double tepsilon) {
+    std::unordered_map<Trajectory, short> time_correction_cost {};
+    std::unordered_map<Trajectory, std::vector<TimeCorrectionRecordEntry>> time_correction_record {};
+    auto c = 4;
+
+    for (auto& pair : M) {
+        auto ref = pair.second[0];
+
+        unsigned int t = 0;
+        ref.points[0].timestamp = 0;
+        time_correction_cost[ref] = 0;
+
+        for (int i = 1; i < abs(points.size() + ref.points.size() - 1); i++) {
+            auto a_i = points[i];
+            auto b_i = ref.points[i];
+
+            const auto diff = b_i.timestamp - ref.points[i-1].timestamp;
+            if (abs(t + diff - a_i.timestamp) <= tepsilon) {
+                t = t + diff;
+            }
+            else {
+                t = std::max(a_i.timestamp, ref.points[i-1].timestamp);
+                time_correction_cost[ref] += c;
+                time_correction_record[ref].push_back(TimeCorrectionRecordEntry{i, t});
+            }
+        }
+    }
+
     std::vector<int> Ft(points.size() + 1, 0); // +1 for F_T[0] = 0
     std::vector<short> pre(points.size() + 1, -1); // -1 indicates no predecessor
     std::vector<ReferenceTrajectory> T_prime;
 
     for (size_t i = 1; i <= points.size(); ++i) {
-        int min_cost = Ft[i - 1] + 8; // Fallback: use original point
-        pre[i] = i - 1; // Default to previous point
+        int min_cost = Ft[i - 1] + 8;
+        pre[i] = i - 1;
         for (size_t j = 1; j <= i; ++j) {
-            Trajectory sub_traj = (*this)(j - 1, i - 1); // 0-based sub-trajectory
+            Trajectory sub_traj = (*this)(j - 1, i - 1);
             auto it = M.find(sub_traj);
             if (it != M.end() && !it->second.empty()) {
-                int cost = Ft[j - 1] + 8; // 8 bytes for MRT
+                auto time_correction_cost_lookup = time_correction_cost.find(it->second[0])->second;
+                int cost = std::min(Ft[i - 1] + 12, Ft[j-1]+time_correction_cost_lookup+8);
+                
                 if (cost < min_cost) {
                     min_cost = cost;
                     pre[i] = j - 1;
@@ -163,14 +168,14 @@ std::vector<ReferenceTrajectory> Trajectory::OSTC(std::unordered_map<Trajectory,
 
     int i = points.size();
     while (i > 0) {
-        if (pre[i] == i - 1) { // Use original point
-            T_prime.push_back((*this)(i - 1, i - 1)); // Single point as ReferenceTrajectory
+        if (pre[i] == i - 1) {
+            T_prime.push_back((*this)(i - 1, i - 1));
             --i;
-        } else { // Use MRT
+        } else {
             Trajectory sub_traj = (*this)(pre[i], i - 1);
             auto it = M.find(sub_traj);
             if (it != M.end() && !it->second.empty()) {
-                T_prime.push_back(it->second[0]); // Arbitrary MRT (could optimize for longest)
+                T_prime.push_back(it->second[0]);
             }
             i = pre[i];
         }

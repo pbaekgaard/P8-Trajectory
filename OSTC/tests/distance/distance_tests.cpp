@@ -6,8 +6,8 @@
 TEST(EuclideanDistance, IsCorrectDistance)
 {
     // Arrange: Create two SamplePoint objects
-    auto point1 = SamplePoint(3.0, 16.0, "ts");
-    auto point2 = SamplePoint(1.0, 20.0, "ts");
+    auto point1 = SamplePoint(3.0, 16.0, 1);
+    auto point2 = SamplePoint(1.0, 20.0, 2);
 
     // Act: Calculate the Euclidean distance
     auto distance = euclideanDistance(point1, point2);
@@ -20,9 +20,9 @@ TEST(MaxDTW, IsCorrectDistance)
 {
     auto traj1 = Trajectory{1, {}};
     auto traj2 = Trajectory{2, {}};
-    auto traj3 = Trajectory{3, std::vector<SamplePoint>{SamplePoint{1, 2, ""}}};
-    auto traj4 = Trajectory{3, std::vector<SamplePoint>{SamplePoint{2, 3, ""}}};
-    auto traj5 = Trajectory{3, std::vector<SamplePoint>{SamplePoint{6, 9, ""}}};
+    auto traj3 = Trajectory{3, std::vector<SamplePoint>{SamplePoint{1, 2, 3}}};
+    auto traj4 = Trajectory{3, std::vector<SamplePoint>{SamplePoint{2, 3, 4}}};
+    auto traj5 = Trajectory{3, std::vector<SamplePoint>{SamplePoint{6, 9, 5}}};
 
     // Test empty trajectories
     EXPECT_EQ(0, MaxDTW(traj1, traj2));

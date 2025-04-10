@@ -3,11 +3,11 @@
 
 TEST(SamplePoint, isEqual)
 {
-    auto samePoint1 = SamplePoint(1, 2, "ts");
-    auto samePoint2 = SamplePoint(1, 2, "ts");
-    auto differentY = SamplePoint(1, 3, "ts");
-    auto differentX = SamplePoint(2, 2, "ts");
-    auto differentTimestamp = SamplePoint(1, 2, "ts!");
+    auto samePoint1 = SamplePoint(1, 2, 1);
+    auto samePoint2 = SamplePoint(1, 2, 2);
+    auto differentY = SamplePoint(1, 3, 3);
+    auto differentX = SamplePoint(2, 2, 4);
+    auto differentTimestamp = SamplePoint(1, 2, 4);
 
     EXPECT_EQ(samePoint1, samePoint2);
     EXPECT_TRUE(samePoint1 == samePoint2);

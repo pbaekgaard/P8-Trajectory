@@ -16,11 +16,20 @@ struct SamplePoint
 {
     double longitude;       // longitude
     double latitude;        // latitude
-    std::string timestamp;  // timestamp
+    unsigned int timestamp;  // timestamp
 
-    SamplePoint(double x, double y, std::string t = ""): longitude(x), latitude(y), timestamp(std::move(t)) {}
+    SamplePoint(double x, double y, unsigned int t): longitude(x), latitude(y), timestamp(t) {}
 
     bool operator==(const SamplePoint& other) const;
+};
+
+struct TimeCorrectionRecordEntry
+{
+    int point_index;
+    unsigned int corrected_timestamp;
+    TimeCorrectionRecordEntry(int idx, unsigned int ct): point_index(idx), corrected_timestamp(ct) {
+        std::cout << "i use the constructor:)"<<std::endl;
+    }
 };
 
 inline std::ostream& operator<<(std::ostream& os, const SamplePoint& point)
@@ -67,10 +76,9 @@ struct Trajectory
         return os;
     }
 
-    std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> MRTSearch(std::vector<Trajectory>& RefSet,
-                                                                               const double epsilon);
-    std::vector<ReferenceTrajectory> OSTC(std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> M);
-
+    std::unordered_map<Trajectory, std::vector<Trajectory>> MRTSearch(std::vector<Trajectory>& RefSet,
+                                                                               double epsilon);
+    std::vector<ReferenceTrajectory> OSTC(std::unordered_map<Trajectory, std::vector<Trajectory>> M, double tepsilon);
 };
 
 template <>
