@@ -10,6 +10,7 @@ from tools.scripts._load_data import load_compressed_data as _load_compressed_da
 from ML.Evaluation.query_creation import create_queries, dummy_create_queries
 from ML.Evaluation._file_access_helper_functions import load_data_from_file
 from ML.Evaluation.querying import query_original_dataset, query_compressed_dataset
+from ML.Evaluation.query_accuracy import query_accuracy_evaluation
 
 
 data = [
@@ -40,7 +41,7 @@ data = [
 def mock_compressed_data():
     reference_set = [
         [0, "2008-02-02 15:36:08", 116.51172, 39.92123, {1: "2008-02-02 14:00:00"}],  # Trajectory 1
-        [0, "2008-02-02 15:40:10", 116.51222, 39.92173, {1:"2008-02-02 14:15:00", 2: "2008-02-02 16:12:00"}],
+        [0, "2008-02-02 15:40:10", 116.51222, 39.92173, {1: "2008-02-02 14:15:00", 2: "2008-02-02 16:12:00"}],
         [0, "2008-02-02 16:00:00", 116.51372, 39.92323, None],
 
         [4, "2008-02-02 17:10:00", 116.57000, 39.97000, {5: "2008-02-02 18:00:00"}],  # Trajectory 5
@@ -64,8 +65,8 @@ def mock_compressed_data():
         [3, "2008-02-02 13:45:00", 116.52050, 39.93050],
         [3, "2008-02-02 14:00:00", 116.54050, 39.95050],
 
-        [5, "2008-02-02 18:05:00", 116.60000, 39.99200],
-        [5, "2008-02-02 18:10:00", 116.61000, 39.99300]
+        [5, "2008-02-02 20:05:00", 116.60000, 39.99200],
+        [5, "2008-02-02 20:10:00", 116.61000, 39.99300]
     ]
 
     original_df_trimmed = pd.DataFrame(original_data_trimmed,
@@ -73,6 +74,8 @@ def mock_compressed_data():
 
     merged_df = pd.concat([reference_set_df, original_df_trimmed], ignore_index=True).sort_values(
         ["trajectory_id", "timestamp"])
+
+    merged_df["timestamp_corrected"] = merged_df["timestamp_corrected"].fillna(False)
 
     return compressed_data, merged_df
 
@@ -95,7 +98,11 @@ if __name__ == '__main__':
         query_original_dataset(dataset, queries)
     if not os.path.exists(os.path.join(os.path.abspath(__file__), "..", "files", "compressed_query_results.pkl")) or args.force:
         compressed_dataset, merged_df = mock_compressed_data()
-
+        # compressed_dataset, merged_df = _load_compressed_data()
         query_compressed_dataset(compressed_dataset, merged_df, queries)
+
+    compressed_results = load_data_from_file({
+        "filename": "compressed_query_results",
+    })
 
     print("Querying done")
