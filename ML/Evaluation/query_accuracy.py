@@ -42,8 +42,8 @@ def how_long_query_accuracy_evaluation(y_true, y_pred):
 def count_query_accuracy_evaluation(y_true, y_pred):
     results = []
     for i in range(0, len(y_true)):
-        abs(y_true[i] - y_pred[i]) / max(abs(y_true[i]), abs(y_pred[i]))
-    return 0.5
+        results.append(abs(y_true[i] - y_pred[i]) / max(abs(y_true[i]), abs(y_pred[i])))
+    return sum(results) / len(results)
 
 
 def knn_query_accuracy_evaluation(y_true, y_pred):
