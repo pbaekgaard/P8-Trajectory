@@ -6,7 +6,7 @@ import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__ + "/../../")))
 
 from tools.scripts._preprocess import main as _load_data
-from tools.scripts._load_data import load_compressed_data as _load_compressed_data
+from tools.scripts._load_data import load_compressed_data as _load_compressed_data, count_trajectories
 from ML.Evaluation.query_creation import create_queries, dummy_create_queries
 from ML.Evaluation._file_access_helper_functions import load_data_from_file
 from ML.Evaluation.querying import query_original_dataset, query_compressed_dataset
@@ -84,6 +84,7 @@ if __name__ == '__main__':
 
     parser.add_argument('-f', '--force', action='store_true', help='Force creation/overwrite of evaluation files')
     args = parser.parse_args()
+    dataset = None
 
     # create all that does not exist
     if not os.path.exists(os.path.join(os.path.abspath(__file__), "..", "files", "queries_for_evaluation.pkl")) or args.force:
@@ -95,10 +96,12 @@ if __name__ == '__main__':
     if not os.path.exists(os.path.join(os.path.abspath(__file__), "..", "files", "original_query_results.pkl")) or args.force:
         dataset = _load_data()
         #dataset = pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
+        # TODO: Find query time
         query_original_dataset(dataset, queries)
     if not os.path.exists(os.path.join(os.path.abspath(__file__), "..", "files", "compressed_query_results.pkl")) or args.force:
         compressed_dataset, merged_df = mock_compressed_data()
         # compressed_dataset, merged_df = _load_compressed_data()
+        # TODO: Find query time
         query_compressed_dataset(compressed_dataset, merged_df, queries)
 
 
@@ -109,6 +112,8 @@ if __name__ == '__main__':
         "filename": "compressed_query_results",
     })
 
-    accuracy = query_accuracy_evaluation(original_results, compressed_results)
+    dataset = dataset if dataset else _load_data()
+
+    accuracy = query_accuracy_evaluation(original_results, compressed_results, count_trajectories(), dataset)
 
     print("Querying done")
