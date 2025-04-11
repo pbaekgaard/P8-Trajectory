@@ -1,3 +1,5 @@
+import pandas as pd
+
 from ML.Evaluation.Queries.where import where_query_processing
 from ML.Evaluation.Queries.distance import distance_query_processing
 from ML.Evaluation.Queries.when import when_query_processing
@@ -7,7 +9,7 @@ from ML.Evaluation.Queries.knn import knn_query_processing
 from ML.Evaluation.Queries.window import window_query_processing
 from ML.Evaluation._file_access_helper_functions import save_to_file
 
-def query_original_dataset(dataset, queries):
+def query_original_dataset(dataset, queries, filename = "original_query_results"):
     #TODO: MAYBE: maybe make universal query_dataset_function with query_functions as argument
     group_by_df = dataset.groupby("trajectory_id")
 
@@ -55,9 +57,26 @@ def query_original_dataset(dataset, queries):
 
     result = where_queries_results, distance_queries_results, when_queries_results, how_long_queries_results, count_queries_results, knn_queries_results, window_queries_results
     save_to_file({
-        "filename": "original_query_results",
+        "filename": filename,
     }, result)
 
 
-def query_compressed_dataset(dataset, queries):
-    pass
+def query_compressed_dataset(compressed_dataset, merged_df, queries):
+    df = reconstruct_trajectories(compressed_dataset, merged_df)
+    query_original_dataset(df, queries, filename="compressed_query_results")
+
+def reconstruct_trajectories(compressed_dataset, merged_df):
+    reconstructed_trajectories = []
+    for new_id, compressed_trajectory in compressed_dataset.items():
+        reconstructed_points = []
+        for (trajectory_id, start_index, end_index) in compressed_trajectory:
+            trajectory = merged_df[merged_df["trajectory_id"] == trajectory_id].iloc[start_index:end_index + 1]
+            trajectory["trajectory_id"] = new_id
+            trajectory["timestamp"] = trajectory.apply(lambda t: get_correct_timestamp(t, new_id), axis=1)
+            reconstructed_points.append(trajectory)
+        reconstructed_trajectories.append(pd.concat(reconstructed_points, ignore_index=True))
+    return pd.concat(reconstructed_trajectories, ignore_index=True).drop(columns=["timestamp_corrected"])
+
+
+def get_correct_timestamp(t, new_id):
+    return t["timestamp_corrected"][new_id] if t["timestamp_corrected"] and new_id in t["timestamp_corrected"] else t["timestamp"]
