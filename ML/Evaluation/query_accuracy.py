@@ -6,7 +6,7 @@ from tools.scripts._load_data import load_compressed_data as _load_compressed_da
 from ML.Evaluation._file_access_helper_functions import save_to_file, load_data_from_file
 
 
-def query_accuracy_evaluation():
+def query_accuracy_evaluation(y_true, y_pred):
     # Load compressed results and original results and calculate accuracy
     pass
 
