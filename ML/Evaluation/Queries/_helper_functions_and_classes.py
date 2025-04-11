@@ -99,6 +99,11 @@ def calculate_distance(position_df: pd.DataFrame) -> int:
 
     return total_distance
 
+def similarity_score(true, pred, trajectory_df):
+    distance = calculate_distance(pd.concat([true, pred]))
+    trajectory_length = calculate_distance(trajectory_df)
+    similarity = 1 - (distance / trajectory_length)
+    return max(similarity, 0)
 
 def closest_endpoints_on_trajectory_if_within_threshold(query_point, group_df, threshold: float = 100):
     #TODO: RENAME!!!
