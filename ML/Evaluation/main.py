@@ -45,7 +45,7 @@ def mock_compressed_data():
         [0, "2008-02-02 16:00:00", 116.51372, 39.92323, None],
 
         [4, "2008-02-02 17:10:00", 116.57000, 39.97000, {5: "2008-02-02 18:00:00"}],  # Trajectory 5
-        [4, "2008-02-02 17:15:00", 116.58000, 39.98000, None]
+        [4, "2008-02-02 17:15:00", 116.58000, 39.98000, {5: "2008-02-02 18:02:30"}]
     ]
 
     reference_set_df = pd.DataFrame(reference_set, columns=["trajectory_id", "timestamp", "longitude", "latitude",
