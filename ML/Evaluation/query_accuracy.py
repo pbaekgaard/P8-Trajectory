@@ -25,8 +25,10 @@ def query_accuracy_evaluation(y_true, y_pred):
 
     return sum(accuracy_results) / len(accuracy_results)
 
+
 def where_query_accuracy_evaluation(y_true, y_pred):
     return 0.5
+
 
 def distance_query_accuracy_evaluation(y_true, y_pred):
     return 0.5
@@ -39,6 +41,7 @@ def when_query_accuracy_evaluation(y_true, y_pred):
 def how_long_query_accuracy_evaluation(y_true, y_pred):
     return 0.5
 
+
 def count_query_accuracy_evaluation(y_true, y_pred):
     results = []
     for i in range(0, len(y_true)):
@@ -47,6 +50,10 @@ def count_query_accuracy_evaluation(y_true, y_pred):
 
 
 def knn_query_accuracy_evaluation(y_true, y_pred):
+    results = []
+    print("")
+
+    return sum(results) / len(results)
     return 0.5
 
 
