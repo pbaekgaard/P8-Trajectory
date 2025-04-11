@@ -7,6 +7,7 @@ from ML.Evaluation._file_access_helper_functions import save_to_file, load_data_
 
 
 def query_accuracy_evaluation(y_true, y_pred):
+<<<<<<< HEAD
     accuracy_results = []
     # WHERE
     accuracy_results.append(where_query_accuracy_evaluation(y_true[0], y_pred[0]))
@@ -22,6 +23,10 @@ def query_accuracy_evaluation(y_true, y_pred):
     accuracy_results.append(knn_query_accuracy_evaluation(y_true[5], y_pred[5]))
     # WINDOW
     accuracy_results.append(window_query_accuracy_evaluation(y_true[6], y_pred[6]))
+=======
+    # Load compressed results and original results and calculate accuracy
+    pass
+>>>>>>> 4e9831f3 (querying of compressed data done)
 
     return sum(accuracy_results) / len(accuracy_results)
 

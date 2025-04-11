@@ -1,3 +1,5 @@
+import pandas as pd
+
 from ML.Evaluation.Queries.where import where_query_processing
 from ML.Evaluation.Queries.distance import distance_query_processing
 from ML.Evaluation.Queries.when import when_query_processing
@@ -55,7 +57,7 @@ def query_original_dataset(dataset, queries):
 
     result = where_queries_results, distance_queries_results, when_queries_results, how_long_queries_results, count_queries_results, knn_queries_results, window_queries_results
     save_to_file({
-        "filename": "original_query_results",
+        "filename": filename,
     }, result)
 
 
@@ -71,6 +73,10 @@ def reconstruct_trajectories(compressed_dataset, merged_df):
             trajectory = merged_df[merged_df["trajectory_id"] == trajectory_id].iloc[start_index:end_index + 1]
             trajectory["trajectory_id"] = new_id
             trajectory["timestamp"] = trajectory.apply(lambda t: get_correct_timestamp(t, new_id), axis=1)
+            reconstructed_points.append(trajectory)
+        reconstructed_trajectories.append(pd.concat(reconstructed_points, ignore_index=True))
+    return pd.concat(reconstructed_trajectories, ignore_index=True).drop(columns=["timestamp_corrected"])
+
 
 def get_correct_timestamp(t, new_id):
     return t["timestamp_corrected"][new_id] if t["timestamp_corrected"] and new_id in t["timestamp_corrected"] else t["timestamp"]
