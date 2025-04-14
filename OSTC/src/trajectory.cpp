@@ -11,18 +11,19 @@
 #include <cstdint>
 #endif
 
-bool SamplePoint::operator==(const SamplePoint &other) const {
+bool SamplePoint::operator==(const SamplePoint& other) const
+{
     return longitude == other.longitude && latitude == other.latitude && timestamp == other.timestamp;
 }
 
-Trajectory::Trajectory(const uint32_t id, const std::vector<SamplePoint> &points): id(id), points(points) {
-}
+Trajectory::Trajectory(const uint32_t id, const std::vector<SamplePoint>& points): id(id), points(points) {}
 
-Trajectory::Trajectory(const uint32_t id, const std::vector<SamplePoint> &points, const short start_index,
-                       const short end_index): id(id), points(points), start_index(start_index), end_index(end_index) {
-}
+Trajectory::Trajectory(const uint32_t id, const std::vector<SamplePoint>& points, const short start_index,
+                       const short end_index): id(id), points(points), start_index(start_index), end_index(end_index)
+{}
 
-Trajectory Trajectory::operator()(const short start, const short end) {
+Trajectory Trajectory::operator()(const short start, const short end)
+{
     if (end + 1 > points.size()) {
         return Trajectory(id, std::vector<SamplePoint>(points.begin() + start, points.begin() + end), start, end);
     }
@@ -30,44 +31,48 @@ Trajectory Trajectory::operator()(const short start, const short end) {
     return Trajectory(id, std::vector<SamplePoint>(points.begin() + start, points.begin() + end + 1), start, end);
 }
 
-Trajectory Trajectory::operator+(Trajectory other) {
+Trajectory Trajectory::operator+(Trajectory other)
+{
     auto mergedPoints = points;
     std::copy(other.points.begin() + 1, other.points.end(), std::back_inserter(mergedPoints));
 
     return Trajectory(id, mergedPoints, start_index, other.end_index);
 }
 
-bool Trajectory::operator==(const Trajectory &other) const {
+bool Trajectory::operator==(const Trajectory& other) const
+{
     return (id == other.id && start_index == other.start_index && end_index == other.end_index);
 }
 
-bool ReferenceTrajectory::operator==(const ReferenceTrajectory &other) const {
+bool ReferenceTrajectory::operator==(const ReferenceTrajectory& other) const
+{
     return (id == other.id && start_index == other.start_index && end_index == other.end_index);
 }
 
-std::size_t std::hash<Trajectory>::operator()(const Trajectory &t) const noexcept {
+std::size_t std::hash<Trajectory>::operator()(const Trajectory& t) const noexcept
+{
     return ((hash<uint32_t>()(t.id) ^ (hash<short>()(t.start_index) << 2) ^ (hash<short>()(t.end_index) >> 1) ^
              (hash<uint32_t>()(t.points.size()) << 1)) >>
             1);
 }
 
-ReferenceTrajectory::ReferenceTrajectory(const uint32_t id, const short start_index,
-                                         const short end_index): id(id), start_index(start_index),
-                                                                 end_index(end_index) {
-}
+ReferenceTrajectory::ReferenceTrajectory(const uint32_t id, const short start_index, const short end_index):
+    id(id), start_index(start_index), end_index(end_index)
+{}
 
-ReferenceTrajectory::ReferenceTrajectory(const Trajectory &t): id(t.id), start_index(t.start_index),
-                                                               end_index(t.end_index) {
-}
+ReferenceTrajectory::ReferenceTrajectory(const Trajectory& t):
+    id(t.id), start_index(t.start_index), end_index(t.end_index)
+{}
 
-std::unordered_map<Trajectory, std::vector<Trajectory> > Trajectory::MRTSearch(std::vector<Trajectory> &RefSet,
-    const double epsilon) {
-    std::unordered_map<Trajectory, std::vector<Trajectory> > M;
+std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(std::vector<Trajectory>& RefSet,
+                                                                              const double epsilon)
+{
+    std::unordered_map<Trajectory, std::vector<Trajectory>> M;
 
     for (auto i = 0; i < points.size() - 1; i++) {
         auto j = i + 1;
         auto current_sub_traj = (*this)(i, j);
-        for (auto &ref_trajectory: RefSet) {
+        for (auto& ref_trajectory : RefSet) {
             for (auto k = 0; k < ref_trajectory.points.size() - 1; k++) {
                 auto l = k + 1;
                 auto ref_sub_traj = ref_trajectory(k, l);
@@ -87,16 +92,15 @@ std::unordered_map<Trajectory, std::vector<Trajectory> > Trajectory::MRTSearch(s
             auto T_a_entry = M.find((*this)(lengthNSubtrajectory.start_index, lengthNSubtrajectory.end_index - 1));
             auto T_b_entry = M.find((*this)(lengthNSubtrajectory.end_index - 1, lengthNSubtrajectory.end_index));
 
-
             auto T_a_vector = T_a_entry != M.end() ? T_a_entry->second : std::vector<Trajectory>();
             auto T_b_vector = T_b_entry != M.end() ? T_b_entry->second : std::vector<Trajectory>();
 
-            for (auto &T_a: T_a_vector) {
+            for (auto& T_a : T_a_vector) {
                 if (MaxDTW(lengthNSubtrajectory, T_a) <= epsilon) {
                     found = true;
                     M[lengthNSubtrajectory].push_back(T_a);
                 }
-                for (const auto &T_b: T_b_vector) {
+                for (const auto& T_b : T_b_vector) {
                     if (MaxDTW(lengthNSubtrajectory, T_b) <= epsilon) {
                         found = true;
                         M[lengthNSubtrajectory].push_back(T_b);
@@ -108,15 +112,18 @@ std::unordered_map<Trajectory, std::vector<Trajectory> > Trajectory::MRTSearch(s
                 }
             }
         }
-        if (!found) { break; }
+        if (!found) {
+            break;
+        }
     }
 
     return M;
 }
 
-std::vector<ReferenceTrajectory> Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajectory>> M, const double tepsilon) {
-    std::unordered_map<Trajectory, short> time_correction_cost {};
-    std::unordered_map<Trajectory, std::vector<TimeCorrectionRecordEntry>> time_correction_record {};
+OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajectory>> M, const double tepsilon)
+{
+    std::unordered_map<Trajectory, int> time_correction_cost{};
+    std::unordered_map<Trajectory, std::vector<TimeCorrectionRecordEntry>> time_correction_record{};
     auto c = 4;
 
     for (auto& pair : M) {
@@ -130,21 +137,20 @@ std::vector<ReferenceTrajectory> Trajectory::OSTC(std::unordered_map<Trajectory,
             auto a_i = points[i];
             auto b_i = ref.points[i];
 
-            int diff = b_i.timestamp - ref.points[i-1].timestamp;
+            int diff = b_i.timestamp - ref.points[i - 1].timestamp;
 
             if (abs(t + diff - a_i.timestamp) <= tepsilon) {
                 t = t + diff;
-            }
-            else {
-                t = std::max(a_i.timestamp, ref.points[i-1].timestamp);
+            } else {
+                t = std::max(a_i.timestamp, ref.points[i - 1].timestamp);
                 time_correction_cost[ref] += c;
                 time_correction_record[ref].push_back(TimeCorrectionRecordEntry{i, t});
             }
         }
     }
 
-    std::vector<int> Ft(points.size() + 1, 0); // +1 for F_T[0] = 0
-    std::vector<short> pre(points.size() + 1, -1); // -1 indicates no predecessor
+    std::vector<int> Ft(points.size() + 1, 0);      // +1 for F_T[0] = 0
+    std::vector<short> pre(points.size() + 1, -1);  // -1 indicates no predecessor
     std::vector<ReferenceTrajectory> T_prime;
 
     for (size_t i = 1; i <= points.size(); ++i) {
@@ -155,8 +161,8 @@ std::vector<ReferenceTrajectory> Trajectory::OSTC(std::unordered_map<Trajectory,
             auto it = M.find(sub_traj);
             if (it != M.end() && !it->second.empty()) {
                 auto time_correction_cost_lookup = time_correction_cost.find(it->second[0])->second;
-                int cost = std::min(Ft[i - 1] + 12, Ft[j-1]+time_correction_cost_lookup+8);
-                
+                int cost = std::min(Ft[i - 1] + 12, Ft[j - 1] + time_correction_cost_lookup + 8);
+
                 if (cost < min_cost) {
                     min_cost = cost;
                     pre[i] = j - 1;
@@ -182,5 +188,5 @@ std::vector<ReferenceTrajectory> Trajectory::OSTC(std::unordered_map<Trajectory,
     }
 
     std::reverse(T_prime.begin(), T_prime.end());
-    return T_prime;
+    return OSTCResult(T_prime, time_correction_record, time_correction_cost);
 }

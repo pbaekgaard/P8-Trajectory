@@ -11,12 +11,13 @@
 #include <cmath>
 
 struct Trajectory;
+struct OSTCResult;
 
 struct SamplePoint
 {
-    double longitude;       // longitude
-    double latitude;        // latitude
-    int timestamp;  // timestamp
+    double longitude;  // longitude
+    double latitude;   // latitude
+    int timestamp;     // timestamp
 
     SamplePoint(double x, double y, int t): longitude(x), latitude(y), timestamp(t) {}
 
@@ -27,9 +28,7 @@ struct TimeCorrectionRecordEntry
 {
     int point_index;
     int corrected_timestamp;
-    TimeCorrectionRecordEntry(int idx, int ct): point_index(idx), corrected_timestamp(ct) {
-        std::cout << "i use the constructor:)"<<std::endl;
-    }
+    TimeCorrectionRecordEntry(int idx, int ct): point_index(idx), corrected_timestamp(ct) {};
 };
 
 inline std::ostream& operator<<(std::ostream& os, const SamplePoint& point)
@@ -76,15 +75,26 @@ struct Trajectory
         return os;
     }
 
-    std::unordered_map<Trajectory, std::vector<Trajectory>> MRTSearch(std::vector<Trajectory>& RefSet,
-                                                                               double epsilon);
-    std::vector<ReferenceTrajectory> OSTC(std::unordered_map<Trajectory, std::vector<Trajectory>> M, double tepsilon);
+    std::unordered_map<Trajectory, std::vector<Trajectory>> MRTSearch(std::vector<Trajectory>& RefSet, double epsilon);
+    OSTCResult OSTC(std::unordered_map<Trajectory, std::vector<Trajectory>> M, double tepsilon);
 };
 
 template <>
 struct std::hash<Trajectory>
 {
     std::size_t operator()(const Trajectory& t) const noexcept;
+};
+
+struct OSTCResult
+{
+    std::vector<ReferenceTrajectory> References{};
+    std::unordered_map<Trajectory, std::vector<TimeCorrectionRecordEntry>> TimeCorrection;
+    std::unordered_map<Trajectory, int> costs;
+
+    OSTCResult(std::vector<ReferenceTrajectory> References,
+               std::unordered_map<Trajectory, std::vector<TimeCorrectionRecordEntry>> TimeCorrection,
+               std::unordered_map<Trajectory, int> costs):
+        TimeCorrection(TimeCorrection), References(References), costs(costs) {};
 };
 
 #endif
