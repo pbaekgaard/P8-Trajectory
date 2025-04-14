@@ -88,6 +88,7 @@ if __name__ == '__main__':
 
     # create all that does not exist
     if not os.path.exists(os.path.join(os.path.abspath(__file__), "..", "files", "queries_for_evaluation.pkl")) or args.force:
+        # TODO: Create new queries so that we have results for most queries.
         create_queries(amount_of_individual_queries=15)
     queries = load_data_from_file({
         "filename": "queries_for_evaluation",
