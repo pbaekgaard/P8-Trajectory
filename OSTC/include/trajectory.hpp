@@ -16,9 +16,9 @@ struct SamplePoint
 {
     double longitude;       // longitude
     double latitude;        // latitude
-    unsigned int timestamp;  // timestamp
+    int timestamp;  // timestamp
 
-    SamplePoint(double x, double y, unsigned int t): longitude(x), latitude(y), timestamp(t) {}
+    SamplePoint(double x, double y, int t): longitude(x), latitude(y), timestamp(t) {}
 
     bool operator==(const SamplePoint& other) const;
 };
@@ -26,8 +26,8 @@ struct SamplePoint
 struct TimeCorrectionRecordEntry
 {
     int point_index;
-    unsigned int corrected_timestamp;
-    TimeCorrectionRecordEntry(int idx, unsigned int ct): point_index(idx), corrected_timestamp(ct) {
+    int corrected_timestamp;
+    TimeCorrectionRecordEntry(int idx, int ct): point_index(idx), corrected_timestamp(ct) {
         std::cout << "i use the constructor:)"<<std::endl;
     }
 };

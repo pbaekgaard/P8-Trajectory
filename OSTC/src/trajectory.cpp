@@ -5,7 +5,6 @@
 #include <ranges>
 
 #include "distance.hpp"
-#include <cmath>
 #include <unordered_map>
 #include <iostream>
 #if _WIN32
@@ -123,15 +122,16 @@ std::vector<ReferenceTrajectory> Trajectory::OSTC(std::unordered_map<Trajectory,
     for (auto& pair : M) {
         auto ref = pair.second[0];
 
-        unsigned int t = 0;
+        int t = 0;
         ref.points[0].timestamp = 0;
         time_correction_cost[ref] = 0;
 
-        for (int i = 1; i < abs(points.size() + ref.points.size() - 1); i++) {
+        for (int i = 1; i < points.size() + ref.points.size() - 1; i++) {
             auto a_i = points[i];
             auto b_i = ref.points[i];
 
-            const auto diff = b_i.timestamp - ref.points[i-1].timestamp;
+            int diff = b_i.timestamp - ref.points[i-1].timestamp;
+
             if (abs(t + diff - a_i.timestamp) <= tepsilon) {
                 t = t + diff;
             }

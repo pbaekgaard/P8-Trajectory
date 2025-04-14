@@ -1,5 +1,4 @@
 #include "gtest/gtest.h"
-#include <gtest/gtest.h>
 #include <trajectory.hpp>
 
 TEST(Trajectories, trajectories_are_equal)
