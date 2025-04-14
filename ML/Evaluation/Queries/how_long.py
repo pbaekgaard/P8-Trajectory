@@ -11,7 +11,7 @@ def how_long_query_processing(how_long_query, group_by_df):
     for trajectory_id, group_df in group_by_df:
         if trajectory_id not in first_times["trajectory_id"].values or trajectory_id not in last_times["trajectory_id"].values: continue # Because we need to have to points on the trajectory to calculate the time it took to travel from A to B
 
-        time_difference = last_times[last_times["trajectory_id"] == trajectory_id].iloc[0]["timestamp"] - first_times[first_times["trajectory_id"] == trajectory_id].iloc[0]["timestamp"]
+        time_difference = abs(last_times[last_times["trajectory_id"] == trajectory_id].iloc[0]["timestamp"] - first_times[first_times["trajectory_id"] == trajectory_id].iloc[0]["timestamp"])
 
         how_long_query_results.append(pd.DataFrame({"trajectory_id": [trajectory_id], "time_difference": [time_difference]}))
 

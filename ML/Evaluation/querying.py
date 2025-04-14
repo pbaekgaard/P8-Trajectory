@@ -1,4 +1,5 @@
 import pandas as pd
+from datetime import datetime
 
 from ML.Evaluation.Queries.where import where_query_processing
 from ML.Evaluation.Queries.distance import distance_query_processing
@@ -70,13 +71,21 @@ def reconstruct_trajectories(compressed_dataset, merged_df):
     for new_id, compressed_trajectory in compressed_dataset.items():
         reconstructed_points = []
         for (trajectory_id, start_index, end_index) in compressed_trajectory:
-            trajectory = merged_df[merged_df["trajectory_id"] == trajectory_id].iloc[start_index:end_index + 1]
+            trajectory = merged_df[merged_df["trajectory_id"] == trajectory_id].iloc[start_index:end_index + 1].reset_index(drop=True)
+            reference_trajectory = trajectory.copy()
             trajectory["trajectory_id"] = new_id
-            trajectory["timestamp"] = trajectory.apply(lambda t: get_correct_timestamp(t, new_id), axis=1)
+            for i, row in trajectory.iterrows():
+                trajectory.at[i, "timestamp"] = get_correct_timestamp(row, trajectory, reference_trajectory, new_id)
             reconstructed_points.append(trajectory)
         reconstructed_trajectories.append(pd.concat(reconstructed_points, ignore_index=True))
     return pd.concat(reconstructed_trajectories, ignore_index=True).drop(columns=["timestamp_corrected"])
 
 
-def get_correct_timestamp(t, new_id):
-    return t["timestamp_corrected"][new_id] if t["timestamp_corrected"] and new_id in t["timestamp_corrected"] else t["timestamp"]
+def get_correct_timestamp(t, trajectory, reference_trajectory, new_id):
+    if t["timestamp_corrected"] and new_id in t["timestamp_corrected"]:
+        return t["timestamp_corrected"][new_id]
+    else:
+        t_row = t.name
+        if t_row == 0:
+            return t["timestamp"]
+        return datetime.strftime(datetime.strptime(trajectory.iloc[t_row - 1]["timestamp"], "%Y-%m-%d %H:%M:%S") + (datetime.strptime(reference_trajectory.iloc[t_row]["timestamp"], "%Y-%m-%d %H:%M:%S") - datetime.strptime(reference_trajectory.iloc[t_row - 1]["timestamp"], "%Y-%m-%d %H:%M:%S")), "%Y-%m-%d %H:%M:%S")

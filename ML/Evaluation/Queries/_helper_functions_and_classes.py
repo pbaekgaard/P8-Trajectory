@@ -5,7 +5,7 @@ from shapely.geometry import Point, LineString
 from pyproj import Transformer, enums
 import math
 import heapq
-from datetime import datetime
+from datetime import datetime, timedelta
 import numpy as np
 
 # CLASSES:
@@ -103,6 +103,14 @@ def similarity_score(true, pred, trajectory_df):
     trajectory_length = calculate_distance(trajectory_df)
     similarity = 1 - (distance / trajectory_length)
     return max(similarity, 0)
+
+def similarity_score_time(true_timestamp, pred_timestamp, trajectory_df):
+    #TODO: check det her
+    query_difference = abs(true_timestamp - pred_timestamp)
+    trajectory_difference = datetime.strptime(trajectory_df.iloc[-1]["timestamp"], "%Y-%m-%d %H:%M:%S") - datetime.strptime(trajectory_df.iloc[0]["timestamp"], "%Y-%m-%d %H:%M:%S")
+    similarity = 1 - (query_difference / trajectory_difference)
+    return max(similarity, 0)
+
 
 def closest_endpoints_on_trajectory_if_within_threshold(query_point, group_df, threshold: float = 100):
     #TODO: RENAME!!!
