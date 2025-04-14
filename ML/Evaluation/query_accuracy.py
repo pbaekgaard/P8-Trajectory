@@ -37,7 +37,7 @@ def query_accuracy_evaluation(y_true, y_pred, trajectories_count, original_df):
     accuracy_results.append(window_query_accuracy_evaluation(y_true[6], y_pred[6], trajectories_count))
     print("window accuracy done")
 
-
+    # TODO: Return all results so we can visualize the individual query type
     return sum(accuracy_results) / len(accuracy_results)
 
 
