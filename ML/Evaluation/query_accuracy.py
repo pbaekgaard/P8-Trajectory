@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import pandas as pd
 from sklearn.metrics import r2_score
 
@@ -9,20 +11,32 @@ def query_accuracy_evaluation(y_true, y_pred, trajectories_count, original_df):
     accuracy_results = []
     # WHERE
     #TODO: HUSK
-    #accuracy_results.append(where_query_accuracy_evaluation(y_true[0], y_true[0], trajectories_count, original_df))
+    accuracy_results.append(where_query_accuracy_evaluation(y_true[0], y_pred[0], original_df))
+    print("where accuracy done")
     # DISTANCE
     accuracy_results.append(distance_query_accuracy_evaluation(y_true[1], y_pred[1]))
+    print("distance accuracy done")
     # WHEN
     #TODO: HUSK
-    accuracy_results.append(when_query_accuracy_evaluation(y_true[2], y_true[2], original_df))
+    accuracy_results.append(when_query_accuracy_evaluation(y_true[2], y_pred[2], original_df))
+    print("when accuracy done")
+
     # HOW LONG
-    accuracy_results.append(how_long_query_accuracy_evaluation(y_true[3], y_pred[3]))
+    accuracy_results.append(how_long_query_accuracy_evaluation(y_true[3], y_pred[3], original_df))
+    print("how_long accuracy done")
+
     # COUNT
     accuracy_results.append(count_query_accuracy_evaluation(y_true[4], y_pred[4]))
+    print("count accuracy done")
+
     # KNN
     accuracy_results.append(knn_query_accuracy_evaluation(y_true[5], y_pred[5], trajectories_count))
+    print("knn accuracy done")
+
     # WINDOW
     accuracy_results.append(window_query_accuracy_evaluation(y_true[6], y_pred[6], trajectories_count))
+    print("window accuracy done")
+
 
     return sum(accuracy_results) / len(accuracy_results)
 
@@ -38,15 +52,16 @@ def where_query_accuracy_evaluation(y_true, y_pred, trajectories_count, original
         unique_ids = true_set.symmetric_difference(pred_set)
         TN = (trajectories_count - len(recurring_ids) - len(unique_ids))
 
-        sum_score += TN * 1
-        # TODO: Flip så vi looper gennem groups af trajectory id's fra orginial_df
-        for j in recurring_ids:
-            true_point = y_true[i][y_true[i]["trajectory_id"] == j][["longitude", "latitude"]]
-            pred_point = y_pred[i][y_pred[i]["trajectory_id"] == j][["longitude", "latitude"]]
-
-            sum_score += similarity_score(true_point, pred_point, original_df[original_df["trajectory_id"] == j])
-            print("")
-        sum_score /= trajectories_count
+        for trajectory_id, trajectory in group_by:
+            if trajectory_id in recurring_ids:
+                true_point = y_true[i][y_true[i]["trajectory_id"] == trajectory_id][["longitude", "latitude"]]
+                pred_point = y_pred[i][y_pred[i]["trajectory_id"] == trajectory_id][["longitude", "latitude"]]
+                sum_score += similarity_score_distance(true_point, pred_point, trajectory)
+            elif trajectory_id in unique_ids:
+                sum_score += 0
+            else:
+                sum_score += 1
+        sum_score /= len(group_by)
         results.append(sum_score)
     return sum(results) / len(results)
 
@@ -81,7 +96,7 @@ def when_query_accuracy_evaluation(y_true, y_pred, original_df):
         sum_score = 0
         for trajectory_id, trajectory in group_by:
             if trajectory_id in recurring_ids:
-                sum_score += similarity_score(y_true[i], y_pred[i], trajectory)
+                sum_score += similarity_score_time(y_true[i][y_true[i]["trajectory_id"] == trajectory_id]["timestamp"].iloc[0], y_pred[i][y_pred[i]["trajectory_id"] == trajectory_id]["timestamp"].iloc[0], trajectory)
             elif trajectory_id in unique_ids:
                 sum_score += 0
             else:
