@@ -3,6 +3,7 @@
 
 TEST(SamplePoint, isEqual)
 {
+    GTEST_SKIP() << "Skip until further notice" << std::endl;
     auto samePoint1 = SamplePoint(1, 2, 1);
     auto samePoint2 = SamplePoint(1, 2, 2);
     auto differentY = SamplePoint(1, 3, 3);

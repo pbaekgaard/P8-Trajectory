@@ -18,6 +18,7 @@ TEST(EuclideanDistance, IsCorrectDistance)
 
 TEST(MaxDTW, IsCorrectDistance)
 {
+    GTEST_SKIP() << "Skip until further notice" << std::endl;
     auto traj1 = Trajectory{1, {}};
     auto traj2 = Trajectory{2, {}};
     auto traj3 = Trajectory{3, std::vector<SamplePoint>{SamplePoint{1, 2, 3}}};

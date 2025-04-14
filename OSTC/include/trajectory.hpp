@@ -53,13 +53,13 @@ struct Trajectory
 {
     uint32_t id;
     std::vector<SamplePoint> points;
-    short start_index = -1;
-    short end_index = -1;
+    int start_index = -1;
+    int end_index = -1;
 
     Trajectory(const uint32_t id, const std::vector<SamplePoint>& points);
-    Trajectory(const uint32_t id, const std::vector<SamplePoint>& points, short start_index, short end_index);
+    Trajectory(const uint32_t id, const std::vector<SamplePoint>& points, int start_index, int end_index);
 
-    Trajectory operator()(short start, short end);
+    Trajectory operator()(int start, int end);
 
     Trajectory operator+(Trajectory other);
 

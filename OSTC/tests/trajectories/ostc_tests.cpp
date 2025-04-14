@@ -9,6 +9,6 @@ TEST(OSTC, outputs_correct_values)
         {t(15, 16), {t6(12, 13)}}, {t(17, 19), {t7(7, 9)}},
     };
 
-    OSTCResult T_prime = t.OSTC(M, 60);
+    OSTCResult T_prime = t.OSTC(M, 100000);
     std::cout << "henro" << std::endl;
 }
