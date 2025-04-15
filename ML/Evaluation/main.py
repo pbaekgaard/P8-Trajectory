@@ -6,12 +6,12 @@ import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__ + "/../../")))
 
 from tools.scripts._preprocess import main as _load_data
-from tools.scripts._load_data import load_compressed_data as _load_compressed_data, count_trajectories
-from ML.Evaluation.query_creation import create_queries, dummy_create_queries
-from ML.Evaluation._file_access_helper_functions import load_data_from_file, save_to_file, find_newest_version
+from tools.scripts._load_data import count_trajectories
+from ML.Evaluation.query_creation import create_queries
+from ML.Evaluation._file_access_helper_functions import load_data_from_file, save_to_file, find_newest_version, get_best_params
 from ML.Evaluation.querying import query_original_dataset, query_compressed_dataset
 from ML.Evaluation.query_accuracy import query_accuracy_evaluation
-
+from ML.reference_set_construction import generate_reference_set
 
 data = [
             # Beijing Trajectories
@@ -38,7 +38,7 @@ data = [
         ]
 
 
-def mock_compressed_data():
+def mock_compressed_data(reference_set_lol=None):
     reference_set = [
         [0, "2008-02-02 15:36:08", 116.51172, 39.92123, {1: "2008-02-02 14:00:00"}],  # Trajectory 1
         [0, "2008-02-02 15:40:10", 116.51222, 39.92173, {1: "2008-02-02 14:15:00", 2: "2008-02-02 16:12:00"}],
@@ -86,6 +86,7 @@ if __name__ == '__main__':
     parser.add_argument('-q', '--query', action="store_true", help='Create queries and query results')
     parser.add_argument('-e', '--evaluation', action="store_true", help='Run evaluation')
 
+
     args = parser.parse_args()
     dataset = None
 
@@ -97,23 +98,42 @@ if __name__ == '__main__':
             version_number = find_newest_version() + 1
 
         # create all that does not exist
-        if not os.path.exists(os.path.join(os.path.abspath(__file__), "..", "files", f"queries_for_evaluation-{version_number}.pkl")):
+        if not os.path.exists(os.path.join(os.path.abspath(__file__), "..", "files", f"{version_number}-queries_for_evaluation.pkl")):
+            print("Query creation")
             create_queries(amount_of_individual_queries=15, version=version_number)
         queries = load_data_from_file({
             "filename": "queries_for_evaluation",
             "version": version_number
         })
         #queries = dummy_create_queries()
-        if not os.path.exists(os.path.join(os.path.abspath(__file__), "..", "files", f"original_query_results-{version_number}.pkl")):
-            dataset = _load_data()
-            #dataset = pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
+        if not os.path.exists(os.path.join(os.path.abspath(__file__), "..", "files", f"{version_number}-original_query_results.pkl")):
+            print("Querying")
+            #dataset = _load_data()
+            dataset = pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
             # TODO: Find query time
-            query_original_dataset(dataset, queries, version=version_number)
-        if not os.path.exists(os.path.join(os.path.abspath(__file__), "..", "files", f"compressed_query_results-{version_number}.pkl")):
-            compressed_dataset, merged_df = mock_compressed_data()
+            result = query_original_dataset(dataset, queries)
+            save_to_file({
+                "filename": "original_query_results",
+                "version": version_number
+            }, result)
+        if not os.path.exists(os.path.join(os.path.abspath(__file__), "..", "files", f"{version_number}-compressed_query_results.pkl")):
+            print("Compressed querying")
+            dataset = pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
+            #dataset = dataset if dataset else _load_data()
+            clustering_method, clustering_param, batch_size, d_model, num_heads, clustering_metric, num_layers = get_best_params()
+            _,_,reference_set,_,_ = generate_reference_set(
+                df=dataset, unique_trajectories=dataset["trajectory_id"].unique(),
+                clustering_method=clustering_method, clustering_param=clustering_param, batch_size=batch_size, d_model=d_model,
+                num_heads=num_heads, clustering_metric=clustering_metric, num_layers=num_layers
+            )
+            compressed_dataset, merged_df = mock_compressed_data(reference_set)
             # compressed_dataset, merged_df = _load_compressed_data()
             # TODO: Find query time
-            query_compressed_dataset(compressed_dataset, merged_df, queries, version=version_number)
+            result = query_compressed_dataset(compressed_dataset, merged_df, queries)
+            save_to_file({
+                "filename": "compressed_query_results",
+                "version": version_number
+            }, result)
 
 
 
@@ -135,7 +155,7 @@ if __name__ == '__main__':
 
         dataset = dataset if dataset else _load_data()
 
-        accuracy, individual_accuracy_results = query_accuracy_evaluation(original_results, compressed_results, count_trajectories(), dataset, version_number)
+        accuracy, individual_accuracy_results = query_accuracy_evaluation(original_results, compressed_results, count_trajectories())
         compression_ratio = 0
         print(f"evaluation done. accuracy: {accuracy}, compression ratio: {compression_ratio}. Saving...")
 
