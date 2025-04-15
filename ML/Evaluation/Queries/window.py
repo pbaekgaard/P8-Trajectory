@@ -27,7 +27,7 @@ def does_overlap(df_within, df_before, df_after, window_query, overlap_threshold
     :param df_before: dataframe containing the point immediately before window_query's timeframe
     :param df_after: dataframe containing the point immediately after window_query's' timeframe
     :param window_query: the query.
-    :param overlap_threshold: the error. The amount a line between to trajectories is allowed to defer from the LineString drawnfrom the window_queries points
+    :param overlap_threshold: the error. The amount a line between two trajectories is allowed to defer from the LineString drawn from the window_queries points
     :return: True if the trajectories overlap with the points from the window_query with the window_queries time window, False otherwise
 
     logic overview:

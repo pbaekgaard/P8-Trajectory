@@ -3,9 +3,10 @@ from sklearn.metrics import r2_score
 from datetime import timedelta
 
 from ML.Evaluation.Queries._helper_functions_and_classes import similarity_score_distance, similarity_score_time
+from ML.Evaluation._file_access_helper_functions import save_to_file
 
 
-def query_accuracy_evaluation(y_true, y_pred, trajectories_count, original_df):
+def query_accuracy_evaluation(y_true, y_pred, trajectories_count, original_df, version):
     accuracy_results = []
     # WHERE
     #TODO: HUSK
@@ -36,7 +37,7 @@ def query_accuracy_evaluation(y_true, y_pred, trajectories_count, original_df):
     print("window accuracy done")
 
     # TODO: Return all results so we can visualize the individual query type
-    return sum(accuracy_results) / len(accuracy_results)
+    return sum(accuracy_results) / len(accuracy_results), accuracy_results
 
 
 def where_query_accuracy_evaluation(y_true, y_pred, trajectories_count, original_df):
