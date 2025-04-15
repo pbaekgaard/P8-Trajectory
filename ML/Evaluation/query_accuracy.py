@@ -3,22 +3,21 @@ from datetime import timedelta
 import pandas as pd
 from sklearn.metrics import r2_score
 
-from ML.Evaluation._file_access_helper_functions import save_to_file
 from ML.Evaluation.Queries._helper_functions_and_classes import (
-    similarity_score, similarity_score_distance, similarity_score_time)
+    similarity_score_distance, similarity_score_time)
 
 
-def query_accuracy_evaluation(y_true, y_pred, trajectories_count, original_df, version):
+def query_accuracy_evaluation(y_true, y_pred, original_df):
     accuracy_results = []
     # WHERE
-    #TODO: HUSK
     accuracy_results.append(where_query_accuracy_evaluation(y_true[0], y_pred[0], original_df))
     print("where accuracy done")
+
     # DISTANCE
     accuracy_results.append(distance_query_accuracy_evaluation(y_true[1], y_pred[1]))
     print("distance accuracy done")
+
     # WHEN
-    #TODO: HUSK
     accuracy_results.append(when_query_accuracy_evaluation(y_true[2], y_pred[2], original_df))
     print("when accuracy done")
 
@@ -31,25 +30,20 @@ def query_accuracy_evaluation(y_true, y_pred, trajectories_count, original_df, v
     print("count accuracy done")
 
     # KNN
-    accuracy_results.append(knn_query_accuracy_evaluation(y_true[5], y_pred[5], trajectories_count))
+    accuracy_results.append(knn_query_accuracy_evaluation(y_true[5], y_pred[5], len(original_df.groupby(["trajectory_id"]))))
     print("knn accuracy done")
 
     # WINDOW
-    accuracy_results.append(window_query_accuracy_evaluation(y_true[6], y_pred[6], trajectories_count))
+    accuracy_results.append(window_query_accuracy_evaluation(y_true[6], y_pred[6], len(original_df.groupby(["trajectory_id"]))))
     print("window accuracy done")
 
     # TODO: Return all results so we can visualize the individual query type
     return sum(accuracy_results) / len(accuracy_results), accuracy_results
 
 
-<<<<<<< HEAD
-def where_query_accuracy_evaluation(y_true, y_pred, trajectories_count):
-    print("")
-=======
 def where_query_accuracy_evaluation(y_true, y_pred, original_df):
     group_by = original_df.groupby("trajectory_id")
 
->>>>>>> 61cd9b40 (Changes by runeb)
     results = []
     for i in range(len(y_true)):
         sum_score = 0

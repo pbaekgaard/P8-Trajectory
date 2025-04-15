@@ -19,6 +19,9 @@ class ClusteringMethod(Enum):
     KMEDOIDS = 1
     AGGLOMERATIVE = 2
 
+#TODO: CLEANUP herinde. vi behøver f.eks ikke unique_trajectories. get first_x er kun midlertidig.
+
+
 
 def split_into_batches(df: pd.DataFrame, batch_size: int = 3) -> List[pd.DataFrame]:
     df = df.sort_values(by=["trajectory_id", "timestamp"])
@@ -191,13 +194,13 @@ def generate_reference_set(df: pd.DataFrame, unique_trajectories: List, clusteri
     cluster_labels = None
     representative_indices = []
 
-    match clustering_method:
-        case ClusteringMethod.KMEDOIDS:
+    match clustering_method.value:
+        case ClusteringMethod.KMEDOIDS.value:
             clustering = KMedoids(n_clusters=clustering_param, metric=clustering_metric)
             cluster_labels = clustering.fit_predict(trajectory_representations)
             representative_indices = clustering.medoid_indices_
             
-        case ClusteringMethod.AGGLOMERATIVE:
+        case ClusteringMethod.AGGLOMERATIVE.value:
             clustering = AgglomerativeClustering(
                 n_clusters=None, metric=clustering_metric, linkage="complete", distance_threshold=clustering_param
             )
