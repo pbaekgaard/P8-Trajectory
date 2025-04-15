@@ -105,7 +105,6 @@ def similarity_score(true, pred, trajectory_df):
     return max(similarity, 0)
 
 def similarity_score_time(true_timestamp, pred_timestamp, trajectory_df):
-    #TODO: check det her
     query_difference = abs(true_timestamp - pred_timestamp)
     trajectory_difference = datetime.strptime(trajectory_df.iloc[-1]["timestamp"], "%Y-%m-%d %H:%M:%S") - datetime.strptime(trajectory_df.iloc[0]["timestamp"], "%Y-%m-%d %H:%M:%S")
     similarity = 1 - (query_difference / trajectory_difference)
