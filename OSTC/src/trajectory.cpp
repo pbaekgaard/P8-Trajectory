@@ -125,27 +125,32 @@ OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajector
     std::unordered_map<Trajectory, int> time_correction_cost{};
     std::unordered_map<Trajectory, std::vector<TimeCorrectionRecordEntry>> time_correction_record{};
     auto c = 4;
+    auto j = 1;
 
-    for (auto& pair : M) {
-        auto ref = pair.second[0];
+    for (auto& MRT : M) {
+        auto ref = MRT.second[0];
+        auto a = MRT.first.points;
+        auto b = ref.points;
 
-        int t = 0;
+        signed int t = 0;
         ref.points[0].timestamp = 0;
         time_correction_cost[ref] = 0;
 
-        for (int i = 1; i < points.size() + ref.points.size() - 1; i++) {
-            auto a_i = points[i];
-            auto b_i = ref.points[i];
+        for (int i = 1; i <= b.size() - 1; i++) {
+            auto a_i = a[i];
+            auto b_i = b[i];
 
-            int diff = b_i.timestamp - ref.points[i - 1].timestamp;
+            int diff = b_i.timestamp - b[i - 1].timestamp;
 
-            if (abs(t + diff - a_i.timestamp) <= tepsilon) {
+            signed int leftside =abs(t + diff - a_i.timestamp);
+            if (leftside <= tepsilon) {
                 t = t + diff;
             } else {
-                t = std::max(a_i.timestamp, ref.points[i - 1].timestamp);
+                t = std::max(a_i.timestamp, b[i - 1].timestamp);
                 time_correction_cost[ref] += c;
                 time_correction_record[ref].push_back(TimeCorrectionRecordEntry{i, t});
             }
+            j++;
         }
     }
 
@@ -175,7 +180,7 @@ OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajector
     int i = points.size();
     while (i > 0) {
         if (pre[i] == i - 1) {
-            T_prime.push_back((*this)(i - 1, i - 1));
+            T_prime.emplace_back((*this)(i - 1, i - 1));
             --i;
         } else {
             Trajectory sub_traj = (*this)(pre[i], i - 1);
@@ -188,5 +193,6 @@ OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajector
     }
 
     std::reverse(T_prime.begin(), T_prime.end());
-    return OSTCResult(T_prime, time_correction_record, time_correction_cost);
+
+    return {T_prime, time_correction_record, time_correction_cost};
 }
