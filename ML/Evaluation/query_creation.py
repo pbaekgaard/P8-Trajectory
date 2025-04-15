@@ -94,7 +94,7 @@ def dummy_create_queries():
     }
 
 
-def create_queries(amount_of_individual_queries):
+def create_queries(amount_of_individual_queries, version):
     print("Creating queries...")
     queries = {}
     queries["where"] = create_where_queries(from_date="2008-02-02 13:30:44", to_date="2008-02-08 17:39:19",
@@ -115,7 +115,8 @@ def create_queries(amount_of_individual_queries):
                                               times=amount_of_individual_queries)
 
     save_to_file({
-        "filename": "queries_for_evaluation"
+        "filename": "queries_for_evaluation",
+        "version": version
     }, queries)
 
 
