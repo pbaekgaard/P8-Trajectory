@@ -1,3 +1,6 @@
+import pandas as pd
+from datetime import datetime
+
 from ML.Evaluation.Queries.where import where_query_processing
 from ML.Evaluation.Queries.distance import distance_query_processing
 from ML.Evaluation.Queries.when import when_query_processing
@@ -7,7 +10,7 @@ from ML.Evaluation.Queries.knn import knn_query_processing
 from ML.Evaluation.Queries.window import window_query_processing
 from ML.Evaluation._file_access_helper_functions import save_to_file
 
-def query_original_dataset(dataset, queries):
+def query_original_dataset(dataset, queries, version, filename = "original_query_results"):
     #TODO: MAYBE: maybe make universal query_dataset_function with query_functions as argument
     group_by_df = dataset.groupby("trajectory_id")
 
@@ -55,9 +58,36 @@ def query_original_dataset(dataset, queries):
 
     result = where_queries_results, distance_queries_results, when_queries_results, how_long_queries_results, count_queries_results, knn_queries_results, window_queries_results
     save_to_file({
-        "filename": "original_query_results",
+        "filename": filename,
+        "version": version
     }, result)
 
 
-def query_compressed_dataset(dataset, queries):
-    pass
+def query_compressed_dataset(compressed_dataset, merged_df, queries, version):
+    df = reconstruct_trajectories(compressed_dataset, merged_df)
+    query_original_dataset(df, queries, filename="compressed_query_results", version=version)
+
+
+def reconstruct_trajectories(compressed_dataset, merged_df):
+    reconstructed_trajectories = []
+    for new_id, compressed_trajectory in compressed_dataset.items():
+        reconstructed_points = []
+        for (trajectory_id, start_index, end_index) in compressed_trajectory:
+            trajectory = merged_df[merged_df["trajectory_id"] == trajectory_id].iloc[start_index:end_index + 1].reset_index(drop=True)
+            reference_trajectory = trajectory.copy()
+            trajectory["trajectory_id"] = new_id
+            for i, row in trajectory.iterrows():
+                trajectory.at[i, "timestamp"] = get_correct_timestamp(row, trajectory, reference_trajectory, new_id)
+            reconstructed_points.append(trajectory)
+        reconstructed_trajectories.append(pd.concat(reconstructed_points, ignore_index=True))
+    return pd.concat(reconstructed_trajectories, ignore_index=True).drop(columns=["timestamp_corrected"])
+
+
+def get_correct_timestamp(t, trajectory, reference_trajectory, new_id):
+    if t["timestamp_corrected"] and new_id in t["timestamp_corrected"]:
+        return t["timestamp_corrected"][new_id]
+    else:
+        t_row = t.name
+        if t_row == 0:
+            return t["timestamp"]
+        return datetime.strftime(datetime.strptime(trajectory.iloc[t_row - 1]["timestamp"], "%Y-%m-%d %H:%M:%S") + (datetime.strptime(reference_trajectory.iloc[t_row]["timestamp"], "%Y-%m-%d %H:%M:%S") - datetime.strptime(reference_trajectory.iloc[t_row - 1]["timestamp"], "%Y-%m-%d %H:%M:%S")), "%Y-%m-%d %H:%M:%S")

@@ -6,10 +6,11 @@ import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__ + "/../../")))
 
 from tools.scripts._preprocess import main as _load_data
-from tools.scripts._load_data import load_compressed_data as _load_compressed_data
+from tools.scripts._load_data import load_compressed_data as _load_compressed_data, count_trajectories
 from ML.Evaluation.query_creation import create_queries, dummy_create_queries
-from ML.Evaluation._file_access_helper_functions import load_data_from_file
-from ML.Evaluation.querying import query_original_dataset
+from ML.Evaluation._file_access_helper_functions import load_data_from_file, save_to_file, find_newest_version
+from ML.Evaluation.querying import query_original_dataset, query_compressed_dataset
+from ML.Evaluation.query_accuracy import query_accuracy_evaluation
 
 
 data = [
@@ -37,24 +38,112 @@ data = [
         ]
 
 
+def mock_compressed_data():
+    reference_set = [
+        [0, "2008-02-02 15:36:08", 116.51172, 39.92123, {1: "2008-02-02 14:00:00"}],  # Trajectory 1
+        [0, "2008-02-02 15:40:10", 116.51222, 39.92173, {1: "2008-02-02 14:15:00", 2: "2008-02-02 16:12:00"}],
+        [0, "2008-02-02 16:00:00", 116.51372, 39.92323, None],
+
+        [4, "2008-02-02 17:10:00", 116.57000, 39.97000, {5: "2008-02-02 18:00:00"}],  # Trajectory 5
+        [4, "2008-02-02 17:15:00", 116.58000, 39.98000, {5: "2008-02-02 18:02:30"}]
+    ]
+
+    reference_set_df = pd.DataFrame(reference_set, columns=["trajectory_id", "timestamp", "longitude", "latitude",
+                                                            "timestamp_corrected"])
+
+    compressed_data = {
+        0: [(0, 0, 2)],
+        1: [(0, 0, 1)],
+        2: [(0, 0, 2)],
+        3: [(3, 0, 2)],
+        4: [(4, 0, 1)],
+        5: [(4, 0, 1), (5, 0, 1)],
+    }
+
+    original_data_trimmed = [
+        [3, "2008-02-02 13:30:00", 116.50050, 39.91050],  # Trajectory 4
+        [3, "2008-02-02 13:45:00", 116.52050, 39.93050],
+        [3, "2008-02-02 14:00:00", 116.54050, 39.95050],
+
+        [5, "2008-02-02 20:05:00", 116.60000, 39.99200],
+        [5, "2008-02-02 20:10:00", 116.61000, 39.99300]
+    ]
+
+    original_df_trimmed = pd.DataFrame(original_data_trimmed,
+                                       columns=["trajectory_id", "timestamp", "longitude", "latitude"])
+
+    merged_df = pd.concat([reference_set_df, original_df_trimmed], ignore_index=True).sort_values(
+        ["trajectory_id", "timestamp"])
+
+    merged_df["timestamp_corrected"] = merged_df["timestamp_corrected"].fillna(False)
+
+    return compressed_data, merged_df
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-f', '--force', action='store_true', help='Force creation/overwrite of evaluation files')
+    parser.add_argument('-v', '--version', help='Create version x of evaluation files')
+    parser.add_argument('-q', '--query', action="store_true", help='Create queries and query results')
+    parser.add_argument('-e', '--evaluation', action="store_true", help='Run evaluation')
+
     args = parser.parse_args()
+    dataset = None
 
-    # create all that does not exist
-    if not os.path.exists(os.path.join(os.path.abspath(__file__), "..", "files", "queries_for_evaluation.pkl")) or args.force:
-        create_queries(amount_of_individual_queries=7)
-    queries = load_data_from_file({
-        "filename": "queries_for_evaluation",
-    })
-    #queries = dummy_create_queries()
-    if not os.path.exists(os.path.join(os.path.abspath(__file__), "..", "files", "original_query_results.pkl")) or args.force:
-        dataset = _load_data()
-        #dataset = pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
-        query_original_dataset(dataset, queries)
-    if not os.path.exists(os.path.join(os.path.abspath(__file__), "..", "files", "compressed_query_results.pkl")) or args.force:
-        pass
 
-    print("Querying done")
+    if args.query:
+        if args.version:
+            version_number = args.version
+        else:
+            version_number = find_newest_version() + 1
+
+        # create all that does not exist
+        if not os.path.exists(os.path.join(os.path.abspath(__file__), "..", "files", f"queries_for_evaluation-{version_number}.pkl")):
+            create_queries(amount_of_individual_queries=15, version=version_number)
+        queries = load_data_from_file({
+            "filename": "queries_for_evaluation",
+            "version": version_number
+        })
+        #queries = dummy_create_queries()
+        if not os.path.exists(os.path.join(os.path.abspath(__file__), "..", "files", f"original_query_results-{version_number}.pkl")):
+            dataset = _load_data()
+            #dataset = pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
+            # TODO: Find query time
+            query_original_dataset(dataset, queries, version=version_number)
+        if not os.path.exists(os.path.join(os.path.abspath(__file__), "..", "files", f"compressed_query_results-{version_number}.pkl")):
+            compressed_dataset, merged_df = mock_compressed_data()
+            # compressed_dataset, merged_df = _load_compressed_data()
+            # TODO: Find query time
+            query_compressed_dataset(compressed_dataset, merged_df, queries, version=version_number)
+
+
+
+    if args.evaluation:
+        if args.version:
+            version_number = args.version
+        else:
+            version_number = find_newest_version()
+
+        print("evaluating..")
+        original_results = load_data_from_file({
+            "filename": "original_query_results",
+            "version": version_number
+        })
+        compressed_results = load_data_from_file({
+            "filename": "compressed_query_results",
+            "version": version_number
+        })
+
+        dataset = dataset if dataset else _load_data()
+
+        accuracy, individual_accuracy_results = query_accuracy_evaluation(original_results, compressed_results, count_trajectories(), dataset, version_number)
+        compression_ratio = 0
+        print(f"evaluation done. accuracy: {accuracy}, compression ratio: {compression_ratio}. Saving...")
+
+        evaluation_results = {"accuracy": accuracy, "compression_ratio": compression_ratio, "accuracy_individual_results": individual_accuracy_results}
+        save_to_file({
+            "filename": "evaluation",
+            "version": version_number
+        }, evaluation_results)
+
+
+
