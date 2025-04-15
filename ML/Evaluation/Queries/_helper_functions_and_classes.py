@@ -100,7 +100,7 @@ def calculate_distance(position_df: pd.DataFrame) -> int:
 
     return total_distance
 
-def similarity_score(true, pred, trajectory_df):
+def similarity_score_distance(true, pred, trajectory_df):
     distance = calculate_distance(pd.concat([true, pred]))
     trajectory_length = calculate_distance(trajectory_df)
     similarity = 1 - (distance / trajectory_length)

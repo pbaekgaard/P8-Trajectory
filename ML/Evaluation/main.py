@@ -59,7 +59,7 @@ def mock_compressed_data():
     compressed_data = {
         0: [(0, 0, 2)],
         1: [(0, 0, 1)],
-        2: [(0, 0, 1)],
+        2: [(0, 0, 2)],
         3: [(3, 0, 2)],
         4: [(4, 0, 1)],
         5: [(4, 0, 1), (5, 0, 1)],
@@ -121,15 +121,34 @@ if __name__ == '__main__':
             query_compressed_dataset(compressed_dataset, merged_df, queries, version=version_number)
 
 
-    original_results = load_data_from_file({
-        "filename": "original_query_results",
-    })
-    compressed_results = load_data_from_file({
-        "filename": "compressed_query_results",
-    })
 
-    dataset = dataset if dataset else _load_data()
+    if args.evaluation:
+        if args.version:
+            version_number = args.version
+        else:
+            version_number = find_newest_version()
 
-    accuracy = query_accuracy_evaluation(original_results, compressed_results, count_trajectories(), dataset)
+        print("evaluating..")
+        original_results = load_data_from_file({
+            "filename": "original_query_results",
+            "version": version_number
+        })
+        compressed_results = load_data_from_file({
+            "filename": "compressed_query_results",
+            "version": version_number
+        })
 
-    print("Querying done")
+        dataset = dataset if dataset else _load_data()
+
+        accuracy, individual_accuracy_results = query_accuracy_evaluation(original_results, compressed_results, count_trajectories(), dataset, version_number)
+        compression_ratio = 0
+        print(f"evaluation done. accuracy: {accuracy}, compression ratio: {compression_ratio}. Saving...")
+
+        evaluation_results = {"accuracy": accuracy, "compression_ratio": compression_ratio, "accuracy_individual_results": individual_accuracy_results}
+        save_to_file({
+            "filename": "evaluation",
+            "version": version_number
+        }, evaluation_results)
+
+
+
