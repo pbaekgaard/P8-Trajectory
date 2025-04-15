@@ -17,7 +17,7 @@ bool SamplePoint::operator==(const SamplePoint& other) const
     return longitude == other.longitude && latitude == other.latitude && timestamp == other.timestamp;
 }
 
-Trajectory::Trajectory(const uint32_t id, const std::vector<SamplePoint>& points): id(id), points(points) {}
+Trajectory::Trajectory(const uint32_t id, const std::vector<SamplePoint>& points): id(id), points(points), start_index(0), end_index(points.size()-1) {}
 
 Trajectory::Trajectory(const uint32_t id, const std::vector<SamplePoint>& points, const int start_index,
                        const int end_index): id(id), points(points), start_index(start_index), end_index(end_index)
@@ -131,10 +131,10 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
     return M;
 }
 
-OSTCResult Trajectory::OSTC(std::map<Trajectory, std::vector<Trajectory>> M, const double tepsilon, const double sepsilon)
+OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajectory>> M, const double tepsilon, const double sepsilon)
 {
-    std::map<Trajectory, int> time_correction_cost{};
-    std::map<Trajectory, std::vector<TimeCorrectionRecordEntry>> time_correction_record{};
+    std::unordered_map<Trajectory, int> time_correction_cost{};
+    std::unordered_map<Trajectory, std::vector<TimeCorrectionRecordEntry>> time_correction_record{};
     auto c = 4;
 
 
@@ -166,14 +166,13 @@ OSTCResult Trajectory::OSTC(std::map<Trajectory, std::vector<Trajectory>> M, con
             }
         }
     }
-
     std::vector<int> Ft(points.size() + 1, 0);      // +1 for F_T[0] = 0
     std::vector<int> pre(points.size() + 1, -1);  // -1 indicates no predecessor
     std::vector<ReferenceTrajectory> T_prime;
 
     for (size_t i = 1; i <= points.size(); ++i) {
-        int min_cost = Ft[i - 1] + 8;
-        pre[i] = i - 1;
+        int min_cost = Ft[i - 1] + 12;
+
         for (size_t j = 1; j <= i; ++j) {
             Trajectory sub_traj = (*this)(j - 1, i - 1);
             auto it = M.find(sub_traj);
@@ -203,9 +202,7 @@ OSTCResult Trajectory::OSTC(std::map<Trajectory, std::vector<Trajectory>> M, con
             }
             i = pre[i];
         }
-    }
-
-    std::reverse(T_prime.begin(), T_prime.end());
+    }    std::reverse(T_prime.begin(), T_prime.end());
 
     return {T_prime, time_correction_record, time_correction_cost};
 }

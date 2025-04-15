@@ -78,7 +78,7 @@ struct Trajectory
     }
 
     std::unordered_map<Trajectory, std::vector<Trajectory>> MRTSearch(std::vector<Trajectory>& RefSet, double epsilon);
-    OSTCResult OSTC(std::map<Trajectory, std::vector<Trajectory>> M, double tepsilon, double sepsilon);
+    OSTCResult OSTC(std::unordered_map<Trajectory, std::vector<Trajectory>> M, double tepsilon, double sepsilon);
 };
 
 template <>
@@ -90,12 +90,12 @@ struct std::hash<Trajectory>
 struct OSTCResult
 {
     std::vector<ReferenceTrajectory> References{};
-    std::map<Trajectory, std::vector<TimeCorrectionRecordEntry>> TimeCorrection;
-    std::map<Trajectory, int> costs;
+    std::unordered_map<Trajectory, std::vector<TimeCorrectionRecordEntry>> TimeCorrection;
+    std::unordered_map<Trajectory, int> costs;
 
     OSTCResult(std::vector<ReferenceTrajectory> References,
-               std::map<Trajectory, std::vector<TimeCorrectionRecordEntry>> TimeCorrection,
-               std::map<Trajectory, int> costs):
+               std::unordered_map<Trajectory, std::vector<TimeCorrectionRecordEntry>> TimeCorrection,
+               std::unordered_map<Trajectory, int> costs):
         TimeCorrection(TimeCorrection), References(References), costs(costs) {};
 };
 
