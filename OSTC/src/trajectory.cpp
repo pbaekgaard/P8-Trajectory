@@ -125,7 +125,7 @@ OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajector
     std::unordered_map<Trajectory, int> time_correction_cost{};
     std::unordered_map<Trajectory, std::vector<TimeCorrectionRecordEntry>> time_correction_record{};
     auto c = 4;
-    auto j = 1;
+
 
     for (auto& MRT : M) {
         auto ref = MRT.second[0];
@@ -138,19 +138,38 @@ OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajector
 
         for (int i = 1; i <= b.size() - 1; i++) {
             auto a_i = a[i];
-            auto b_i = b[i];
+            if (i < ref.points.size()) {
+                for (auto j = i; j<= i+1; j++) {
+                    auto b_i = b[j];
+                    int diff = b_i.timestamp - b[i - 1].timestamp;
+                    signed int leftside =abs(t + diff - a_i.timestamp);
+                    if (leftside <= tepsilon) {
+                        t = t + diff;
+                    } else {
+                        t = std::max(a_i.timestamp, b[i - 1].timestamp);
+                        time_correction_cost[ref] += c;
+                        time_correction_record[ref].push_back(TimeCorrectionRecordEntry{i, t});
+                    }
+                }
+            }else {
+                for (int j = i; j < a.size(); ++j) {
+                    auto a_j = a[j];
+                    auto b_last = b.back();
+                    int diff = b_last.timestamp - b[i - 1].timestamp;  // use i-1 as last valid b index
+                    signed int leftside = abs(t + diff - a_j.timestamp);
 
-            int diff = b_i.timestamp - b[i - 1].timestamp;
+                    if (leftside <= tepsilon) {
+                        t = t + diff;
+                    } else {
+                        t = std::max(a_j.timestamp, b[i - 1].timestamp);
+                        time_correction_cost[ref] += c;
+                        time_correction_record[ref].push_back(TimeCorrectionRecordEntry{j, t});
+                    }
+                }
 
-            signed int leftside =abs(t + diff - a_i.timestamp);
-            if (leftside <= tepsilon) {
-                t = t + diff;
-            } else {
-                t = std::max(a_i.timestamp, b[i - 1].timestamp);
-                time_correction_cost[ref] += c;
-                time_correction_record[ref].push_back(TimeCorrectionRecordEntry{i, t});
             }
-            j++;
+
+
         }
     }
 

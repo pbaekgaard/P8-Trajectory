@@ -23,6 +23,6 @@ TEST(OSTC, outputs_correct_values)
         }
     };
 
-    OSTCResult T_prime = t.OSTC(M, 2.5);
+    OSTCResult T_prime = t.OSTC(M, 3);
     std::cout << "henro" << std::endl;
 }
