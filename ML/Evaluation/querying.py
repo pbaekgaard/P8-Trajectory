@@ -10,7 +10,7 @@ from ML.Evaluation.Queries.knn import knn_query_processing
 from ML.Evaluation.Queries.window import window_query_processing
 from ML.Evaluation._file_access_helper_functions import save_to_file
 
-def query_original_dataset(dataset, queries, filename = "original_query_results"):
+def query_original_dataset(dataset, queries, version, filename = "original_query_results"):
     #TODO: MAYBE: maybe make universal query_dataset_function with query_functions as argument
     group_by_df = dataset.groupby("trajectory_id")
 
@@ -59,12 +59,14 @@ def query_original_dataset(dataset, queries, filename = "original_query_results"
     result = where_queries_results, distance_queries_results, when_queries_results, how_long_queries_results, count_queries_results, knn_queries_results, window_queries_results
     save_to_file({
         "filename": filename,
+        "version": version
     }, result)
 
 
-def query_compressed_dataset(compressed_dataset, merged_df, queries):
+def query_compressed_dataset(compressed_dataset, merged_df, queries, version):
     df = reconstruct_trajectories(compressed_dataset, merged_df)
-    query_original_dataset(df, queries, filename="compressed_query_results")
+    query_original_dataset(df, queries, filename="compressed_query_results", version=version)
+
 
 def reconstruct_trajectories(compressed_dataset, merged_df):
     reconstructed_trajectories = []

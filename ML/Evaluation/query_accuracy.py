@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import pandas as pd
 from sklearn.metrics import r2_score
 from datetime import timedelta
@@ -40,8 +42,9 @@ def query_accuracy_evaluation(y_true, y_pred, trajectories_count, original_df, v
     return sum(accuracy_results) / len(accuracy_results), accuracy_results
 
 
-def where_query_accuracy_evaluation(y_true, y_pred, trajectories_count, original_df):
-    print("")
+def where_query_accuracy_evaluation(y_true, y_pred, original_df):
+    group_by = original_df.groupby("trajectory_id")
+
     results = []
     for i in range(len(y_true)):
         sum_score = 0
@@ -49,7 +52,6 @@ def where_query_accuracy_evaluation(y_true, y_pred, trajectories_count, original
         pred_set = set(y_pred[i]["trajectory_id"])
         recurring_ids = true_set.intersection(pred_set)
         unique_ids = true_set.symmetric_difference(pred_set)
-        TN = (trajectories_count - len(recurring_ids) - len(unique_ids))
 
         for trajectory_id, trajectory in group_by:
             if trajectory_id in recurring_ids:
@@ -104,8 +106,23 @@ def when_query_accuracy_evaluation(y_true, y_pred, original_df):
     return sum(results) / len(results)
 
 
-def how_long_query_accuracy_evaluation(y_true, y_pred):
-    return 0.5
+def how_long_query_accuracy_evaluation(y_true, y_pred, original_df):
+    group_by = original_df.groupby("trajectory_id")
+    epsilon = timedelta(microseconds=1)
+
+    results = []
+    for i in range(len(y_true)):
+        true_set = set(y_true[i]["trajectory_id"])
+        pred_set = set(y_pred[i]["trajectory_id"])
+        recurring_ids = list(true_set.intersection(pred_set))
+        unique_ids = true_set.symmetric_difference(pred_set)
+        sum_score = 0
+        for trajectory_id in recurring_ids:
+            sum_score += max(1 - (abs((y_true[i][y_true[i]["trajectory_id"] == trajectory_id]["time_difference"].iloc[0] - y_pred[i][y_pred[i]["trajectory_id"] == trajectory_id]["time_difference"].iloc[0])) / max(y_true[i][y_true[i]["trajectory_id"] == trajectory_id]["time_difference"].iloc[0], epsilon)), 0)
+        sum_score += 0 * len(unique_ids)
+        sum_score += 1 * (len(group_by) - (len(unique_ids) + len(recurring_ids)))
+        results.append(sum_score / len(group_by))
+    return sum(results) / len(results)
 
 
 def count_query_accuracy_evaluation(y_true, y_pred):
