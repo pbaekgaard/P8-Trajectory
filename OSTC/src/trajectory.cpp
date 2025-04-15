@@ -7,6 +7,7 @@
 #include "distance.hpp"
 #include <unordered_map>
 #include <iostream>
+#include <map>
 #if _WIN32
 #include <cstdint>
 #endif
@@ -21,6 +22,16 @@ Trajectory::Trajectory(const uint32_t id, const std::vector<SamplePoint>& points
 Trajectory::Trajectory(const uint32_t id, const std::vector<SamplePoint>& points, const int start_index,
                        const int end_index): id(id), points(points), start_index(start_index), end_index(end_index)
 {}
+
+bool Trajectory::operator<(const Trajectory& other) const
+{
+    if (id == other.id) {
+        return start_index < other.start_index;
+    }
+    return id < other.id;
+
+}
+
 
 Trajectory Trajectory::operator()(const int start, const int end)
 {
@@ -120,56 +131,39 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
     return M;
 }
 
-OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajectory>> M, const double tepsilon)
+OSTCResult Trajectory::OSTC(std::map<Trajectory, std::vector<Trajectory>> M, const double tepsilon, const double sepsilon)
 {
-    std::unordered_map<Trajectory, int> time_correction_cost{};
-    std::unordered_map<Trajectory, std::vector<TimeCorrectionRecordEntry>> time_correction_record{};
+    std::map<Trajectory, int> time_correction_cost{};
+    std::map<Trajectory, std::vector<TimeCorrectionRecordEntry>> time_correction_record{};
     auto c = 4;
+
 
 
     for (auto& MRT : M) {
         auto ref = MRT.second[0];
         auto a = MRT.first.points;
         auto b = ref.points;
+        auto bId = ref.id;
 
         signed int t = 0;
-        ref.points[0].timestamp = 0;
+        auto b0 = 0;
         time_correction_cost[ref] = 0;
 
-        for (int i = 1; i <= b.size() - 1; i++) {
+        for (int i = 0; i <= b.size() - 1; i++) {
             auto a_i = a[i];
-            if (i < ref.points.size()) {
-                for (auto j = i; j<= i+1; j++) {
-                    auto b_i = b[j];
-                    int diff = b_i.timestamp - b[i - 1].timestamp;
-                    signed int leftside =abs(t + diff - a_i.timestamp);
-                    if (leftside <= tepsilon) {
-                        t = t + diff;
-                    } else {
-                        t = std::max(a_i.timestamp, b[i - 1].timestamp);
-                        time_correction_cost[ref] += c;
-                        time_correction_record[ref].push_back(TimeCorrectionRecordEntry{i, t});
-                    }
-                }
-            }else {
-                for (int j = i; j < a.size(); ++j) {
-                    auto a_j = a[j];
-                    auto b_last = b.back();
-                    int diff = b_last.timestamp - b[i - 1].timestamp;  // use i-1 as last valid b index
-                    signed int leftside = abs(t + diff - a_j.timestamp);
+            auto b_i = b[i];
+            if (euclideanDistance(b_i, a[i+1]) < sepsilon)
+                a_i = a[i+1];
 
-                    if (leftside <= tepsilon) {
-                        t = t + diff;
-                    } else {
-                        t = std::max(a_j.timestamp, b[i - 1].timestamp);
-                        time_correction_cost[ref] += c;
-                        time_correction_record[ref].push_back(TimeCorrectionRecordEntry{j, t});
-                    }
-                }
-
+            auto previousTimeStamp = i == 0 ? 0 : b[i-1].timestamp;
+            signed int leftside =abs(t + b_i.timestamp - previousTimeStamp - a_i.timestamp);
+            if (leftside <= tepsilon) {
+                t = t + b_i.timestamp - previousTimeStamp;
+            } else {
+                t = std::max(a_i.timestamp, previousTimeStamp);
+                time_correction_cost[ref] += c;
+                time_correction_record[ref].push_back(TimeCorrectionRecordEntry{i, t});
             }
-
-
         }
     }
 

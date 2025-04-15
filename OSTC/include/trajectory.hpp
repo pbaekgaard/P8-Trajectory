@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include <iostream>
+#include <map>
 #include <unordered_map>
 #include <cstdint>
 #include <iomanip>
@@ -60,6 +61,7 @@ struct Trajectory
     Trajectory(const uint32_t id, const std::vector<SamplePoint>& points, int start_index, int end_index);
 
     Trajectory operator()(int start, int end);
+    bool operator<(const Trajectory& other) const;
 
     Trajectory operator+(Trajectory other);
 
@@ -76,7 +78,7 @@ struct Trajectory
     }
 
     std::unordered_map<Trajectory, std::vector<Trajectory>> MRTSearch(std::vector<Trajectory>& RefSet, double epsilon);
-    OSTCResult OSTC(std::unordered_map<Trajectory, std::vector<Trajectory>> M, double tepsilon);
+    OSTCResult OSTC(std::map<Trajectory, std::vector<Trajectory>> M, double tepsilon, double sepsilon);
 };
 
 template <>
@@ -88,12 +90,12 @@ struct std::hash<Trajectory>
 struct OSTCResult
 {
     std::vector<ReferenceTrajectory> References{};
-    std::unordered_map<Trajectory, std::vector<TimeCorrectionRecordEntry>> TimeCorrection;
-    std::unordered_map<Trajectory, int> costs;
+    std::map<Trajectory, std::vector<TimeCorrectionRecordEntry>> TimeCorrection;
+    std::map<Trajectory, int> costs;
 
     OSTCResult(std::vector<ReferenceTrajectory> References,
-               std::unordered_map<Trajectory, std::vector<TimeCorrectionRecordEntry>> TimeCorrection,
-               std::unordered_map<Trajectory, int> costs):
+               std::map<Trajectory, std::vector<TimeCorrectionRecordEntry>> TimeCorrection,
+               std::map<Trajectory, int> costs):
         TimeCorrection(TimeCorrection), References(References), costs(costs) {};
 };
 
