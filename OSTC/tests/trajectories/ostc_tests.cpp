@@ -4,11 +4,25 @@
 
 TEST(OSTC, outputs_correct_values)
 {
+    //auto M = std::unordered_map<Trajectory, std::vector<Trajectory>>{
+    //   {t(0, 0), {t(0, 0)}},      {t(1, 8), {t2(0, 7)}},   {t(9, 14), {t5(6, 11)}},
+    //    {t(15, 16), {t6(12, 13)}}, {t(17, 19), {t7(7, 9)}},
+    //};
+
     auto M = std::unordered_map<Trajectory, std::vector<Trajectory>>{
-        {t(0, 0), {t(0, 0)}},      {t(1, 8), {t2(0, 7)}},   {t(9, 14), {t5(6, 11)}},
-        {t(15, 16), {t6(12, 13)}}, {t(17, 19), {t7(7, 9)}},
+        {
+            {t(0,2), {t1(11,13)}},
+            {t(1, 8), {t2(0, 7)}},
+           {t(3,5), {t3(2,3)}} ,
+            {t(7,8), {t3(4,5)}},
+            {t(9, 14), {t5(6,11), t4(5, 13)}},
+            {t(14,15), {t4(13,14)}},
+            {t(15,16), {t6(12,13)}},
+            {t(17,19), {t7(7,9)}}
+
+        }
     };
 
-    OSTCResult T_prime = t.OSTC(M, 100000);
+    OSTCResult T_prime = t.OSTC(M, 2.5);
     std::cout << "henro" << std::endl;
 }

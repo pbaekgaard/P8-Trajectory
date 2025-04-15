@@ -29,8 +29,8 @@ TEST(MaxDTW, IsCorrectDistance)
     EXPECT_EQ(0, MaxDTW(traj1, traj2));
 
     // Test one empty
-    EXPECT_EQ(std::numeric_limits<double>::max(), MaxDTW(traj1, traj3));
-    EXPECT_EQ(std::numeric_limits<double>::max(), MaxDTW(traj3, traj1));
+    EXPECT_EQ(std::numeric_limits<double>::infinity(), MaxDTW(traj1, traj3));
+    EXPECT_EQ(std::numeric_limits<double>::infinity(), MaxDTW(traj3, traj1));
     EXPECT_GT(MaxDTW(traj3, traj5), MaxDTW(traj3, traj4));
     EXPECT_EQ(std::sqrt(2), MaxDTW(traj3, traj4));
     EXPECT_EQ(std::sqrt(74), MaxDTW(traj3, traj5));
