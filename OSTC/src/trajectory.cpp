@@ -255,6 +255,7 @@ OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajector
         auto ref = MRT.second[0];
         auto a = MRT.first.points;
         auto b = ref.points;
+        auto bId = ref.id;
 
         signed int t = 0;
         time_correction_cost[ref] = 0;

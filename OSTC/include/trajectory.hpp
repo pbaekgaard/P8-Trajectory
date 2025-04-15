@@ -33,9 +33,9 @@ struct TimeCorrectionRecordEntry
     TimeCorrectionRecordEntry(int idx, int ct): point_index(idx), corrected_timestamp(ct) {};
 };
 
-inline bool operator==(const TimeCorrectionRecordEntry& lhs, const TimeCorrectionRecordEntry& rhs) {
-    return lhs.point_index == rhs.point_index &&
-           lhs.corrected_timestamp == rhs.corrected_timestamp;
+inline bool operator==(const TimeCorrectionRecordEntry& lhs, const TimeCorrectionRecordEntry& rhs)
+{
+    return lhs.point_index == rhs.point_index && lhs.corrected_timestamp == rhs.corrected_timestamp;
 }
 
 inline std::ostream& operator<<(std::ostream& os, const SamplePoint& point)
@@ -63,7 +63,7 @@ struct Trajectory
     int start_index = -1;
     int end_index = -1;
 
-    Trajectory() : id(0), start_index(-1), end_index(-1) {}
+    Trajectory(): id(0), start_index(-1), end_index(-1) {}
     Trajectory(const uint32_t id, const std::vector<SamplePoint>& points);
     Trajectory(const uint32_t id, const std::vector<SamplePoint>& points, int start_index, int end_index);
 
