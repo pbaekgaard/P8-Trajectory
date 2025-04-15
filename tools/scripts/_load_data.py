@@ -34,5 +34,8 @@ def load_compressed_data():
     df = pd.concat(dfs, ignore_index=True)
     return df
 
+def count_trajectories():
+    return len([f for f in os.listdir(DATA_DIR) if os.path.isfile(os.path.join(DATA_DIR, f)) and f.endswith('.txt')])
+
 if __name__ == '__main__':
     main()
