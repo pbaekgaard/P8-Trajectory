@@ -11,8 +11,12 @@ import tools.scripts._get_data as _get_data
 import tools.scripts._load_data as _load_data
 import faulthandler
 from enum import Enum
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from ML.TrajectoryTransformer import TrajectoryTransformer
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print("device: ", device)
 
 
 class ClusteringMethod(Enum):
@@ -92,7 +96,7 @@ def df_to_tensor(df: pd.DataFrame):
     return batch_tensor, mask_tensor
 
 
-def visualize_in_PCA(trajectory_representations: np.ndarray, representative_indices: np.ndarray, reference_set: List, clusteringMethod: ClusteringMethod):
+def visualize_in_PCA(df, trajectory_representations: np.ndarray, representative_indices: np.ndarray, reference_set: List, clusteringMethod: ClusteringMethod):
     """
     Visualizes the trajectory embeddings in 2D using PCA and labels them with their indices.
 
@@ -121,7 +125,7 @@ def visualize_in_PCA(trajectory_representations: np.ndarray, representative_indi
 
     # Add trajectory indices as labels
     for i, (x, y) in enumerate(trajectory_pca):
-        plt.text(x, y, str(i) + ":" + str(unique_trajectories[i]), fontsize=10, ha='right', va='bottom', color='black')
+        plt.text(x, y, str(i) + ":" + str(df['trajectory_id'].unique()[i]), fontsize=10, ha='right', va='bottom', color='black')
 
     # Labels and legend
     plt.xlabel("PCA Component 1")
@@ -157,18 +161,29 @@ def get_first_x_trajectories(trajectories: pd.DataFrame, num_trajectories: int =
         unique_trajectories = trajectories['trajectory_id'].unique()
     else:
         unique_trajectories = trajectories['trajectory_id'].unique()[:num_trajectories]
-    df = traj_df[traj_df['trajectory_id'].isin(unique_trajectories)]
+    df = trajectories[trajectories['trajectory_id'].isin(unique_trajectories)]
 
-    return df, unique_trajectories
+    return df
 
 
-def generate_reference_set(df: pd.DataFrame, unique_trajectories: List, clustering_method: ClusteringMethod, clustering_param: int | float, batch_size: int, d_model: int, num_heads: int, clustering_metric: str, num_layers: int) -> (pd.DataFrame, pd.DataFrame, List, List, List):
+def process_batch(batch, model):
+    padded_df = pad_batches(batch)
+    batch_tensor, mask_tensor = df_to_tensor(padded_df)
+    batch_tensor = batch_tensor.to(device)
+    mask_tensor = mask_tensor.to(device)
+
+    with torch.no_grad():
+        encoded_output = model.forward(batch_tensor, mask_tensor)
+
+    return encoded_output
+
+
+def generate_reference_set(df: pd.DataFrame, clustering_method: ClusteringMethod, clustering_param: int | float, batch_size: int, d_model: int, num_heads: int, clustering_metric: str, num_layers: int) -> (pd.DataFrame, pd.DataFrame, List, List, List):
     df = pd.DataFrame(df, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
     df['timestamp'] = pd.to_datetime(df['timestamp'])
     df['t_relative'] = df.groupby('trajectory_id')['timestamp'].transform(
         lambda x: (x - x.min()).dt.total_seconds()
     )  # convert to delta_seconds from start.
-    # TODO: flyt preprocessing og normalizing ud i main.
     df = normalize_df(df)
 
     print("instantiating model...")
@@ -177,18 +192,18 @@ def generate_reference_set(df: pd.DataFrame, unique_trajectories: List, clusteri
         num_heads=num_heads,
         num_layers=num_layers,
     )
+    # model.train() # IF TRAIN
+    model.eval()
+
     df_batches = split_into_batches(df, batch_size=batch_size)
+    trajectory_tensors = []
 
-    trajectory_representations = []
-    for batch in df_batches:
-        padded_df = pad_batches(batch)
-        batch_tensor, mask_tensor = df_to_tensor(padded_df)
-        # print("Batch Tensor Shape:", batch_tensor.shape)  # Should be (batch_size, seq_len, 3)
-        encoded_output = model.forward(batch_tensor, mask_tensor)
-        # print("Encoded Representation Shape:", encoded_output.shape)  # Should be (batch_size, 64)
-        trajectory_representations.append(encoded_output)
+    with ThreadPoolExecutor() as executor:
+        futures = [executor.submit(process_batch, batch, model) for batch in df_batches]
+        for future in as_completed(futures):
+            trajectory_tensors.append(future.result())
 
-    trajectory_representations = torch.cat(trajectory_representations, dim=0).detach().cpu().numpy()
+    trajectory_tensors = torch.cat(trajectory_tensors, dim=0).detach().cpu().numpy()
 
     clustering = None
     cluster_labels = None
@@ -197,17 +212,17 @@ def generate_reference_set(df: pd.DataFrame, unique_trajectories: List, clusteri
     match clustering_method.value:
         case ClusteringMethod.KMEDOIDS.value:
             clustering = KMedoids(n_clusters=clustering_param, metric=clustering_metric)
-            cluster_labels = clustering.fit_predict(trajectory_representations)
+            cluster_labels = clustering.fit_predict(trajectory_tensors)
             representative_indices = clustering.medoid_indices_
             
         case ClusteringMethod.AGGLOMERATIVE.value:
             clustering = AgglomerativeClustering(
                 n_clusters=None, metric=clustering_metric, linkage="complete", distance_threshold=clustering_param
             )
-            cluster_labels = clustering.fit_predict(trajectory_representations)
+            cluster_labels = clustering.fit_predict(trajectory_tensors)
 
             for cluster_id in np.unique(cluster_labels):
-                cluster_points = trajectory_representations[cluster_labels == cluster_id]
+                cluster_points = trajectory_tensors[cluster_labels == cluster_id]
 
                 centroid = np.mean(cluster_points, axis=0)
                 distances = cdist([centroid], cluster_points, metric="euclidean")
@@ -226,13 +241,11 @@ def generate_reference_set(df: pd.DataFrame, unique_trajectories: List, clusteri
         # reference_set.append(unique_trajectories[representative_indices[cluster_label]]) # ref set links to trajID
     print("reference set: ", reference_set)
 
-    representative_trajectories = df[df['trajectory_id'].isin(unique_trajectories[representative_indices])]
-
+    representative_trajectories = df[df['trajectory_id'].isin(df['trajectory_id'].unique()[representative_indices])]
 
     # print(representative_trajectories)
 
-
-    return df, representative_trajectories, reference_set, representative_indices, trajectory_representations
+    return df, representative_trajectories, reference_set, representative_indices, trajectory_tensors
 
 
 if __name__ == "__main__":
@@ -245,10 +258,9 @@ if __name__ == "__main__":
     clustering_metric = "euclidean"
 
 
-    _get_data.main()
-    traj_df = _load_data.main()
+    df = _load_data.main()
 
-    df, unique_trajectories = get_first_x_trajectories(trajectories=traj_df, num_trajectories=None)
+    df = get_first_x_trajectories(trajectories=df, num_trajectories=10)
 
     df, representative_trajectories, reference_set, representative_indices, trajectory_representations = generate_reference_set(
         batch_size=batch_size,
@@ -258,11 +270,10 @@ if __name__ == "__main__":
         df=df,
         clustering_method=clusteringMethod,
         clustering_param=n_clusters if clusteringMethod == ClusteringMethod.KMEDOIDS else distance_threshold,
-        clustering_metric=clustering_metric,
-        unique_trajectories=unique_trajectories
+        clustering_metric=clustering_metric
     )
 
-    visualize_in_PCA(trajectory_representations, representative_indices, reference_set, clusteringMethod)
+    visualize_in_PCA(df, trajectory_representations, representative_indices, reference_set, clusteringMethod)
 
     """
     HELP FOR NOOBS:
