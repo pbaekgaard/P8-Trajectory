@@ -130,7 +130,7 @@ def count_query_accuracy_evaluation(y_true, y_pred):
         if max(y_true[i], y_pred[i]) == 0:
             results.append(1)
         else:
-            results.append(abs(y_true[i] - y_pred[i]) / max(y_true[i], y_pred[i]))
+            results.append(1 - (abs(y_true[i] - y_pred[i]) / max(y_true[i], y_pred[i])))
     return sum(results) / len(results)
 
 
