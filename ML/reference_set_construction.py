@@ -167,19 +167,6 @@ def get_first_x_trajectories(trajectories: pd.DataFrame, num_trajectories: int =
 
     return df
 
-
-def process_batch(batch, model):
-    padded_df = pad_batches(batch)
-    batch_tensor, mask_tensor = df_to_tensor(padded_df)
-    batch_tensor = batch_tensor.to(device)
-    mask_tensor = mask_tensor.to(device)
-
-    with torch.no_grad():
-        encoded_output = model.forward(batch_tensor, mask_tensor)
-
-    return encoded_output
-
-
 def generate_reference_set(df: pd.DataFrame, clustering_method: ClusteringMethod, clustering_param: int | float, batch_size: int, d_model: int, num_heads: int, clustering_metric: str, num_layers: int) -> (pd.DataFrame, pd.DataFrame, List, List, List):
     df = pd.DataFrame(df, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
     df['timestamp'] = pd.to_datetime(df['timestamp'])
@@ -200,8 +187,19 @@ def generate_reference_set(df: pd.DataFrame, clustering_method: ClusteringMethod
     df_batches = split_into_batches(df, batch_size=batch_size)
     trajectory_tensors = []
 
+    def process_batch(batch):
+        padded_df = pad_batches(batch)
+        batch_tensor, mask_tensor = df_to_tensor(padded_df)
+        batch_tensor = batch_tensor.to(device)
+        mask_tensor = mask_tensor.to(device)
+
+        with torch.no_grad():
+            encoded_output = model.forward(batch_tensor, mask_tensor)
+
+        return encoded_output
+
     with ThreadPoolExecutor() as executor:
-        futures = [executor.submit(process_batch, batch, model) for batch in df_batches]
+        futures = [executor.submit(process_batch, batch) for batch in df_batches]
         for future in as_completed(futures):
             trajectory_tensors.append(future.result())
 
