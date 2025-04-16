@@ -143,20 +143,19 @@ OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajector
         auto ref = MRT.second[0];
         auto a = MRT.first.points;
         auto b = ref.points;
-        auto bId = ref.id;
 
         signed int t = 0;
-        auto b0 = 0;
         time_correction_cost[ref] = 0;
 
         for (int i = 0; i <= b.size() - 1; i++) {
             auto a_i = a[i];
             auto b_i = b[i];
-            if (euclideanDistance(b_i, a[i+1]) < sepsilon)
+
+            if (i+1 < a.size() && euclideanDistance(b_i, a[i+1]) < sepsilon)
                 a_i = a[i+1];
 
             auto previousTimeStamp = i == 0 ? 0 : b[i-1].timestamp;
-            signed int leftside =abs(t + b_i.timestamp - previousTimeStamp - a_i.timestamp);
+            signed int leftside = abs(t + b_i.timestamp - previousTimeStamp - a_i.timestamp);
             if (leftside <= tepsilon) {
                 t = t + b_i.timestamp - previousTimeStamp;
             } else {

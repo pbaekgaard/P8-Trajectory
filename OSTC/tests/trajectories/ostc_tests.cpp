@@ -10,7 +10,7 @@ TEST(OSTC, outputs_correct_values)
     };
 
 
-    OSTCResult T_prime = t.OSTC(M, 0.0, 0.9);
+    OSTCResult T_prime = t.OSTC(M, 0.5, 0.9);
 
     std::cout << "henro " << std::endl;
 }
