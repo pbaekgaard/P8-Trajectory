@@ -7,7 +7,9 @@ from sklearn.cluster import AgglomerativeClustering
 from scipy.spatial.distance import cdist
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
-import tools.scripts._get_data as _get_data
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__ + "../")))
 import tools.scripts._load_data as _load_data
 import faulthandler
 from enum import Enum
