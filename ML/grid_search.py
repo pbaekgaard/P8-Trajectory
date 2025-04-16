@@ -86,6 +86,7 @@ if not os.path.exists(path_log_file):
         writer.writeheader()
 
 # Run grid search and log
+count = 1
 for static_params in static_grid:
     method_name = static_params["clustering_method"]
     clustering_method_enum = ClusteringMethod[method_name]
@@ -93,6 +94,8 @@ for static_params in static_grid:
 
     for clustering_param in clustering_params:
         print(f"🔍 Running config: {static_params}, clustering_param: {clustering_param}")
+        print(f"🔍 Running iteration {count} of {len(static_grid)*len(clustering_params)} ")
+
 
         #try:
         df_out, representative_trajectories, reference_set, representative_indices, trajectory_representations = generate_reference_set(
@@ -122,3 +125,5 @@ for static_params in static_grid:
 
         # except Exception as e:
         #     print(f"❌ Failed on config {static_params} with clustering_param {clustering_param}: {e}")
+
+        count = count + 1

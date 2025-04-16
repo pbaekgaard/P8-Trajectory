@@ -18,43 +18,43 @@ def query_original_dataset(dataset, queries):
     where_queries_results = []
     for where_query in where_queries:
         where_queries_results.append(where_query_processing(where_query, group_by_df))
-    print("where done")
+    # print("where done")
 
     distance_queries = queries["distance"]
     distance_queries_results = []
     for distance_query in distance_queries:
         distance_queries_results.append(distance_query_processing(distance_query, group_by_df))
-    print("distance done")
+    # print("distance done")
 
     when_queries = queries["when"]
     when_queries_results = []
     for when_query in when_queries:
         when_queries_results.append(when_query_processing(when_query, group_by_df))
-    print("when done")
+    # print("when done")
 
     how_long_queries = queries["how_long"]
     how_long_queries_results = []
     for how_long_query in how_long_queries:
         how_long_queries_results.append(how_long_query_processing(how_long_query, group_by_df))
-    print("how long done")
+    # print("how long done")
 
     count_queries = queries["count"]
     count_queries_results = []
     for count_query in count_queries:
         count_queries_results.append(count_query_processing(count_query, group_by_df))
-    print("count done")
+    # print("count done")
 
     knn_queries = queries["knn"]
     knn_queries_results = []
     for knn_query in knn_queries:
         knn_queries_results.append(knn_query_processing(knn_query, dataset))
-    print("knn done")
+    # print("knn done")
 
     window_queries = queries["window"]
     window_queries_results = []
     for window_query in window_queries:
         window_queries_results.append(window_query_processing(window_query, dataset))
-    print("window done")
+    # print("window done")
 
     result = where_queries_results, distance_queries_results, when_queries_results, how_long_queries_results, count_queries_results, knn_queries_results, window_queries_results
     return result
