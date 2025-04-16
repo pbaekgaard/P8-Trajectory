@@ -63,6 +63,7 @@ struct Trajectory
     int start_index = -1;
     int end_index = -1;
 
+    Trajectory() : id(0), start_index(-1), end_index(-1) {}
     Trajectory(const uint32_t id, const std::vector<SamplePoint>& points);
     Trajectory(const uint32_t id, const std::vector<SamplePoint>& points, int start_index, int end_index);
 
