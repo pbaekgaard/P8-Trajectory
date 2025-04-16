@@ -196,14 +196,14 @@ def generate_reference_set(df: pd.DataFrame, clustering_method: ClusteringMethod
         with torch.no_grad():
             encoded_output = model.forward(batch_tensor, mask_tensor)
 
-        return encoded_output
+        return encoded_output.detach().cpu()
 
     with ThreadPoolExecutor() as executor:
         futures = [executor.submit(process_batch, batch) for batch in df_batches]
         for future in as_completed(futures):
             trajectory_tensors.append(future.result())
 
-    trajectory_tensors = torch.cat(trajectory_tensors, dim=0).detach().cpu().numpy()
+    trajectory_tensors = torch.cat(trajectory_tensors, dim=0).numpy()
 
     clustering = None
     cluster_labels = None
