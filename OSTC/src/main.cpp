@@ -7,7 +7,7 @@ void run_example()
 {
     std::vector<Trajectory> RefSet{t1, t2, t3(2, 14), t4, t5, t6, t7};
     auto M = t.MRTSearch(RefSet, 0.9);
-    OSTCResult ostc_res = t.OSTC(M, 15, 0.9);
+    OSTCResult ostc_res = t.OSTC(M, 0.5, 0.9);
     std::cout << M.size() << std::endl;
     // try {
     //     std::vector<ReferenceTrajectory> T_prime = t.OSTC(M);

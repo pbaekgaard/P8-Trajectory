@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <iomanip>
 #include <string>
+#include <utility>
 #include <vector>
 #include <cmath>
 
@@ -31,6 +32,11 @@ struct TimeCorrectionRecordEntry
     int corrected_timestamp;
     TimeCorrectionRecordEntry(int idx, int ct): point_index(idx), corrected_timestamp(ct) {};
 };
+
+inline bool operator==(const TimeCorrectionRecordEntry& lhs, const TimeCorrectionRecordEntry& rhs) {
+    return lhs.point_index == rhs.point_index &&
+           lhs.corrected_timestamp == rhs.corrected_timestamp;
+}
 
 inline std::ostream& operator<<(std::ostream& os, const SamplePoint& point)
 {
@@ -89,14 +95,12 @@ struct std::hash<Trajectory>
 
 struct OSTCResult
 {
-    std::vector<ReferenceTrajectory> References{};
-    std::unordered_map<Trajectory, std::vector<TimeCorrectionRecordEntry>> TimeCorrection;
-    std::unordered_map<Trajectory, int> costs;
+    std::vector<ReferenceTrajectory> references{};
+    std::unordered_map<Trajectory, std::vector<TimeCorrectionRecordEntry>> time_corrections;
 
-    OSTCResult(std::vector<ReferenceTrajectory> References,
-               std::unordered_map<Trajectory, std::vector<TimeCorrectionRecordEntry>> TimeCorrection,
-               std::unordered_map<Trajectory, int> costs):
-        TimeCorrection(TimeCorrection), References(References), costs(costs) {};
+    OSTCResult(std::vector<ReferenceTrajectory> references,
+               std::unordered_map<Trajectory, std::vector<TimeCorrectionRecordEntry>> time_corrections):
+        references(std::move(references)), time_corrections(std::move(time_corrections)) {};
 };
 
 #endif

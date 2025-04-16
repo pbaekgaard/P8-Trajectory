@@ -137,8 +137,6 @@ OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajector
     std::unordered_map<Trajectory, std::vector<TimeCorrectionRecordEntry>> time_correction_record{};
     auto c = 4;
 
-
-
     for (auto& MRT : M) {
         auto ref = MRT.second[0];
         auto a = MRT.first.points;
@@ -161,7 +159,7 @@ OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajector
             } else {
                 t = std::max(a_i.timestamp, previousTimeStamp);
                 time_correction_cost[ref] += c;
-                time_correction_record[ref].push_back(TimeCorrectionRecordEntry{i, t});
+                time_correction_record[ref].emplace_back(i, t);
             }
         }
     }
@@ -197,11 +195,12 @@ OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajector
             Trajectory sub_traj = (*this)(pre[i], i - 1);
             auto it = M.find(sub_traj);
             if (it != M.end() && !it->second.empty()) {
-                T_prime.push_back(it->second[0]);
+                T_prime.emplace_back(it->second[0]);
             }
             i = pre[i];
         }
-    }    std::reverse(T_prime.begin(), T_prime.end());
+    }
+    std::reverse(T_prime.begin(), T_prime.end());
 
-    return {T_prime, time_correction_record, time_correction_cost};
+    return {T_prime, time_correction_record};
 }
