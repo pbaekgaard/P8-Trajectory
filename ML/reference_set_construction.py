@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 import os
 import sys
-sys.path.append(os.path.dirname(os.path.abspath(__file__ + "../")))
+sys.path.append(os.path.dirname(os.path.abspath(__file__ + "/../")))
 import tools.scripts._load_data as _load_data
 import faulthandler
 from enum import Enum
