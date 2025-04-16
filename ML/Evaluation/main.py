@@ -11,6 +11,7 @@ from ML.Evaluation._file_access_helper_functions import (find_newest_version,
                                                          get_best_params,
                                                          load_data_from_file,
                                                          save_to_file)
+from ML.Evaluation.compression_ratio import compression_ratio
 from ML.Evaluation.query_accuracy import query_accuracy_evaluation
 from ML.Evaluation.query_creation import create_queries
 from ML.Evaluation.querying import (query_compressed_dataset,
@@ -203,7 +204,8 @@ if __name__ == '__main__':
         dataset = dataset if dataset else _load_data()
 
         accuracy, individual_accuracy_results = query_accuracy_evaluation(original_results, compressed_results, count_trajectories())
-        compression_ratio = 0
+        compression_ratio = compression_ratio(dataset) # COMPRESSION
+
         print(f"evaluation done. accuracy: {accuracy}, compression ratio: {compression_ratio}. Saving...")
 
         evaluation_results = {"accuracy": accuracy, "compression_ratio": compression_ratio, "accuracy_individual_results": individual_accuracy_results}
