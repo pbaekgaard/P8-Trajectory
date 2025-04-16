@@ -232,7 +232,7 @@ def generate_reference_set(df: pd.DataFrame, clustering_method: ClusteringMethod
 
                 representative_indices.append(original_index)
 
-    print("cluster label: ", cluster_labels)
+    print("cluster labels: ", cluster_labels)
     print("representative_indices: ", representative_indices)
 
     reference_set = []
