@@ -278,7 +278,7 @@ OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajector
     }
     std::vector<int> Ft(points.size() + 1, 0);      // +1 for F_T[0] = 0
     std::vector<int> pre(points.size() + 1, 0);  // -1 indicates no predecessor
-    std::vector<ReferenceTrajectory> T_prime;
+    std::vector<Trajectory> T_prime;
 
     for (size_t i = 1; i <= points.size(); ++i) {
         int min_cost = Ft[i - 1] + 12;

@@ -5,9 +5,12 @@
 
 void run_example()
 {
+    constexpr auto spatial_deviation_threshold = 0.9;
+    constexpr auto temporal_deviation_threshold = 0.5;
     std::vector<Trajectory> RefSet{t1, t2, t3(2, 14), t4, t5, t6, t7};
-    auto M = t.MRTSearch(RefSet, 0.9);
-    OSTCResult ostc_res = t.OSTC(M, 0.5, 0.9);
+
+    const auto M = t.MRTSearch(RefSet, spatial_deviation_threshold);
+    OSTCResult compressed = t.OSTC(M,temporal_deviation_threshold, spatial_deviation_threshold);
     std::cout << M.size() << std::endl;
     // try {
     //     std::vector<ReferenceTrajectory> T_prime = t.OSTC(M);
@@ -55,6 +58,15 @@ void print_numpy(py::object array)
     // Convert the Python object to a list of lists
     std::vector<Trajectory> traj = ndarrayToTrajectories(array);
     std::cout << traj[0].points[0] << std::endl;
+}
+
+py::list compressedTrajectoryToPandas(OSTCResult compressed)
+{
+    auto pandas = py::list();
+    for (const auto& traj : compressed.references) {
+        pandas.append(traj);
+
+    }
 }
 
 // This function is to demonstrate how you could expose C++ logic to Python

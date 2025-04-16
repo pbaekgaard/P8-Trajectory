@@ -96,10 +96,10 @@ struct std::hash<Trajectory>
 
 struct OSTCResult
 {
-    std::vector<ReferenceTrajectory> references{};
+    std::vector<Trajectory> references{};
     std::unordered_map<Trajectory, std::vector<TimeCorrectionRecordEntry>> time_corrections;
 
-    OSTCResult(std::vector<ReferenceTrajectory> references,
+    OSTCResult(std::vector<Trajectory> references,
                std::unordered_map<Trajectory, std::vector<TimeCorrectionRecordEntry>> time_corrections):
         references(std::move(references)), time_corrections(std::move(time_corrections)) {};
 };
