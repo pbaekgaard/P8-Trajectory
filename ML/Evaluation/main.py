@@ -13,6 +13,7 @@ from ML.Evaluation._file_access_helper_functions import load_data_from_file, sav
 from ML.Evaluation.querying import query_original_dataset, query_compressed_dataset
 from ML.Evaluation.query_accuracy import query_accuracy_evaluation
 from ML.reference_set_construction import generate_reference_set
+from ML.Evaluation.compression_ratio import compression_ratio
 
 data = [
             # Beijing Trajectories
@@ -198,7 +199,8 @@ if __name__ == '__main__':
         dataset = dataset if dataset else _load_data()
 
         accuracy, individual_accuracy_results = query_accuracy_evaluation(original_results, compressed_results, count_trajectories())
-        compression_ratio = 0
+        compression_ratio = compression_ratio(dataset) # COMPRESSION
+
         print(f"evaluation done. accuracy: {accuracy}, compression ratio: {compression_ratio}. Saving...")
 
         evaluation_results = {"accuracy": accuracy, "compression_ratio": compression_ratio, "accuracy_individual_results": individual_accuracy_results}
