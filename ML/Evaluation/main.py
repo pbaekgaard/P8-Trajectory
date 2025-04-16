@@ -1,6 +1,7 @@
 import argparse
 import os
 import sys
+import time
 
 import pandas as pd
 
@@ -111,30 +112,70 @@ if __name__ == '__main__':
             "version": version_number
         })
         #queries = dummy_create_queries()
+
         if not os.path.exists(os.path.join(os.path.abspath(__file__), "..", "files", f"{version_number}-original_query_results.pkl")):
             print("Querying")
             #dataset = _load_data()
             dataset = pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
-            # TODO: Find query time
-            result = query_original_dataset(dataset, queries)
+
+            query_original_dataset_time_start = time.perf_counter()
+
+            query_result = query_original_dataset(dataset, queries)
+
+            query_original_dataset_time_end = time.perf_counter()
+            query_original_dataset_time = query_original_dataset_time_end - query_original_dataset_time_start
+
+
+            result = {
+                "data": query_result,
+                "times": {
+                    "querying_time": query_original_dataset_time
+                }
+            }
+
             save_to_file({
                 "filename": "original_query_results",
                 "version": version_number
             }, result)
+
         if not os.path.exists(os.path.join(os.path.abspath(__file__), "..", "files", f"{version_number}-compressed_query_results.pkl")):
             print("Compressed querying")
             dataset = pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
             #dataset = dataset if dataset else _load_data()
+
+            compression_time_start = time.perf_counter()
+
             clustering_method, clustering_param, batch_size, d_model, num_heads, clustering_metric, num_layers = get_best_params()
             _,_,reference_set,_,_ = generate_reference_set(
                 df=dataset, unique_trajectories=dataset["trajectory_id"].unique(),
                 clustering_method=clustering_method, clustering_param=clustering_param, batch_size=batch_size, d_model=d_model,
                 num_heads=num_heads, clustering_metric=clustering_metric, num_layers=num_layers
             )
+            compression_time_ml_end = time.perf_counter()
+            ml_time = compression_time_ml_end - compression_time_start
+
             compressed_dataset, merged_df = mock_compressed_data(reference_set)
             # compressed_dataset, merged_df = _load_compressed_data()
-            # TODO: Find query time
-            result = query_compressed_dataset(compressed_dataset, merged_df, queries)
+
+            compression_time_end = time.perf_counter()
+            compression_time = compression_time_end - compression_time_ml_end
+
+            query_compressed_dataset_time_start = time.perf_counter()
+
+            query_result = query_compressed_dataset(compressed_dataset, merged_df, queries)
+
+            query_compressed_dataset_time_end = time.perf_counter()
+            query_compressed_dataset_time = query_compressed_dataset_time_end - query_compressed_dataset_time_start
+
+            result = {
+                "data": query_result,
+                "times": {
+                    "ml_time": ml_time,
+                    "compression_time": compression_time,
+                    "querying_time": query_compressed_dataset_time
+                }
+            }
+
             save_to_file({
                 "filename": "compressed_query_results",
                 "version": version_number
@@ -152,11 +193,12 @@ if __name__ == '__main__':
         original_results = load_data_from_file({
             "filename": "original_query_results",
             "version": version_number
-        })
+        })["data"]
+
         compressed_results = load_data_from_file({
             "filename": "compressed_query_results",
             "version": version_number
-        })
+        })["data"]
 
         dataset = dataset if dataset else _load_data()
 
