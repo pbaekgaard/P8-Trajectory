@@ -11,12 +11,16 @@ import tools.scripts._get_data as _get_data
 import tools.scripts._load_data as _load_data
 import faulthandler
 from enum import Enum
+
 from ML.TrajectoryTransformer import TrajectoryTransformer
 
 
 class ClusteringMethod(Enum):
     KMEDOIDS = 1
     AGGLOMERATIVE = 2
+
+#TODO: CLEANUP herinde. vi behøver f.eks ikke unique_trajectories. get first_x er kun midlertidig.
+
 
 
 def split_into_batches(df: pd.DataFrame, batch_size: int = 3) -> List[pd.DataFrame]:
@@ -140,7 +144,7 @@ def normalize_df(df):
     return df
 
 
-def get_first_x_trajectories(num_trajectories: int, trajectories: pd.DataFrame) -> (pd.DataFrame, List):
+def get_first_x_trajectories(trajectories: pd.DataFrame, num_trajectories: int = None) -> (pd.DataFrame, List):
     """
     :param num_trajectories: how many trajectories you want
     :param trajectories: from where to get the trajectories
@@ -149,7 +153,10 @@ def get_first_x_trajectories(num_trajectories: int, trajectories: pd.DataFrame) 
         - unique_trajectories: lookup table for the selected trajectories
     selects the first x (num_trajectories) trajectories with a unique trajectory_id.
     """
-    unique_trajectories = trajectories['trajectory_id'].unique()[:num_trajectories]
+    if num_trajectories == None:
+        unique_trajectories = trajectories['trajectory_id'].unique()
+    else:
+        unique_trajectories = trajectories['trajectory_id'].unique()[:num_trajectories]
     df = traj_df[traj_df['trajectory_id'].isin(unique_trajectories)]
 
     return df, unique_trajectories
@@ -187,13 +194,13 @@ def generate_reference_set(df: pd.DataFrame, unique_trajectories: List, clusteri
     cluster_labels = None
     representative_indices = []
 
-    match clustering_method:
-        case ClusteringMethod.KMEDOIDS:
+    match clustering_method.value:
+        case ClusteringMethod.KMEDOIDS.value:
             clustering = KMedoids(n_clusters=clustering_param, metric=clustering_metric)
             cluster_labels = clustering.fit_predict(trajectory_representations)
             representative_indices = clustering.medoid_indices_
             
-        case ClusteringMethod.AGGLOMERATIVE:
+        case ClusteringMethod.AGGLOMERATIVE.value:
             clustering = AgglomerativeClustering(
                 n_clusters=None, metric=clustering_metric, linkage="complete", distance_threshold=clustering_param
             )
@@ -241,7 +248,7 @@ if __name__ == "__main__":
     _get_data.main()
     traj_df = _load_data.main()
 
-    df, unique_trajectories = get_first_x_trajectories(num_trajectories, traj_df)
+    df, unique_trajectories = get_first_x_trajectories(trajectories=traj_df, num_trajectories=None)
 
     df, representative_trajectories, reference_set, representative_indices, trajectory_representations = generate_reference_set(
         batch_size=batch_size,

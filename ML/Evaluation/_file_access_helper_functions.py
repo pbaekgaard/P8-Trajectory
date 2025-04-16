@@ -1,5 +1,11 @@
 import pickle
 import os
+import csv
+from enum import Enum
+
+class ClusteringMethod(Enum):
+    KMEDOIDS = 1
+    AGGLOMERATIVE = 2
 
 def save_to_file(metadata, data):
     filename = metadata["filename"]
@@ -32,4 +38,34 @@ def find_newest_version():
     return version_number
 
 
+def get_best_params():
+    Dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "files"))
+    log_file = os.path.join(Dir, "grid_search_results.csv")
 
+    best_row = None
+    best_score = float('-inf')
+
+    with open(log_file, mode="r", newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            try:
+                score = float(row["score"])
+                if score > best_score:
+                    best_score = score
+                    best_row = row
+            except ValueError:
+                continue  # Skip rows with invalid scores
+
+    if best_row is None:
+        raise ValueError("No valid rows with scores found.")
+
+    # Extract and return the desired parameters
+    return (
+        ClusteringMethod[best_row["clustering_method"]],
+        best_row["clustering_param"],
+        int(best_row["batch_size"]),
+        int(best_row["d_model"]),
+        int(best_row["num_heads"]),
+        best_row["clustering_metric"],
+        int(best_row["num_layers"]),
+    )
