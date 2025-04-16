@@ -241,7 +241,10 @@ def generate_reference_set(df: pd.DataFrame, clustering_method: ClusteringMethod
         # reference_set.append(unique_trajectories[representative_indices[cluster_label]]) # ref set links to trajID
     print("reference set: ", reference_set)
 
-    representative_trajectories = df[df['trajectory_id'].isin(df['trajectory_id'].unique()[representative_indices])]
+    rep_ids = df['trajectory_id'].unique()[representative_indices]
+    mask = np.isin(df['trajectory_id'].values, rep_ids)
+    representative_trajectories = df.loc[mask]
+    df = df.loc[~mask]
 
     # print(representative_trajectories)
 
@@ -252,7 +255,7 @@ if __name__ == "__main__":
     faulthandler.enable()  # så kan vi se, hvis vi løber tør for memory
     num_trajectories = 10
     batch_size = 5
-    clusteringMethod = ClusteringMethod.AGGLOMERATIVE
+    clusteringMethod = ClusteringMethod.KMEDOIDS
     n_clusters = 3
     distance_threshold = 0.25
     clustering_metric = "euclidean"
