@@ -11,12 +11,12 @@ TEST(OSTC, outputs_correct_values)
 
     const OSTCResult compressed = t.OSTC(M_opt, 0.5, 0.9);
 
-    const auto expected_references = std::vector<ReferenceTrajectory>{
-        {0,0,0},
-        {2,0,7},
-        {5,6,11},
-        {6,12,13},
-        {7,7,9},
+    const auto expected_references = std::vector<Trajectory>{
+        t(0,0),
+        t2(0,7),
+        t5(6,11),
+        t6(12,13),
+        t7(7,9)
     };
 
     EXPECT_EQ(compressed.references, expected_references);

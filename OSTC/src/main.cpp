@@ -44,7 +44,7 @@ std::vector<Trajectory> ndarrayToTrajectories(py::object array)
         auto timestamp = row[1].cast<std::string>();
         auto latitude = row[2].cast<float>();
         auto longitude = row[3].cast<float>();
-        auto point = SamplePoint(latitude, longitude, timestamp);
+        auto point = SamplePoint(latitude, longitude, 0);
         traject_dict[id].push_back(point);
     }
     for (const auto& [id, points] : traject_dict) {
@@ -60,14 +60,24 @@ void print_numpy(py::object array)
     std::cout << traj[0].points[0] << std::endl;
 }
 
-py::list compressedTrajectoryToPandas(OSTCResult compressed)
-{
-    auto pandas = py::list();
-    for (const auto& traj : compressed.references) {
-        pandas.append(traj);
 
+py::list compressedTrajectoryToNumpy(OSTCResult compressed)
+{
+    auto numpy = py::list();
+
+    for (const auto& traj : compressed.references) {
+        auto correction = compressed.time_corrections.find(traj);
+        for (const auto& point : traj.points) {
+            if (numpy.contains(point)) {
+                // TODO: Add correction to point if we found one
+                numpy.append(point);
+            }
+        }
     }
+
+    return numpy;
 }
+
 
 // This function is to demonstrate how you could expose C++ logic to Python
 
