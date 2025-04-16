@@ -6,7 +6,7 @@ import faulthandler
 import os
 import pandas as pd
 
-from ML.reference_set_construction import generate_reference_set, get_first_x_trajectories
+from ML.reference_set_construction import generate_reference_set
 import tools.scripts._load_data as _load_data
 from ML.Evaluation.query_accuracy import query_accuracy_evaluation
 from ML.Evaluation._file_access_helper_functions import load_data_from_file
@@ -107,7 +107,6 @@ for static_params in static_grid:
             clustering_method=clustering_method_enum,
             clustering_param=clustering_param,
             clustering_metric=static_params["clustering_metric"],
-            unique_trajectories=unique_trajectories
         )
 
         compressed_data, merged_df = mock_compressed_data()

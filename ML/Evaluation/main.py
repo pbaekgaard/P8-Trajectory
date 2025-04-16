@@ -38,7 +38,7 @@ data = [
         ]
 
 
-def mock_compressed_data(reference_set_lol=None):
+def mock_compressed_data(df_lol, reference_set_lol):
     reference_set = [
         [0, "2008-02-02 15:36:08", 116.51172, 39.92123, {1: "2008-02-02 14:00:00"}],  # Trajectory 1
         [0, "2008-02-02 15:40:10", 116.51222, 39.92173, {1: "2008-02-02 14:15:00", 2: "2008-02-02 16:12:00"}],
@@ -121,12 +121,12 @@ if __name__ == '__main__':
             dataset = pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
             #dataset = dataset if dataset else _load_data()
             clustering_method, clustering_param, batch_size, d_model, num_heads, clustering_metric, num_layers = get_best_params()
-            _,_,reference_set,_,_ = generate_reference_set(
-                df=dataset, unique_trajectories=dataset["trajectory_id"].unique(),
-                clustering_method=clustering_method, clustering_param=clustering_param, batch_size=batch_size, d_model=d_model,
-                num_heads=num_heads, clustering_metric=clustering_metric, num_layers=num_layers
+            df, reference_set,_,_,_ = generate_reference_set(
+                df=dataset, clustering_method=clustering_method, clustering_param=clustering_param,
+                batch_size=batch_size, d_model=d_model, num_heads=num_heads, clustering_metric=clustering_metric,
+                num_layers=num_layers
             )
-            compressed_dataset, merged_df = mock_compressed_data(reference_set)
+            compressed_dataset, merged_df = mock_compressed_data(df, reference_set)
             # compressed_dataset, merged_df = _load_compressed_data()
             # TODO: Find query time
             result = query_compressed_dataset(compressed_dataset, merged_df, queries)
