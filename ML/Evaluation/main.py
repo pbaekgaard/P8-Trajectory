@@ -100,7 +100,7 @@ if __name__ == '__main__':
         # create all that does not exist
         if not os.path.exists(os.path.join(os.path.abspath(__file__), "..", "files", f"{version_number}-queries_for_evaluation.pkl")):
             print("Query creation")
-            create_queries(amount_of_individual_queries=15, version=version_number)
+            create_queries(amount_of_individual_queries=150, version=version_number)
         queries = load_data_from_file({
             "filename": "queries_for_evaluation",
             "version": version_number
@@ -108,32 +108,32 @@ if __name__ == '__main__':
         #queries = dummy_create_queries()
         if not os.path.exists(os.path.join(os.path.abspath(__file__), "..", "files", f"{version_number}-original_query_results.pkl")):
             print("Querying")
-            #dataset = _load_data()
-            dataset = pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
+            dataset = _load_data()
+            #dataset = pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
             # TODO: Find query time
             result = query_original_dataset(dataset, queries)
             save_to_file({
                 "filename": "original_query_results",
                 "version": version_number
             }, result)
-        if not os.path.exists(os.path.join(os.path.abspath(__file__), "..", "files", f"{version_number}-compressed_query_results.pkl")):
-            print("Compressed querying")
-            dataset = pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
-            #dataset = dataset if dataset else _load_data()
-            clustering_method, clustering_param, batch_size, d_model, num_heads, clustering_metric, num_layers = get_best_params()
-            _,_,reference_set,_,_ = generate_reference_set(
-                df=dataset, unique_trajectories=dataset["trajectory_id"].unique(),
-                clustering_method=clustering_method, clustering_param=clustering_param, batch_size=batch_size, d_model=d_model,
-                num_heads=num_heads, clustering_metric=clustering_metric, num_layers=num_layers
-            )
-            compressed_dataset, merged_df = mock_compressed_data(reference_set)
-            # compressed_dataset, merged_df = _load_compressed_data()
-            # TODO: Find query time
-            result = query_compressed_dataset(compressed_dataset, merged_df, queries)
-            save_to_file({
-                "filename": "compressed_query_results",
-                "version": version_number
-            }, result)
+        # if not os.path.exists(os.path.join(os.path.abspath(__file__), "..", "files", f"{version_number}-compressed_query_results.pkl")):
+        #     print("Compressed querying")
+        #     dataset = pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
+        #     #dataset = dataset if dataset else _load_data()
+        #     clustering_method, clustering_param, batch_size, d_model, num_heads, clustering_metric, num_layers = get_best_params()
+            # _,_,reference_set,_,_ = generate_reference_set(
+            #     df=dataset, unique_trajectories=dataset["trajectory_id"].unique(),
+            #     clustering_method=clustering_method, clustering_param=clustering_param, batch_size=batch_size, d_model=d_model,
+            #     num_heads=num_heads, clustering_metric=clustering_metric, num_layers=num_layers
+            #)
+            # compressed_dataset, merged_df = mock_compressed_data()
+            # # compressed_dataset, merged_df = _load_compressed_data()
+            # # TODO: Find query time
+            # result = query_compressed_dataset(compressed_dataset, merged_df, queries)
+            # save_to_file({
+            #     "filename": "compressed_query_results",
+            #     "version": version_number
+            # }, result)
 
 
 
@@ -150,6 +150,10 @@ if __name__ == '__main__':
         })
         compressed_results = load_data_from_file({
             "filename": "compressed_query_results",
+            "version": version_number
+        })
+        queries = load_data_from_file({
+            "filename": "queries_for_evaluation",
             "version": version_number
         })
 

@@ -97,22 +97,22 @@ def dummy_create_queries():
 def create_queries(amount_of_individual_queries, version):
     print("Creating queries...")
     queries = {}
-    queries["where"] = create_where_queries(from_date="2008-02-02 13:30:44", to_date="2008-02-08 17:39:19",
-                                            times=amount_of_individual_queries)
-    queries["distance"] = create_distance_queries(from_date="2008-02-02 13:30:44", to_date="2008-02-08 17:39:19",
-                                                  times=amount_of_individual_queries)
+    # queries["where"] = create_where_queries(from_date="2008-02-02 13:30:44", to_date="2008-02-08 17:39:19",
+    #                                        times=amount_of_individual_queries)
+    # queries["distance"] = create_distance_queries(from_date="2008-02-02 13:30:44", to_date="2008-02-08 17:39:19",
+    #                                              times=amount_of_individual_queries)
     queries["when"] = create_when_queries(from_lon=116.2, to_lon=116.6, from_lat=39.7, to_lat=40.2,
                                           times=amount_of_individual_queries)
     queries["how_long"] = create_how_long_queries(from_lon=116.2, to_lon=116.6, from_lat=39.7, to_lat=40.2,
                                                   times=amount_of_individual_queries)
-    queries["count"] = create_count_queries(from_lon=116.2, to_lon=116.6, from_lat=39.7, to_lat=40.2, from_radius=900,
-                                            to_radius=1000, times=amount_of_individual_queries)
-    queries["knn"] = create_knn_queries(from_lon=116, to_lon=117, from_lat=39, to_lat=40.5,
-                                        from_date="2008-02-02 13:30:44", to_date="2008-02-08 17:39:19", from_k=50,
-                                        to_k=150, times=amount_of_individual_queries)
-    queries["window"] = create_window_queries(from_lon=116.2, to_lon=116.6, from_lat=39.7, to_lat=40.2,
-                                              from_date="2008-02-02 13:30:44", to_date="2008-02-08 17:39:19",
-                                              times=amount_of_individual_queries)
+    #queries["count"] = create_count_queries(from_lon=116.2, to_lon=116.6, from_lat=39.7, to_lat=40.2, from_radius=900,
+    #                                        to_radius=1000, times=amount_of_individual_queries)
+    #queries["knn"] = create_knn_queries(from_lon=116, to_lon=117, from_lat=39, to_lat=40.5,
+    #                                    from_date="2008-02-02 13:30:44", to_date="2008-02-08 17:39:19", from_k=50,
+    #                                    to_k=150, times=amount_of_individual_queries)
+    #queries["window"] = create_window_queries(from_lon=116.2, to_lon=116.6, from_lat=39.7, to_lat=40.2,
+    #                                          from_date="2008-02-02 13:30:44", to_date="2008-02-08 17:39:19",
+    #                                          times=amount_of_individual_queries)
 
     save_to_file({
         "filename": "queries_for_evaluation",
