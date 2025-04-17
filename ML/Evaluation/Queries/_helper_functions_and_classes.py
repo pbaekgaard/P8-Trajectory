@@ -1,14 +1,11 @@
-import heapq
-import math
-from datetime import datetime, timedelta
-
-import numpy as np
-import pandas as pd
 import pyproj
-from haversine import Unit, haversine
+from haversine import haversine, Unit
+import pandas as pd
+from shapely.geometry import Point, LineString
 from pyproj import Transformer, enums
-from shapely.geometry import LineString, Point
-
+import math
+import heapq
+import numpy as np
 
 # CLASSES:
 class MaxHeap:
@@ -108,7 +105,7 @@ def similarity_score_distance(true, pred, trajectory_df):
 
 def similarity_score_time(true_timestamp, pred_timestamp, trajectory_df):
     query_difference = abs(true_timestamp - pred_timestamp)
-    trajectory_difference = datetime.strptime(trajectory_df.iloc[-1]["timestamp"], "%Y-%m-%d %H:%M:%S") - datetime.strptime(trajectory_df.iloc[0]["timestamp"], "%Y-%m-%d %H:%M:%S")
+    trajectory_difference = trajectory_df.iloc[-1]["timestamp"] - trajectory_df.iloc[0]["timestamp"]
     similarity = 1 - (query_difference / trajectory_difference)
     return max(similarity, 0)
 
@@ -231,11 +228,6 @@ def get_adjusted_trajectory_segment(point1, point2, time1, time2, query_t1, quer
     Returns the adjusted LineString segment that falls within the timeframe.
     If the entire segment is outside the timeframe, return None.
     """
-    # Convert query timestamps to Timestamp instead of strings
-    if type(query_t1) == str:
-        query_t1 = datetime.strptime(query_t1, "%Y-%m-%d %H:%M:%S")
-    if type(query_t2) == str:
-        query_t2 = datetime.strptime(query_t2, "%Y-%m-%d %H:%M:%S")
 
     # If the entire segment is outside the timeframe, return None
     if time2 < query_t1 or time1 > query_t2:
