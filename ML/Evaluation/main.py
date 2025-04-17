@@ -144,18 +144,20 @@ if __name__ == '__main__':
             version_number = find_newest_version()
 
         print("evaluating..")
-        original_results = load_data_from_file({
-            "filename": "original_query_results",
-            "version": version_number
-        })
-        compressed_results = load_data_from_file({
-            "filename": "compressed_query_results",
-            "version": version_number
-        })
+        # original_results = load_data_from_file({
+        #     "filename": "original_query_results",
+        #     "version": version_number
+        # })
+        # compressed_results = load_data_from_file({
+        #     "filename": "compressed_query_results",
+        #     "version": version_number
+        # })
         queries = load_data_from_file({
             "filename": "queries_for_evaluation",
             "version": version_number
         })
+
+
 
         dataset = dataset if dataset else _load_data()
 
