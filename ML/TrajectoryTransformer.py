@@ -8,7 +8,7 @@ class TimeEmbedding(nn.Module):
         self.linear = nn.Linear(1, d_model)  # Project time into d_model space
         self.activation = nn.ReLU()  # Optional non-linearity
 
-    def forward(self, t):
+    def forward(self, t) -> torch.Tensor:
         t = t.unsqueeze(-1)  # Shape: (batch, seq_len, 1)
         return self.activation(self.linear(t))  # Output: (batch, seq_len, d_model)
 
