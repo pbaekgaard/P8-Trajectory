@@ -248,7 +248,7 @@ def generate_reference_set(df: pd.DataFrame, clustering_method: ClusteringMethod
     df = df.loc[~mask]
 
     # print(representative_trajectories)
-
+    # TODO: Der bliver returneret den normaliseret df.
     return df, representative_trajectories, reference_set, representative_indices, trajectory_tensors
 
 
