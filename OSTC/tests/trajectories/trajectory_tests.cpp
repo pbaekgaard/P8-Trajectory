@@ -1,3 +1,5 @@
+#include <distance.hpp>
+
 #include "gtest/gtest.h"
 #include <trajectory.hpp>
 
@@ -87,7 +89,7 @@ TEST(Trajectories, mrtset_is_correct_format) {
                SamplePoint(12.0, 5.5, 0),  SamplePoint(13.0, 4.0, 0),  SamplePoint(14.0, 3.0, 0),  SamplePoint(14.0, 2.0, 0),
                SamplePoint(16.0, 2.0, 0),  SamplePoint(18.5, 2.0, 0),  SamplePoint(20.5, 2.0, 0),  SamplePoint(21.5, 2.0, 0),
            });
-    auto M = T.MRTSearch(references, 0.9);
+    auto M = T.MRTSearch(references, 0.9, euclideanDistance);
     auto expected_M1 = std::vector<Trajectory>{T2(1, 9)};
     auto expected_M2 = std::vector<Trajectory>{T4(6, 14), T5(7, 12)};
     EXPECT_EQ(M[T(2,9)], expected_M1);

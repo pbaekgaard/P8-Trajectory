@@ -3,7 +3,6 @@
 #include <vector>
 #include "trajectory.hpp"
 #include <ranges>
-
 #include "distance.hpp"
 #include <unordered_map>
 #include <iostream>
@@ -77,7 +76,7 @@ ReferenceTrajectory::ReferenceTrajectory(const Trajectory& t):
 {}
 
 std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(std::vector<Trajectory>& RefSet,
-                                                                             const double epsilon)
+                                                                             const double epsilon, std::function<double(SamplePoint const& a, SamplePoint const& b)> distance_function)
 {
     std::unordered_map<Trajectory, std::vector<Trajectory>> M;
     
@@ -91,7 +90,7 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
                 auto l = k + 1;
                 auto ref_sub_traj = ref_trajectory(k, l);
 
-                if (MaxDTW(current_sub_traj, ref_sub_traj) < epsilon) {
+                if (MaxDTW(current_sub_traj, ref_sub_traj, distance_function) < epsilon) {
                     // Check if this reference is already covered by a longer one
                     bool already_covered = false;
                     for (auto& [existing_query, existing_refs] : M) {
@@ -132,7 +131,7 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
                 if (ref_trajectory.points.size() >= n) {
                     for (auto r = 0; r + n - 1 < ref_trajectory.points.size(); r++) {
                         auto ref_n_subtraj = ref_trajectory(r, r + n - 1);
-                        if (MaxDTW(current_n_subtraj, ref_n_subtraj) <= epsilon) {
+                        if (MaxDTW(current_n_subtraj, ref_n_subtraj, distance_function) <= epsilon) {
                             // Check if this reference is not already covered
                             bool already_covered = false;
                             for (auto& [existing_query, existing_refs] : M) {
@@ -164,7 +163,7 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
                                     ref_left.end_index == ref_right.start_index) {
                                     
                                     auto merged = ref_left + ref_right;
-                                    if (MaxDTW(current_n_subtraj, merged) <= epsilon) {
+                                    if (MaxDTW(current_n_subtraj, merged, distance_function) <= epsilon) {
                                         M[current_n_subtraj].push_back(merged);
                                         found = true;
                                     }
@@ -235,7 +234,7 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
     return optimized_M;
 }
 
-OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajectory>> M, const double tepsilon, const double sepsilon)
+OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajectory>> M, const double tepsilon, const double sepsilon, std::function<double(SamplePoint const& a, SamplePoint const& b)> distance_function)
 {
     // Ensure we only keep the first reference for each query
     std::unordered_map<Trajectory, std::vector<Trajectory>> simplified_M;
@@ -262,7 +261,7 @@ OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajector
             auto a_i = a[i];
             auto b_i = b[i];
 
-            if (i+1 < a.size() && euclideanDistance(b_i, a[i+1]) < sepsilon)
+            if (i+1 < a.size() && distance_function(b_i, a[i+1]) < sepsilon)
                 a_i = a[i+1];
 
             auto previousTimeStamp = i == 0 ? 0 : b[i-1].timestamp;
