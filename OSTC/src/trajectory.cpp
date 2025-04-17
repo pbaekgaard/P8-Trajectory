@@ -6,6 +6,7 @@
 
 #include "distance.hpp"
 #include <unordered_map>
+#include <ranges>
 #include <iostream>
 #include <map>
 #include <set>
@@ -82,6 +83,32 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
     std::unordered_map<Trajectory, std::vector<Trajectory>> M;
     for (int i = 0; i < points.size() - 1; i++) {
         Trajectory subtraj = (*this)(i, i + 1);
+        M[subtraj] = std::vector<Trajectory>{};
+        for (auto refTraj : RefSet) {
+            for (int j = 0; j < refTraj.points.size() - 1; j++) {
+                Trajectory subRefTraj = refTraj(j, j + 1);
+                if (MaxDTW(subtraj, subRefTraj) <= epsilon) {
+                    M[subtraj].push_back(subRefTraj);
+                }
+            }
+        }
+    }
+
+    for (int n = 2; n < points.size(); n++) {
+        for (int i = 0, j = i + n; j <= points.size() - 1; i++, j++) {
+            Trajectory sub_left = (*this)(i, j - 1);
+            Trajectory sub_right = (*this)(j - 1, j);
+
+            auto T_a_vec = M.find(sub_left);
+            auto T_b_vec = M.find(sub_right);
+            if (T_a_vec != M.end() && T_b_vec != M.end()) {
+                const std::vector<Trajectory>& T_as = T_a_vec->second;
+                const std::vector<Trajectory>& T_bs = T_b_vec->second;
+                for (const auto& [T_a, T_b] : std::views::zip(T_a_vec, T_b_vec) {
+
+                }
+            }
+        }
     }
 }
 
