@@ -5,8 +5,7 @@ from ML.Evaluation.Queries._helper_functions_and_classes import get_adjusted_tra
 
 
 def window_query_processing(window_query, df):
-    df["timestamp"] = pd.to_datetime(df["timestamp"])
-    t1, t2 = pd.to_datetime(window_query["t1"]), pd.to_datetime(window_query["t2"])
+    t1, t2 = window_query["t1"], window_query["t2"]
 
     resulting_trajectory_ids = []
     group_by_df = df.groupby("trajectory_id")
