@@ -91,7 +91,6 @@ def select_and_process_trajectories(df: pd.DataFrame, x: int, max_len: int) -> t
 
     for traj_id in selected_ids:
         traj_df = groups.get_group(traj_id).sort_values('timestamp')
-        traj_df['timestamp'] = pd.to_datetime(traj_df['timestamp'])
         #traj_df['time_delta'] = (traj_df['timestamp'] - traj_df['timestamp'].shift(1)).dt.total_seconds().fillna(0)
         #features = traj_df[['latitude', 'longitude', 'time_delta']].values.tolist()
         features = traj_df[['latitude', 'longitude']].values.tolist()

@@ -14,6 +14,7 @@ from _deduplicate import main as deduplicate
 from _load_data import main as load_data
 from _timestamporder import main as timestamporder
 from _remove_illegal_points import main as remove_illegal_points
+from _convert_timestamp_to_unix import main as timestamp_conversion
 
 
 def parse_only(value):
@@ -81,7 +82,8 @@ def main(only=None):
             'deduplication': 'Deduplication',
             'timestamporder': 'Timestamp Ordering',
             'limit_samplerate': 'Limiting to avg. Sample Rate',
-            'remove_illegal':  'remove illegal coordinates.'
+            'remove_illegal':  'Remove illegal coordinates.',
+            'convert_timestamp_to_unix': 'Convert timestamp to unix.',
         }
 
         # Format each step
@@ -98,6 +100,9 @@ def main(only=None):
             formatted_output = f"{formatted_steps[0]} and {formatted_steps[1]} and {formatted_steps[2]}"
             print(f"Preprocessing only the following steps: {formatted_output}")
         elif len(formatted_steps) == 4:
+            formatted_output = f"{formatted_steps[0]} and {formatted_steps[1]} and {formatted_steps[2]} and {formatted_steps[3]}"
+            print(f"Preprocessing only the following steps: {formatted_output}")
+        elif len(formatted_steps) == 5:
             print("Preprocessing all steps.")
         # Insert selective preprocessing logic here.
     else:
@@ -112,6 +117,7 @@ def main(only=None):
         'remove_illegal',
         'limit_samplerate',
         'timestamporder',
+        'convert_timestamp_to_unix'
         ]
 
     data = load_data()
@@ -127,6 +133,9 @@ def main(only=None):
         elif step == "timestamporder":
             print(f"Performing Timestamp Ordering...")
             data = timestamporder(data)
+        elif step == "convert_timestamp_to_unix":
+            print(f"Converting timestamp to unix...")
+            data = timestamp_conversion(data)
 
 
     # ... your processing logic here ...

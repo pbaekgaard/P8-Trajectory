@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-from datetime import datetime
 
 def where_query_processing(where_query, group_by_df):
     temp_list = []
@@ -27,10 +26,10 @@ def where_query_processing(where_query, group_by_df):
     where_query_df = pd.concat(temp_list, ignore_index=True) if temp_list else None
     if where_query_df is None:
         return pd.DataFrame(columns=["trajectory_id", "longitude", "latitude"])
-    denominator = (pd.to_datetime(where_query_df["greater_than_time"]) - pd.to_datetime(where_query_df["less_than_time"])).dt.total_seconds()
+    denominator = where_query_df["greater_than_time"] - where_query_df["less_than_time"]
     denominator = denominator.replace(0, np.nan)
 
-    percentage_distances_to_less_than = (datetime.strptime(where_query, "%Y-%m-%d %H:%M:%S") - pd.to_datetime(where_query_df["less_than_time"])).dt.total_seconds() / denominator
+    percentage_distances_to_less_than = (where_query - where_query_df["less_than_time"]) / denominator
     percentage_distances_to_less_than = percentage_distances_to_less_than.fillna(0)
 
     diff_longitude = where_query_df["greater_than_longitude"] - where_query_df["less_than_longitude"]

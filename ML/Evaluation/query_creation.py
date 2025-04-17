@@ -1,6 +1,6 @@
 import pandas as pd
 import random
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from ML.Evaluation._file_access_helper_functions import save_to_file
 
@@ -122,23 +122,23 @@ def create_queries(amount_of_individual_queries, version):
 
 def create_where_queries(from_date, to_date, times):
     where_queries = []
-    from_dt = datetime.strptime(from_date, "%Y-%m-%d %H:%M:%S")
-    to_dt = datetime.strptime(to_date, "%Y-%m-%d %H:%M:%S")
-    total_seconds = int((to_dt - from_dt).total_seconds())
+    from_dt = datetime.strptime(from_date, "%Y-%m-%d %H:%M:%S").timestamp()
+    to_dt = datetime.strptime(to_date, "%Y-%m-%d %H:%M:%S").timestamp()
+    total_seconds = int(to_dt - from_dt)
 
     for _ in range(times):
         random_seconds = random.randint(0, total_seconds)
-        random_dt = from_dt + timedelta(seconds=random_seconds)
-        where_queries.append(random_dt.strftime("%Y-%m-%d %H:%M:%S"))
+        random_dt = from_dt + random_seconds
+        where_queries.append(random_dt)
 
     return where_queries
 
 
 def create_distance_queries(from_date, to_date, times):
     distance_queries = []
-    from_dt = datetime.strptime(from_date, "%Y-%m-%d %H:%M:%S")
-    to_dt = datetime.strptime(to_date, "%Y-%m-%d %H:%M:%S")
-    total_seconds = int((to_dt - from_dt).total_seconds())
+    from_dt = datetime.strptime(from_date, "%Y-%m-%d %H:%M:%S").timestamp()
+    to_dt = datetime.strptime(to_date, "%Y-%m-%d %H:%M:%S").timestamp()
+    total_seconds = int(to_dt - from_dt)
 
     for _ in range(times):
         rand_sec_1 = random.randint(0, total_seconds)
@@ -147,11 +147,11 @@ def create_distance_queries(from_date, to_date, times):
         while rand_sec_1 == rand_sec_2:
             rand_sec_2 = random.randint(0, total_seconds)
 
-        dt1 = from_dt + timedelta(seconds=rand_sec_1)
-        dt2 = from_dt + timedelta(seconds=rand_sec_2)
+        dt1 = from_dt + rand_sec_1
+        dt2 = from_dt + rand_sec_2
 
-        time_first = min(dt1, dt2).strftime("%Y-%m-%d %H:%M:%S")
-        time_last = max(dt1, dt2).strftime("%Y-%m-%d %H:%M:%S")
+        time_first = min(dt1, dt2)
+        time_last = max(dt1, dt2)
 
         distance_queries.append({
             "time_first": time_first,
@@ -189,9 +189,9 @@ def create_count_queries(from_lon, to_lon, from_lat, to_lat, from_radius, to_rad
 
 
 def create_knn_queries(from_lon, to_lon, from_lat, to_lat, from_date, to_date, from_k, to_k, times):
-    from_dt = datetime.strptime(from_date, "%Y-%m-%d %H:%M:%S")
-    to_dt = datetime.strptime(to_date, "%Y-%m-%d %H:%M:%S")
-    total_seconds = int((to_dt - from_dt).total_seconds())
+    from_dt = datetime.strptime(from_date, "%Y-%m-%d %H:%M:%S").timestamp()
+    to_dt = datetime.strptime(to_date, "%Y-%m-%d %H:%M:%S").timestamp()
+    total_seconds = int(to_dt - from_dt)
     knn_queries = []
     for _ in range(times):
         rand_sec_1 = random.randint(0, total_seconds)
@@ -200,11 +200,11 @@ def create_knn_queries(from_lon, to_lon, from_lat, to_lat, from_date, to_date, f
         while rand_sec_1 == rand_sec_2:
             rand_sec_2 = random.randint(0, total_seconds)
 
-        dt1 = from_dt + timedelta(seconds=rand_sec_1)
-        dt2 = from_dt + timedelta(seconds=rand_sec_2)
+        dt1 = from_dt + rand_sec_1
+        dt2 = from_dt + rand_sec_2
 
-        time_first = min(dt1, dt2).strftime("%Y-%m-%d %H:%M:%S")
-        time_last = max(dt1, dt2).strftime("%Y-%m-%d %H:%M:%S")
+        time_first = min(dt1, dt2)
+        time_last = max(dt1, dt2)
 
         knn_queries.append({"longitude": random.uniform(from_lon, to_lon), "latitude": random.uniform(from_lat, to_lat),
                             "time_first": time_first, "time_last": time_last, "k": random.randint(from_k, to_k)})
@@ -214,9 +214,9 @@ def create_knn_queries(from_lon, to_lon, from_lat, to_lat, from_date, to_date, f
 
 def create_window_queries(from_lon, to_lon, from_lat, to_lat, from_date, to_date, times):
     window_queries = []
-    from_dt = datetime.strptime(from_date, "%Y-%m-%d %H:%M:%S")
-    to_dt = datetime.strptime(to_date, "%Y-%m-%d %H:%M:%S")
-    total_seconds = int((to_dt - from_dt).total_seconds())
+    from_dt = datetime.strptime(from_date, "%Y-%m-%d %H:%M:%S").timestamp()
+    to_dt = datetime.strptime(to_date, "%Y-%m-%d %H:%M:%S").timestamp()
+    total_seconds = int(to_dt - from_dt)
 
     for _ in range(times):
         first_point = {"longitude": random.uniform(from_lon, to_lon), "latitude": random.uniform(from_lat, to_lat)}
@@ -227,11 +227,11 @@ def create_window_queries(from_lon, to_lon, from_lat, to_lat, from_date, to_date
         while rand_sec_1 == rand_sec_2:
             rand_sec_2 = random.randint(0, total_seconds)
 
-        dt1 = from_dt + timedelta(seconds=rand_sec_1)
-        dt2 = from_dt + timedelta(seconds=rand_sec_2)
+        dt1 = from_dt + rand_sec_1
+        dt2 = from_dt + rand_sec_2
 
-        t1 = min(dt1, dt2).strftime("%Y-%m-%d %H:%M:%S")
-        t2 = max(dt1, dt2).strftime("%Y-%m-%d %H:%M:%S")
+        t1 = min(dt1, dt2)
+        t2 = max(dt1, dt2)
         window_queries.append({"first_point": first_point, "last_point": last_point, "t1": t1, "t2": t2})
 
     return window_queries

@@ -170,9 +170,8 @@ def get_first_x_trajectories(trajectories: pd.DataFrame, num_trajectories: int =
 
 def generate_reference_set(df: pd.DataFrame, clustering_method: ClusteringMethod, clustering_param: int | float, batch_size: int, d_model: int, num_heads: int, clustering_metric: str, num_layers: int) -> (pd.DataFrame, pd.DataFrame, List, List, List):
     df = pd.DataFrame(df, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
-    df['timestamp'] = pd.to_datetime(df['timestamp'])
     df['t_relative'] = df.groupby('trajectory_id')['timestamp'].transform(
-        lambda x: (x - x.min()).dt.total_seconds()
+        lambda x: x - x.min()
     )  # convert to delta_seconds from start.
     df = normalize_df(df)
 

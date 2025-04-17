@@ -23,8 +23,8 @@ def when_query_processing(when_query, group_by_df):
         distance_to_point_before = calculate_distance(pd.concat([point_before, when_query_as_df]).reset_index(drop=True))
         percentage_distance = distance_to_point_before / total_distance if total_distance != 0 else 0
 
-        diff_timestamp = pd.to_datetime(point_after["timestamp"]).reset_index(drop=True) - pd.to_datetime(point_before["timestamp"]).reset_index(drop=True)
-        time_in_when_query_point = pd.to_datetime(point_before["timestamp"]).reset_index(drop=True) + (percentage_distance * diff_timestamp)
+        diff_timestamp = point_after["timestamp"].reset_index(drop=True) - point_before["timestamp"].reset_index(drop=True)
+        time_in_when_query_point = point_before["timestamp"].reset_index(drop=True) + (percentage_distance * diff_timestamp)
 
         when_query_results.append(pd.DataFrame({"trajectory_id": [trajectory_id], "timestamp": [time_in_when_query_point.iloc[0]]}))
     if when_query_results:

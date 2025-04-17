@@ -1,8 +1,6 @@
-from datetime import timedelta
 
 import pandas as pd
 from sklearn.metrics import r2_score
-from datetime import timedelta
 
 from ML.Evaluation.Queries._helper_functions_and_classes import similarity_score_distance, similarity_score_time
 
@@ -107,7 +105,7 @@ def when_query_accuracy_evaluation(y_true, y_pred, original_df):
 
 def how_long_query_accuracy_evaluation(y_true, y_pred, original_df):
     group_by = original_df.groupby("trajectory_id")
-    epsilon = timedelta(microseconds=1)
+    epsilon = 1.0 * 10**(-6) # 1 Microsecond
 
     results = []
     for i in range(len(y_true)):
