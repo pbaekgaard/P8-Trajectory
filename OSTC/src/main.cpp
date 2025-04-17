@@ -1,8 +1,8 @@
 #include "trajectory.hpp"
 #include <unordered_map>
 #include <iostream>
+#ifdef Debug
 #include "example_trajectories.hpp"
-
 void run_example()
 {
     constexpr auto spatial_deviation_threshold = 0.9;
@@ -23,6 +23,8 @@ void run_example()
     //     std::cerr << "Error: " << e.what() << "\n";
     // }
 }
+#endif
+
 #ifndef Debug
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
@@ -77,6 +79,31 @@ py::list compressedTrajectoryToNumpy(OSTCResult compressed)
     return numpy;
 }
 
+void compress(py::object rawTrajectoryArray, py::object refTrajectoryArray)
+{
+    std::vector<Trajectory> rawTrajs = ndarrayToTrajectories(rawTrajectoryArray);
+    std::vector<Trajectory> refTrajs = ndarrayToTrajectories(refTrajectoryArray);
+    std::vector<OSTCResult> compressedTrajectories{};
+    constexpr auto spatial_deviation_threshold = 0.9;
+    constexpr auto temporal_deviation_threshold = 0.5;
+
+    for (auto t : rawTrajs) {
+        const auto M = t.MRTSearch(refTrajs, spatial_deviation_threshold);
+        OSTCResult compressed = t.OSTC(M, temporal_deviation_threshold, spatial_deviation_threshold);
+        compressedTrajectories.push_back(compressed);
+    }
+    // try {
+    //     std::vector<ReferenceTrajectory> T_prime = t.OSTC(M);
+    //     std::cout << "Compressed trajectory T':\n";
+    //     for (const auto& mrt : T_prime) {
+    //         std::cout << "MRT: (id=" << mrt.id << ", start=" << mrt.start_index << ", end=" << mrt.end_index <<
+    //         ")\n";
+    //     }
+    // } catch (const std::exception& e) {
+    //     std::cerr << "Error: " << e.what() << "\n";
+    // }
+}
+
 // This function is to demonstrate how you could expose C++ logic to Python
 
 // Binding the functions to Python
@@ -107,8 +134,8 @@ PYBIND11_MODULE(ostc, m)
         Some other explanation about the run_example function.
     )pbdoc");
 
-    m.def("run_example", &run_example, R"pbdoc(
-        run_example function
+    m.def("compress", &compress, R"pbdoc(
+        Compress a list of trajectories to the reference set
 
         Some other explanation about the run_example function.
     )pbdoc");

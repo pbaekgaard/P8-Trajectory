@@ -1,6 +1,6 @@
-#include "gtest/gtest.h"
 #include <gtest/gtest.h>
 #include <trajectory.hpp>
+#include <vector>
 
 TEST(Trajectories, trajectories_are_equal)
 {

@@ -1,3 +1,11 @@
 pytest
 pyarrow
 fastparquet
+pandas
+numpy
+torch
+scikit-learn
+scikit-learn-extra
+haversine
+shapely
+pyproj
