@@ -59,7 +59,7 @@ dataset = pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude",
 unique_trajectories = dataset["trajectory_id"].unique()
 y_true = load_data_from_file({
     "filename": "original_query_results",
-})
+})["data"]
 queries = load_data_from_file({
     "filename": "queries_for_evaluation",
 })
