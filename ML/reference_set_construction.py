@@ -151,7 +151,7 @@ def normalize_df(df):
     return df
 
 
-def get_first_x_trajectories(trajectories: pd.DataFrame, num_trajectories: int = None) -> (pd.DataFrame, List):
+def get_first_x_trajectories(trajectories: pd.DataFrame, num_trajectories: int = None) -> pd.DataFrame:
     """
     :param num_trajectories: how many trajectories you want
     :param trajectories: from where to get the trajectories
@@ -262,22 +262,22 @@ if __name__ == "__main__":
     clustering_metric = "euclidean"
 
 
-    df = _load_data.main()
+    all_df = _load_data.main()
 
-    df = get_first_x_trajectories(trajectories=df, num_trajectories=10)
+    all_df = get_first_x_trajectories(trajectories=all_df, num_trajectories=10)
 
     df, representative_trajectories, reference_set, representative_indices, trajectory_representations = generate_reference_set(
         batch_size=batch_size,
         d_model=128,
         num_heads=4,
         num_layers=3,
-        df=df,
+        df=all_df,
         clustering_method=clusteringMethod,
         clustering_param=n_clusters if clusteringMethod == ClusteringMethod.KMEDOIDS else distance_threshold,
         clustering_metric=clustering_metric
     )
 
-    visualize_in_PCA(df, trajectory_representations, representative_indices, reference_set, clusteringMethod)
+    visualize_in_PCA(all_df, trajectory_representations, representative_indices, reference_set, clusteringMethod)
 
     """
     HELP FOR NOOBS:
