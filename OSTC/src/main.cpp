@@ -43,7 +43,7 @@ std::vector<Trajectory> ndarrayToTrajectories(py::object array)
     for (const auto& row_handle : py_list) {
         auto row = row_handle.cast<py::list>();  // Cast to py::list
         int id = row[0].cast<int>();
-        auto timestamp = row[1].cast<std::string>();
+        auto timestamp = row[1].cast<int>();
         auto latitude = row[2].cast<float>();
         auto longitude = row[3].cast<float>();
         auto point = SamplePoint(latitude, longitude, 0);
@@ -88,8 +88,13 @@ void compress(py::object rawTrajectoryArray, py::object refTrajectoryArray)
     constexpr auto temporal_deviation_threshold = 0.5;
 
     for (auto t : rawTrajs) {
+        std::cout << "compressing Trajectory " << t.id << std::endl;
+        std::cout << "performing MRT search" << std::endl;
         const auto M = t.MRTSearch(refTrajs, spatial_deviation_threshold);
+        std::cout << "MRT search done" << std::endl;
+        std::cout << "performing OSTC" << std::endl;
         OSTCResult compressed = t.OSTC(M, temporal_deviation_threshold, spatial_deviation_threshold);
+        std::cout << "OSTC done" << std::endl;
         compressedTrajectories.push_back(compressed);
     }
     // try {

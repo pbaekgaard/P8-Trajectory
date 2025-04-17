@@ -12,7 +12,6 @@ COMPRESSED_DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".
 
 
 def main() -> pd.DataFrame :
-    print("path to _load_data(): ", DATA_DIR)
     files = glob.glob(os.path.join(DATA_DIR, "*.txt"))
 
     headers = ["trajectory_id", "timestamp", "longitude", "latitude"]
