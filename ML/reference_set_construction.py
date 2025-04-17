@@ -19,6 +19,7 @@ from ML.TrajectoryTransformer import TrajectoryTransformer
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("device: ", device)
+print("CUDA available: ", torch.cuda.is_available())
 
 
 class ClusteringMethod(Enum):
