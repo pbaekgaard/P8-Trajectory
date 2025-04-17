@@ -68,7 +68,7 @@ py::list compressedTrajectoryToNumpy(OSTCResult compressed)
     for (const auto& traj : compressed.references) {
         auto correction = compressed.time_corrections.find(traj);
         for (const auto& point : traj.points) {
-            if (numpy.contains(point)) {
+            if (!numpy.contains(point)) {
                 // TODO: Add correction to point if we found one
                 numpy.append(point);
             }
