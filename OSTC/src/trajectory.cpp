@@ -316,3 +316,51 @@ OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajector
 
     return {T_prime, time_correction_record};
 }
+
+
+void convertCompressedTrajectoriesToPoints(std::vector<CompressedResult>& points, const Trajectory& trajectory_to_be_compressed, OSTCResult compressed)
+{
+    for (const auto& traj : compressed.references) {
+        auto correction = compressed.time_corrections.find(traj);
+
+        for (int i = 0; i < traj.points.size(); i++) {
+            auto point = traj.points[i];
+            auto corrections = std::vector<CompressedResultCorrection> {};
+
+            auto existing_point = std::ranges::find_if(points,
+               [&](const CompressedResult& p) {
+                   return p.id == traj.id &&
+                          p.latitude == point.latitude &&
+                          p.longitude == point.longitude &&
+                          p.timestamp == point.timestamp;
+               }
+            );
+
+            const auto does_point_exist = existing_point != points.end();
+
+            if (correction != compressed.time_corrections.end()) {
+                for (const auto& correction_entry : correction->second) {
+                    if (correction_entry.point_index == i) {
+                        corrections.emplace_back(
+                            trajectory_to_be_compressed.id,
+                            correction_entry.corrected_timestamp
+                        );
+                    }
+                }
+            }
+
+            if (does_point_exist) {
+                existing_point->corrections.append_range(corrections);
+            }
+            else {
+                points.emplace_back(
+                    traj.id,
+                    point.latitude,
+                    point.longitude,
+                    point.timestamp,
+                    corrections
+                );
+            }
+        }
+    }
+}
