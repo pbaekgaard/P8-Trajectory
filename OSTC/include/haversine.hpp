@@ -14,7 +14,7 @@ using kilometers_t = double;
 using angle_t      = double;
 using radians_t    = double;
 
-auto calculate_distance(const SamplePoint& a, const SamplePoint& b) -> meters_t;
+auto haversine_distance(SamplePoint const& a, SamplePoint const& b) -> meters_t;
 
 auto convert(const angle_t angle) -> radians_t;
 

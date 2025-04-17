@@ -42,7 +42,6 @@ else()
     add_library(ostc_lib STATIC
         src/trajectory.cpp
         src/distance.cpp
-            include/haversine.hpp
     )
 
     # Create the Python extension module

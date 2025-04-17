@@ -35,3 +35,10 @@ TEST(MaxDTW, IsCorrectDistance)
     EXPECT_EQ(std::sqrt(2), MaxDTW(traj3, traj4, euclideanDistance));
     EXPECT_EQ(std::sqrt(74), MaxDTW(traj3, traj5, euclideanDistance));
 }
+
+TEST(haversine_distance, IsCorrectHaversineDistance) {
+    auto s1 = SamplePoint(39,116, 0);
+    auto s2 = SamplePoint(40,117, 0);
+
+    EXPECT_DOUBLE_EQ(haversine_distance(s1,s2), 140447.26786652033);
+}

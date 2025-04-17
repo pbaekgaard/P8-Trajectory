@@ -5,12 +5,12 @@
 #include "distance.hpp"
 #include <numbers>
 
-double euclideanDistance(const SamplePoint& a, const SamplePoint& b) {
+double euclideanDistance(SamplePoint const& a, SamplePoint const& b) {
     double dx = a.longitude - b.longitude;
     double dy = a.latitude - b.latitude;
     return std::sqrt(dx * dx + dy * dy);
 }
-auto haversine_distance(const SamplePoint& a, const SamplePoint& b) -> meters_t
+auto haversine_distance(SamplePoint const& a, SamplePoint const& b) -> meters_t
 {
     const auto earths_radius = kilometers_t{6371};
 
@@ -35,7 +35,7 @@ auto convert(const angle_t angle) -> radians_t
 {
     return angle * (std::numbers::pi / 180);
 }
-double MaxDTW(const Trajectory& A, const Trajectory& B, const std::function<double(const SamplePoint&, const SamplePoint&)>& distance) {
+double MaxDTW(const Trajectory& A, const Trajectory& B, const std::function<double(SamplePoint const&, SamplePoint const&)> distance) {
     const auto& P = A.points;
     const auto& Q = B.points;
 

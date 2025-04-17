@@ -5,7 +5,7 @@
 #include "trajectory.hpp"
 #include "haversine.hpp"
 
-double euclideanDistance(const SamplePoint& a, const SamplePoint& b);
-double MaxDTW(const Trajectory& A, const Trajectory& B, std::function<double(const SamplePoint& a, const SamplePoint& b)> distance);
-auto haversine_distance(const SamplePoint& a, const SamplePoint& b) -> meters_t;
+double euclideanDistance(SamplePoint const& a, SamplePoint const& b);
+double MaxDTW(const Trajectory& A, const Trajectory& B, std::function<double(SamplePoint const& a, SamplePoint const& b)> distance);
+auto haversine_distance(SamplePoint const& a, SamplePoint const& b) -> meters_t;
 #endif

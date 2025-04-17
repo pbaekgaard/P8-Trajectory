@@ -19,7 +19,7 @@ struct SamplePoint
     double latitude;   // latitude
     int timestamp;     // timestamp
 
-    SamplePoint(double x, double y, int t): longitude(x), latitude(y), timestamp(t) {}
+    SamplePoint(double latitude, double longitude, int t): longitude(longitude), latitude(latitude), timestamp(t) {}
 
     bool operator==(const SamplePoint& other) const;
 };
@@ -82,8 +82,8 @@ struct Trajectory
         return os;
     }
 
-    std::unordered_map<Trajectory, std::vector<Trajectory>> MRTSearch(std::vector<Trajectory>& RefSet, double epsilon, std::function<double(const SamplePoint& a, const SamplePoint& b)> distance_function);
-    OSTCResult OSTC(std::unordered_map<Trajectory, std::vector<Trajectory>> M, double tepsilon, double sepsilon, std::function<double(const SamplePoint& a, const SamplePoint& b)> distance_function);
+    std::unordered_map<Trajectory, std::vector<Trajectory>> MRTSearch(std::vector<Trajectory>& RefSet, double epsilon, std::function<double(SamplePoint const& a,SamplePoint const & b)> distance_function);
+    OSTCResult OSTC(std::unordered_map<Trajectory, std::vector<Trajectory>> M, double tepsilon, double sepsilon, std::function<double(SamplePoint const& a, SamplePoint const& b)> distance_function);
 };
 
 template <>

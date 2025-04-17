@@ -76,7 +76,7 @@ ReferenceTrajectory::ReferenceTrajectory(const Trajectory& t):
 {}
 
 std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(std::vector<Trajectory>& RefSet,
-                                                                             const double epsilon, std::function<double(const SamplePoint& a, const SamplePoint& b)> distance_function)
+                                                                             const double epsilon, std::function<double(SamplePoint const& a, SamplePoint const& b)> distance_function)
 {
     std::unordered_map<Trajectory, std::vector<Trajectory>> M;
     
@@ -234,7 +234,7 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
     return optimized_M;
 }
 
-OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajectory>> M, const double tepsilon, const double sepsilon, std::function<double(const SamplePoint& a, const SamplePoint& b)> distance_function)
+OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajectory>> M, const double tepsilon, const double sepsilon, std::function<double(SamplePoint const& a, SamplePoint const& b)> distance_function)
 {
     // Ensure we only keep the first reference for each query
     std::unordered_map<Trajectory, std::vector<Trajectory>> simplified_M;

@@ -1,4 +1,4 @@
-#include <distance.hpp>
+#include "distance.hpp"
 #include <gtest/gtest.h>
 #include "trajectory.hpp"
 #include "example_trajectories.hpp"
