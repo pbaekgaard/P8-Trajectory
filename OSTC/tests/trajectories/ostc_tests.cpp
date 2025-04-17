@@ -1,3 +1,4 @@
+#include <distance.hpp>
 #include <gtest/gtest.h>
 #include "trajectory.hpp"
 #include "example_trajectories.hpp"
@@ -9,7 +10,7 @@ TEST(OSTC, outputs_correct_values)
         {t(15, 16), {t6(12, 13)}}, {t(17, 19), {t7(7, 9)}},
     };
 
-    const OSTCResult compressed = t.OSTC(M_opt, 0.5, 0.9);
+    const OSTCResult compressed = t.OSTC(M_opt, 0.5, 0.9, euclideanDistance);
 
     const auto expected_references = std::vector<Trajectory>{
         t(0,0),

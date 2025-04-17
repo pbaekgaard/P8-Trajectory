@@ -1,3 +1,5 @@
+#include <distance.hpp>
+
 #include "trajectory.hpp"
 #include <unordered_map>
 #include <iostream>
@@ -8,9 +10,10 @@ void run_example()
     constexpr auto spatial_deviation_threshold = 0.9;
     constexpr auto temporal_deviation_threshold = 0.5;
     std::vector<Trajectory> RefSet{t1, t2, t3(2, 14), t4, t5, t6, t7};
+    auto distance_function = haversine_distance;
 
-    const auto M = t.MRTSearch(RefSet, spatial_deviation_threshold);
-    OSTCResult compressed = t.OSTC(M,temporal_deviation_threshold, spatial_deviation_threshold);
+    const auto M = t.MRTSearch(RefSet, spatial_deviation_threshold, haversine_distance);
+    OSTCResult compressed = t.OSTC(M,temporal_deviation_threshold, spatial_deviation_threshold, haversine_distance);
     std::cout << M.size() << std::endl;
     // try {
     //     std::vector<ReferenceTrajectory> T_prime = t.OSTC(M);
