@@ -181,7 +181,7 @@ def generate_reference_set(df: pd.DataFrame, clustering_method: ClusteringMethod
         d_model=d_model,
         num_heads=num_heads,
         num_layers=num_layers,
-    )
+    ).to(device)
     # model.train() # IF TRAIN
     model.eval()
 
