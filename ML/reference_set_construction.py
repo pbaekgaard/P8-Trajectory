@@ -145,10 +145,11 @@ def normalize_df(df):
     :return: normalized Dataframe.
     normalizes according to highest and lowest value for that column in entire df. 1 is max, 0 is min.
     """
-    df['t_relative'] = (df['t_relative'] - df['t_relative'].min()) / (df['t_relative'].max() - df['t_relative'].min())
-    df['longitude'] = (df['longitude'] - df['longitude'].min()) / (df['longitude'].max() - df['longitude'].min())
-    df['latitude'] = (df['latitude'] - df['latitude'].min()) / (df['latitude'].max() - df['latitude'].min())
-    return df
+    norm_df = df.copy()
+    norm_df['t_relative'] = (df['t_relative'] - df['t_relative'].min()) / (df['t_relative'].max() - df['t_relative'].min())
+    norm_df['longitude'] = (df['longitude'] - df['longitude'].min()) / (df['longitude'].max() - df['longitude'].min())
+    norm_df['latitude'] = (df['latitude'] - df['latitude'].min()) / (df['latitude'].max() - df['latitude'].min())
+    return norm_df
 
 
 def get_first_x_trajectories(trajectories: pd.DataFrame, num_trajectories: int = None) -> pd.DataFrame:
