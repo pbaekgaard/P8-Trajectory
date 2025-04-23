@@ -3,6 +3,7 @@ import argparse
 import pandas as pd
 import sys
 import time
+import ostc
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__ + "/../../")))
 
@@ -152,8 +153,8 @@ if __name__ == '__main__':
             compression_time_ml_end = time.perf_counter()
             ml_time = compression_time_ml_end - compression_time_start
 
-            compressed_dataset, merged_df = mock_compressed_data(df, reference_set)
-            # compressed_dataset, merged_df = _load_compressed_data()
+            # compressed_dataset, merged_df = mock_compressed_data(df, reference_set)
+            compressed_dataset, merged_df = ostc.compress(df, reference_set)
 
             compression_time_end = time.perf_counter()
             compression_time = compression_time_end - compression_time_ml_end
