@@ -154,7 +154,9 @@ if __name__ == '__main__':
             ml_time = compression_time_ml_end - compression_time_start
 
             # compressed_dataset, merged_df = mock_compressed_data(df, reference_set)
-            compressed_dataset, merged_df = ostc.compress(df, reference_set)
+            numpy_df = df.to_numpy()
+            numpy_ref_set = reference_set.to_numpy()
+            compressed_dataset, merged_df = ostc.compress(numpy_df, numpy_ref_set)
 
             compression_time_end = time.perf_counter()
             compression_time = compression_time_end - compression_time_ml_end
