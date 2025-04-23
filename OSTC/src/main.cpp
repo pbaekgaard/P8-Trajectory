@@ -10,10 +10,10 @@ void run_example()
     constexpr auto spatial_deviation_threshold = 0.9;
     constexpr auto temporal_deviation_threshold = 0.5;
     std::vector<Trajectory> RefSet{t1, t2, t3(2, 14), t4, t5, t6, t7};
-    auto distance_function = haversine_distance;
+    auto distance_function = euclideanDistance;
 
-    const auto M = t.MRTSearch(RefSet, spatial_deviation_threshold, haversine_distance);
-    OSTCResult compressed = t.OSTC(M,temporal_deviation_threshold, spatial_deviation_threshold, haversine_distance);
+    const auto M = t.MRTSearch(RefSet, spatial_deviation_threshold, euclideanDistance);
+    OSTCResult compressed = t.OSTC(M,temporal_deviation_threshold, spatial_deviation_threshold, euclideanDistance);
     std::cout << M.size() << std::endl;
     // try {
     //     std::vector<ReferenceTrajectory> T_prime = t.OSTC(M);
@@ -63,13 +63,12 @@ void print_numpy(py::object array)
     std::cout << traj[0].points[0] << std::endl;
 }
 
-py::list corrections_to_list(const std::vector<CompressedResultCorrection>& corrections) {
+py::list corrections_to_dict(const std::vector<CompressedResultCorrection>& corrections) {
     py::list result;
 
     for (const auto& c : corrections) {
         py::dict d;
-        d["id"] = c.id;
-        d["corrected_timestamp"] = c.corrected_timestamp;
+        d[py::int_(c.id)] = c.corrected_timestamp;
         result.append(d);
     }
 
@@ -85,7 +84,7 @@ py::object compressed_trajectory_to_dataframe(const std::vector<CompressedResult
         lats.append(point.latitude);
         lons.append(point.longitude);
         timestamps.append(point.timestamp);
-        corrections.append(corrections_to_list(point.corrections));  // nested list of dicts
+        corrections.append(corrections_to_dict(point.corrections));  // nested list of dicts
     }
 
     py::dict data;
