@@ -44,6 +44,15 @@ Trajectory Trajectory::operator()(const int start, const int end)
     return Trajectory(id, std::vector<SamplePoint>(points.begin() + start, points.begin() + end + 1), start, end);
 }
 
+Trajectory Trajectory::operator()(const int start, const int end) const
+{
+    if (end + 1 > points.size()) {
+        return Trajectory(id, std::vector<SamplePoint>(points.begin() + start, points.begin() + end), start, end);
+    }
+
+    return Trajectory(id, std::vector<SamplePoint>(points.begin() + start, points.begin() + end + 1), start, end);
+}
+
 Trajectory Trajectory::operator+(Trajectory other)
 {
     auto mergedPoints = points;
@@ -86,10 +95,13 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
 
         for (auto refTraj : RefSet) {
             for (int j = 0; j < refTraj.points.size() - 1; j++) {
-                Trajectory subRefTraj = refTraj(j, j + 1);
-                if (MaxDTW(subtraj, subRefTraj) <= epsilon) {
-                    M[subtraj].push_back(subRefTraj);
+                for (int k = j + 1; k < refTraj.points.size(); k++) {
+                    Trajectory subRefTraj = refTraj(j, k);
+                    if (MaxDTW(subtraj, subRefTraj) <= epsilon) {
+                        M[subtraj].push_back(subRefTraj);
+                    }
                 }
+
             }
         }
     }
@@ -138,6 +150,63 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
         }
 
         if (!found) break;
+    }
+
+    std::vector<TrajectoryRemoval> to_remove;
+
+    for (auto& [query_traj, ref_trajs] : M) {
+        auto query_start_index = query_traj.start_index;
+        auto query_end_index = query_traj.end_index;
+
+        for (auto i = query_start_index; i <= query_end_index - 1; i++) {
+            for (auto j = i + 1; j <= query_end_index; j++) {
+                if (i == query_start_index && j == query_end_index) {
+                    continue;
+                }
+
+                auto ref_iterator = M.find(query_traj.operator()(i, j));
+                if (ref_iterator != M.end()) {
+                    auto& ref_trajectories = ref_iterator->second;
+                    for (auto& ref_trajectory : ref_trajectories) {
+                        auto is_sub_trajectory = std::ranges::find_if(ref_trajs,
+                            [&](const Trajectory& ref_traj) {
+                            return ref_trajectory.id == ref_traj.id && ref_trajectory.start_index >= ref_traj.start_index && ref_trajectory.end_index <= ref_traj.end_index;
+                        }) != ref_trajs.end();
+
+                        if (is_sub_trajectory) {
+                            to_remove.push_back(TrajectoryRemoval{query_traj.operator()(i, j), ref_trajectory, ref_trajectories});
+                        }
+                    }
+
+                }
+            }
+        }
+    }
+
+    for (auto& removal : to_remove) {
+        // TODO: Change so that it uses M to lookup ref_trajectories instead.
+        auto& ref_trajectory_to_remove = removal.trajectory_to_remove;
+        auto& ref_trajectories = removal.ref_trajectories;
+
+        auto is_sub_trajectory = std::ranges::find_if(to_remove,
+                                   [&](const TrajectoryRemoval& ref_traj) {
+                                   return ref_traj.query_trajectory.id == 0 && ref_traj.query_trajectory.start_index == 3 && ref_traj.query_trajectory.end_index == 4;
+                               }) != to_remove.end();
+
+        auto elo = M.find(removal.query_trajectory);
+        auto elo2 = elo->first;
+        auto elo3 = elo->second;
+
+
+        ref_trajectories.erase(std::remove_if(ref_trajectories.begin(), ref_trajectories.end(), [&](const Trajectory& traj){ return ref_trajectory_to_remove == traj; }), ref_trajectories.end());
+
+        auto elo4 = M.find(removal.query_trajectory);
+        auto elo5 = elo4->first;
+        auto elo6 = elo4->second;
+
+        if (ref_trajectories.size() == 0) {
+            M.erase(removal.query_trajectory);
+        }
     }
 
     return M;
