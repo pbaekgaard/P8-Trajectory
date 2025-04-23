@@ -145,7 +145,6 @@ def main(only=None):
         elif step == "take_10_trajectories":
             print("TAKING ONLY THE FIRST 10 TRAJECTORIESSS!!!!...")
             data = ten_trajectories(data)
-            print(data)
 
 
     # ... your processing logic here ...
