@@ -14,3 +14,9 @@ You can also limit preprocessing to specific ones:
 `./data-tools.py preprocess --only=timestamporder,deduplication`
 
 - Install OSTC using `pip3 install ./OSTC`
+
+
+on server: 
+- ``git clone https://github.com/pbaekgaard/P8-Trajectory --recurse-submodules``
+- Install CMAKe on server using `sudo apt install cmake`
+- Install ostc on server using `pip3 install ./OSTC`
