@@ -173,7 +173,7 @@ def generate_reference_set(df: pd.DataFrame, clustering_method: ClusteringMethod
     df['t_relative'] = df.groupby('trajectory_id')['timestamp'].transform(
         lambda x: x - x.min()
     )  # convert to delta_seconds from start.
-    df = normalize_df(df)
+    normalized_df = normalize_df(df)
 
     print("instantiating model...")
     model = TrajectoryTransformer(
@@ -184,7 +184,7 @@ def generate_reference_set(df: pd.DataFrame, clustering_method: ClusteringMethod
     # model.train() # IF TRAIN
     model.eval()
 
-    df_batches = split_into_batches(df, batch_size=batch_size)
+    df_batches = split_into_batches(normalized_df, batch_size=batch_size)
     trajectory_tensors = []
 
     def process_batch(batch):
