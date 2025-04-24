@@ -7,6 +7,7 @@
 
 #include <functional>
 #include <unordered_map>
+#include <map>
 #include <ranges>
 #include <iostream>
 #include <map>
@@ -261,14 +262,18 @@ OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajector
     std::vector<Trajectory> T_prime;
 
     for (size_t i = 1; i <= points.size(); ++i) {
-        int min_cost = Ft[i - 1] + 12;
+        // int min_cost = Ft[i - 1] + 12;
+        int min_cost = 8 * points.size();
 
         for (size_t j = 1; j <= i; ++j) {
             Trajectory sub_traj = (*this)(j - 1, i - 1);
             auto it = M.find(sub_traj);
             if (it != M.end() && !it->second.empty()) {
-                auto time_correction_cost_lookup = time_correction_cost.find(it->second[0])->second;
-                int cost = std::min(Ft[i - 1] + 12, Ft[j - 1] + time_correction_cost_lookup + 8);
+                auto time_correction_cost_lookup = std::numeric_limits<int>::max();
+                for (auto traj : it->second) {
+                    time_correction_cost_lookup = std::min(time_correction_cost_lookup, Ft[j-1] + time_correction_cost.find(traj)->second);
+                }
+                int cost = std::min(Ft[i - 1] + 12, time_correction_cost_lookup + 8);
 
                 if (cost < min_cost) {
                     min_cost = cost;
@@ -290,10 +295,6 @@ OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajector
             if (it != M.end() && !it->second.empty()) {
                 T_prime.emplace_back(it->second[0]);
             }
-            // Maybe no need?? Maybe need??
-            else {
-                T_prime.emplace_back(sub_traj);
-            }
             i = pre[i];
         }
     }
@@ -301,7 +302,6 @@ OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajector
 
     return {T_prime, time_correction_record};
 }
-
 
 void convertCompressedTrajectoriesToPoints(std::vector<CompressedResult>& points, const Trajectory& trajectory_to_be_compressed, OSTCResult compressed)
 {
