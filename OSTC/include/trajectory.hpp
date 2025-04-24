@@ -113,7 +113,7 @@ struct CompressedResult
     int timestamp;
     std::vector<CompressedResultCorrection> corrections;
 
-    CompressedResult(const u_int32_t id, const double latitude, const double longitude, const int timestamp, std::vector<CompressedResultCorrection> corrections)
+    CompressedResult(const uint32_t id, const double latitude, const double longitude, const int timestamp, std::vector<CompressedResultCorrection> corrections)
         : id(id), latitude(latitude), longitude(longitude), timestamp(timestamp), corrections(std::move(corrections)) {};
 
     bool operator==(const CompressedResult& other) const

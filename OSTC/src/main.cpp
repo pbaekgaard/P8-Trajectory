@@ -27,6 +27,7 @@ void run_example()
     //     std::cerr << "Error: " << e.what() << "\n";
     // }
 }
+#endif
 #ifndef Debug
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
