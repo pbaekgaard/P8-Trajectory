@@ -109,7 +109,7 @@ py::object compressed_trajectory_to_dataframe(const std::vector<CompressedResult
     return pd.attr("DataFrame")(data);
 }
 
-py::object test_compression_to_pandas()
+void test_compression_to_pandas()
 {
     const auto M_opt = std::unordered_map<Trajectory, std::vector<Trajectory>>{
                 {t(0, 0), {t(0, 0)}}, {t(1, 8), {t2(0, 7)}}, {t(9, 14), {t5(6, 11)}},
