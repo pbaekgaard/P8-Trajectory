@@ -184,7 +184,6 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
     }
 
     for (auto& removal : to_remove) {
-        // TODO: Change so that it uses M to lookup ref_trajectories instead.
         auto& ref_trajectory_to_remove = removal.trajectory_to_remove;
         auto iter = M.find(removal.query_trajectory);
         if (iter == M.end()) {
