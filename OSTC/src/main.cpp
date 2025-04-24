@@ -112,9 +112,9 @@ py::object compressed_trajectory_to_dataframe(const std::vector<CompressedResult
 py::object test_compression_to_pandas()
 {
     const auto M_opt = std::unordered_map<Trajectory, std::vector<Trajectory>>{
-            {t(0, 0), {t(0, 0)}}, {t(1, 8), {t2(0, 7)}}, {t(9, 14), {t5(6, 11)}},
-            {t(15, 16), {t6(12, 13)}}, {t(17, 19), {t7(7, 9)}},
-        };
+                {t(0, 0), {t(0, 0)}}, {t(1, 8), {t2(0, 7)}}, {t(9, 14), {t5(6, 11)}},
+                {t(15, 16), {t6(12, 13)}}, {t(17, 19), {t7(7, 9)}},
+            };
 
     const auto raw_trajectories = std::vector<Trajectory>{t_copy};
 
@@ -123,6 +123,8 @@ py::object test_compression_to_pandas()
         const OSTCResult compressed = t.OSTC(M_opt, 0.5, 0.9, euclideanDistance);
         convertCompressedTrajectoriesToPoints(points, raw_traj, compressed);
     }
+}
+
 
 py::tuple compress(py::object rawTrajectoryArray, py::object refTrajectoryArray)
 {
