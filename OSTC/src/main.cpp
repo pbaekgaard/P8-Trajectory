@@ -6,6 +6,9 @@
 #ifdef Debug
 #include "example_trajectories.hpp"
 
+
+
+
 void run_example()
 {
     constexpr auto spatial_deviation_threshold = 0.9;
@@ -76,6 +79,12 @@ py::list corrections_to_dict(const std::vector<CompressedResultCorrection>& corr
 
     return result;
 }
+py::object concat_dfs(const std::vector<py::object>& dfs)
+{
+    py::module_ pd = py::module_::import("pandas");
+    py::object concat = pd.attr("concat");
+    return concat(dfs);
+}
 
 py::object compressed_trajectory_to_dataframe(const std::vector<CompressedResult>& compressed_points)
 {
@@ -115,15 +124,17 @@ py::object test_compression_to_pandas()
         convertCompressedTrajectoriesToPoints(points, raw_traj, compressed);
     }
 
-void compress(py::object rawTrajectoryArray, py::object refTrajectoryArray)
+py::tuple compress(py::object rawTrajectoryArray, py::object refTrajectoryArray)
 {
     std::vector<Trajectory> rawTrajs = ndarrayToTrajectories(rawTrajectoryArray);
     std::vector<Trajectory> refTrajs = ndarrayToTrajectories(refTrajectoryArray);
     std::vector<OSTCResult> compressedTrajectories{};
+        std::vector<py::object> trajectory_dfs{};
     constexpr auto spatial_deviation_threshold = 0.9;
     constexpr auto temporal_deviation_threshold = 0.5;
     auto distance_function = haversine_distance();
 
+    // TODO: return tuple of dfs. <df1, df2>. df1 is the alle the trajectories compressed. df2 is the merged df of the original df and the reference set df.
     for (auto t : rawTrajs) {
         std::cout << "compressing Trajectory " << t.id << std::endl;
         std::cout << "performing MRT search" << std::endl;
@@ -133,6 +144,7 @@ void compress(py::object rawTrajectoryArray, py::object refTrajectoryArray)
         OSTCResult compressed = t.OSTC(M, temporal_deviation_threshold, spatial_deviation_threshold);
         std::cout << "OSTC done" << std::endl;
         compressedTrajectories.push_back(compressed);
+        trajectory_dfs.push_back(compressed_trajectory_to_dataframe(compressed));
     }
     // try {
     //     std::vector<ReferenceTrajectory> T_prime = t.OSTC(M);
@@ -145,7 +157,9 @@ void compress(py::object rawTrajectoryArray, py::object refTrajectoryArray)
     //     std::cerr << "Error: " << e.what() << "\n";
     // }
 }
-    return compressed_trajectory_to_dataframe(points);
+    py::object df1 = concat_dfs(trajectory_dfs);
+    py::object df2 = df1;
+    return py::make_tuple(df1, df2);
 }
 
 // This function is to demonstrate how you could expose C++ logic to Python
