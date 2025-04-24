@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <iostream>
 #ifdef Debug
-#include "example_trajectories.hpp"
+
 
 
 
@@ -125,6 +125,44 @@ void test_compression_to_pandas()
     }
 }
 
+py::object find_uncompressed_trajectory(std::vector<Trajectory>& T_prime, uint32_t id)
+{
+    py::list ids, lats, lons, timestamps, corrections;
+    int counter = 0;
+
+    for (Trajectory& triple : T_prime)
+    {
+        if (triple.id == id)
+        {
+            triple.end_index = counter + (triple.end_index - triple.start_index);
+            triple.start_index = counter;
+
+            for (auto i = 0; i <= triple.end_index; i++)
+            {
+                ids.append(id);
+                lats.append(triple.points[i].latitude);
+                lons.append(triple.points[i].longitude);
+                timestamps.append(triple.points[i].timestamp);// nested list of dicts
+                corrections.append(py::none());
+                counter++;
+            }
+        }
+    }
+    py::dict data;
+    data["trajectory_id"] = ids;
+    data["latitude"] = lats;
+    data["longitude"] = lons;
+    data["timestamp"] = timestamps;
+    data["timestamp_corrected"] = corrections;
+
+    py::module_ pd = py::module_::import("pandas");
+    return pd.attr("DataFrame")(data);
+}
+
+
+
+
+
 
 py::tuple compress(py::object rawTrajectoryArray, py::object refTrajectoryArray)
 {
@@ -134,7 +172,7 @@ py::tuple compress(py::object rawTrajectoryArray, py::object refTrajectoryArray)
         std::vector<py::object> trajectory_dfs{};
     constexpr auto spatial_deviation_threshold = 0.9;
     constexpr auto temporal_deviation_threshold = 0.5;
-    auto distance_function = haversine_distance();
+    auto distance_function = haversine_distance;
 
     // TODO: return tuple of dfs. <compressed results, df2>. compressed results is the alle the trajectories compressed. can be df or vector of tuples. df2 is the merged df of the original df and the reference set df.
     for (auto t : rawTrajs) {
@@ -143,10 +181,13 @@ py::tuple compress(py::object rawTrajectoryArray, py::object refTrajectoryArray)
         const auto M = t.MRTSearch(refTrajs, spatial_deviation_threshold, distance_function);
         std::cout << "MRT search done" << std::endl;
         std::cout << "performing OSTC" << std::endl;
-        OSTCResult compressed = t.OSTC(M, temporal_deviation_threshold, spatial_deviation_threshold);
+        OSTCResult compressed = t.OSTC(M, temporal_deviation_threshold, spatial_deviation_threshold, distance_function);
         std::cout << "OSTC done" << std::endl;
-        compressedTrajectories.push_back(compressed);
-        trajectory_dfs.push_back(compressed_trajectory_to_dataframe(compressed));
+
+        py::object uncompressed_trajectory = find_uncompressed_trajectory(compressed.references, t.id);
+
+        // compressedTrajectories.push_back(compressed);
+        // trajectory_dfs.push_back(compressed_trajectory_to_dataframe(compressed));
     }
     // try {
     //     std::vector<ReferenceTrajectory> T_prime = t.OSTC(M);
@@ -162,6 +203,7 @@ py::tuple compress(py::object rawTrajectoryArray, py::object refTrajectoryArray)
     py::object df2 = df1;
     return py::make_tuple(df1, df2);
 }
+
 
 // This function is to demonstrate how you could expose C++ logic to Python
 
@@ -220,6 +262,7 @@ PYBIND11_MODULE(ostc, m)
 }
 
 #endif
+
 
 #ifdef Debug
 int main()
