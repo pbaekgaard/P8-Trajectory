@@ -155,8 +155,7 @@ py::tuple compress(py::object rawTrajectoryArray, py::object refTrajectoryArray)
     //     }
     // } catch (const std::exception& e) {
     //     std::cerr << "Error: " << e.what() << "\n";
-    // }
-}
+    //
     py::object df1 = concat_dfs(trajectory_dfs);
     py::object df2 = df1;
     return py::make_tuple(df1, df2);
