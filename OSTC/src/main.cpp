@@ -78,7 +78,6 @@ py::list corrections_to_dict(const std::vector<CompressedResultCorrection>& corr
 }
 
 py::object compressed_trajectory_to_dataframe(const std::vector<CompressedResult>& compressed_points)
-py::list compressedTrajectoryToNumpy(OSTCResult compressed)
 {
     py::list ids, lats, lons, timestamps, corrections;
 
@@ -91,11 +90,11 @@ py::list compressedTrajectoryToNumpy(OSTCResult compressed)
     }
 
     py::dict data;
-    data["id"] = ids;
+    data["trajectory_id"] = ids;
     data["latitude"] = lats;
     data["longitude"] = lons;
     data["timestamp"] = timestamps;
-    data["corrections"] = corrections;
+    data["timestamp_corrected"] = corrections;
 
     py::module_ pd = py::module_::import("pandas");
     return pd.attr("DataFrame")(data);
