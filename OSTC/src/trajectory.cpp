@@ -10,6 +10,7 @@
 #include <iostream>
 #include <map>
 #include <set>
+#include <unordered_set>
 #if _WIN32
 #include <cstdint>
 #endif
@@ -98,7 +99,9 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
                 for (int k = j + 1; k < refTraj.points.size(); k++) {
                     Trajectory subRefTraj = refTraj(j, k);
                     if (MaxDTW(subtraj, subRefTraj) <= epsilon) {
-                        M[subtraj].push_back(subRefTraj);
+                        subRefTraj.start_index = subRefTraj.start_index + refTraj.start_index;
+                        subRefTraj.end_index = subRefTraj.end_index + refTraj.start_index;
+                        M[subtraj].emplace_back(subRefTraj);
                     }
                 }
 
@@ -198,20 +201,29 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
         }
     }
 
+    for (auto& [query_traj, ref_trajs] : M) {
+        std::unordered_set<Trajectory> seen;
+        ref_trajs.erase(std::remove_if(ref_trajs.begin(), ref_trajs.end(),
+                       [&seen](Trajectory x){
+                           return !seen.insert(x).second;   // true  ⇒ duplicate
+                       }),
+        ref_trajs.end());
+    }
+
     return M;
 }
 
 OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajectory>> M, const double tepsilon,
                             const double sepsilon)
 {
-    // Ensure we only keep the first reference for each query
-    std::unordered_map<Trajectory, std::vector<Trajectory>> simplified_M;
-    for (auto& [query_traj, ref_trajs] : M) {
-        if (!ref_trajs.empty()) {
-            simplified_M[query_traj] = {ref_trajs[0]};
-        }
-    }
-    M = simplified_M;
+    // // Ensure we only keep the first reference for each query
+    // std::unordered_map<Trajectory, std::vector<Trajectory>> simplified_M;
+    // for (auto& [query_traj, ref_trajs] : M) {
+    //     if (!ref_trajs.empty()) {
+    //         simplified_M[query_traj] = {ref_trajs[0]};
+    //     }
+    // }
+    // M = simplified_M;
 
     std::unordered_map<Trajectory, int> time_correction_cost{};
     std::unordered_map<Trajectory, std::vector<TimeCorrectionRecordEntry>> time_correction_record{};
@@ -245,6 +257,7 @@ OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajector
             j++;
         }
     }
+
     std::vector<int> Ft(points.size() + 1, 0);   // +1 for F_T[0] = 0
     std::vector<int> pre(points.size() + 1, 0);  // -1 indicates no predecessor
     std::vector<Trajectory> T_prime;
@@ -278,6 +291,10 @@ OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajector
             auto it = M.find(sub_traj);
             if (it != M.end() && !it->second.empty()) {
                 T_prime.emplace_back(it->second[0]);
+            }
+            // Maybe no need?? Maybe need??
+            else {
+                T_prime.emplace_back(sub_traj);
             }
             i = pre[i];
         }
