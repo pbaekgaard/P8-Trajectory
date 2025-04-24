@@ -168,11 +168,13 @@ py::tuple compress(py::object rawTrajectoryArray, py::object refTrajectoryArray)
 {
     std::vector<Trajectory> rawTrajs = ndarrayToTrajectories(rawTrajectoryArray);
     std::vector<Trajectory> refTrajs = ndarrayToTrajectories(refTrajectoryArray);
+    std::vector<py::object> uncompressed_trajectories;
     std::vector<OSTCResult> compressedTrajectories{};
         std::vector<py::object> trajectory_dfs{};
     constexpr auto spatial_deviation_threshold = 0.9;
     constexpr auto temporal_deviation_threshold = 0.5;
     auto distance_function = haversine_distance;
+
 
     // TODO: return tuple of dfs. <compressed results, df2>. compressed results is the alle the trajectories compressed. can be df or vector of tuples. df2 is the merged df of the original df and the reference set df.
     for (auto t : rawTrajs) {
@@ -185,6 +187,7 @@ py::tuple compress(py::object rawTrajectoryArray, py::object refTrajectoryArray)
         std::cout << "OSTC done" << std::endl;
 
         py::object uncompressed_trajectory = find_uncompressed_trajectory(compressed.references, t.id);
+        uncompressed_trajectories.push_back(uncompressed_trajectory)
 
         // compressedTrajectories.push_back(compressed);
         // trajectory_dfs.push_back(compressed_trajectory_to_dataframe(compressed));
@@ -199,9 +202,10 @@ py::tuple compress(py::object rawTrajectoryArray, py::object refTrajectoryArray)
     // } catch (const std::exception& e) {
     //     std::cerr << "Error: " << e.what() << "\n";
     //
-    py::object df1 = concat_dfs(trajectory_dfs);
+    py::object df1 = concat_dfs(uncompressed_trajectories); // TODO: check uncompressed_trajectories er rigtige.
+                                                            // TODO: join/merge/concat uncompressed_trajectories med refTrajectoryArray, som er et ndarray. Burde kunne lade sig gøre, fordi uncompressed er en pd.df. kan laves til et ndarray i stedet for speed.
     py::object df2 = df1;
-    return py::make_tuple(df1, df2);
+    return py::make_tuple(df1, df2);                        // TODO: return en liste af compressed trajectories og så den mergede df
 }
 
 
