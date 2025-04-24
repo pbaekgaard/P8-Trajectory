@@ -231,6 +231,14 @@ OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajector
     std::unordered_map<Trajectory, std::vector<TimeCorrectionRecordEntry>> time_correction_record{};
     auto c = 4;
 
+    for (auto i = 0; i < points.size(); i++) {
+        auto subtraj = (*this)(i,i);
+        auto TT = M.find(subtraj);
+        if (TT == M.end()) {
+            M[subtraj].emplace_back(subtraj);
+        }
+    }
+
     for (auto& MRT : M) {
         auto ref = MRT.second[0];
         auto a = MRT.first.points;
@@ -277,12 +285,13 @@ OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajector
 
                 if (cost < min_cost) {
                     min_cost = cost;
-                    pre[i] = j - 1;
+                    pre[i] = j-1;
                 }
             }
         }
         Ft[i] = min_cost;
     }
+
 
     int i = points.size();
     while (i > 0) {
