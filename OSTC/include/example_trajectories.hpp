@@ -8,6 +8,8 @@ Trajectory t(0, std::vector<SamplePoint>{
                     SamplePoint(14, 2, 16),      SamplePoint(16, 2, 17),     SamplePoint(18.5, 2, 18),
                     SamplePoint(20.5, 2, 19),    SamplePoint(21.5, 2, 20)});
 
+Trajectory t_copy(10, t.points);
+
 Trajectory t1(1,
               std::vector<SamplePoint>{SamplePoint(2, 2.5, 6), SamplePoint(1.5, 3, 7), SamplePoint(1.5, 4, 8),
                                        SamplePoint(1.5, 5.5, 9), SamplePoint(1.5, 7, 10), SamplePoint(1.5, 8.5, 11),

@@ -1,4 +1,6 @@
-#include <gtest/gtest.h>
+#include <distance.hpp>
+
+#include "gtest/gtest.h"
 #include <trajectory.hpp>
 #include <vector>
 
@@ -94,6 +96,6 @@ TEST(Trajectories, mrtset_is_correct_format)
     auto M = T.MRTSearch(references, 0.9);
     auto expected_M1 = std::vector<Trajectory>{T2(1, 9)};
     auto expected_M2 = std::vector<Trajectory>{T4(6, 14), T5(7, 12)};
-    EXPECT_EQ(M[T(2, 9)], expected_M1);
+    EXPECT_EQ(M[T(2,9)], expected_M1);
     EXPECT_EQ(M[T(10, 15)], expected_M2);
 }
