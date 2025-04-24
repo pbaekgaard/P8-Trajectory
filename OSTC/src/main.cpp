@@ -134,7 +134,7 @@ py::tuple compress(py::object rawTrajectoryArray, py::object refTrajectoryArray)
     constexpr auto temporal_deviation_threshold = 0.5;
     auto distance_function = haversine_distance();
 
-    // TODO: return tuple of dfs. <df1, df2>. df1 is the alle the trajectories compressed. df2 is the merged df of the original df and the reference set df.
+    // TODO: return tuple of dfs. <compressed results, df2>. compressed results is the alle the trajectories compressed. can be df or vector of tuples. df2 is the merged df of the original df and the reference set df.
     for (auto t : rawTrajs) {
         std::cout << "compressing Trajectory " << t.id << std::endl;
         std::cout << "performing MRT search" << std::endl;
