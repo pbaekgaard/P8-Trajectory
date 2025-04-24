@@ -122,11 +122,12 @@ void compress(py::object rawTrajectoryArray, py::object refTrajectoryArray)
     std::vector<OSTCResult> compressedTrajectories{};
     constexpr auto spatial_deviation_threshold = 0.9;
     constexpr auto temporal_deviation_threshold = 0.5;
+    auto distance_function = haversine_distance();
 
     for (auto t : rawTrajs) {
         std::cout << "compressing Trajectory " << t.id << std::endl;
         std::cout << "performing MRT search" << std::endl;
-        const auto M = t.MRTSearch(refTrajs, spatial_deviation_threshold);
+        const auto M = t.MRTSearch(refTrajs, spatial_deviation_threshold, distance_function);
         std::cout << "MRT search done" << std::endl;
         std::cout << "performing OSTC" << std::endl;
         OSTCResult compressed = t.OSTC(M, temporal_deviation_threshold, spatial_deviation_threshold);
