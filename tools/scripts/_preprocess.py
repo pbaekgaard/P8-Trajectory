@@ -130,7 +130,7 @@ def main(only=None):
         'timestamporder',
         'convert_timestamp_to_unix',
         'take_10_trajectories',
-        'trajectory_length:100'
+        'trajectory_length:10'
         ]
 
     data = load_data()
