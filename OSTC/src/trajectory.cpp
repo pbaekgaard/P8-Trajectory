@@ -3,8 +3,9 @@
 #include <vector>
 #include "trajectory.hpp"
 #include <ranges>
-
 #include "distance.hpp"
+
+#include <functional>
 #include <unordered_map>
 #include <ranges>
 #include <iostream>
@@ -20,9 +21,7 @@ bool SamplePoint::operator==(const SamplePoint& other) const
     return longitude == other.longitude && latitude == other.latitude && timestamp == other.timestamp;
 }
 
-Trajectory::Trajectory(const uint32_t id, const std::vector<SamplePoint>& points):
-    id(id), points(points), start_index(0), end_index(points.size() - 1)
-{}
+Trajectory::Trajectory(const uint32_t id, const std::vector<SamplePoint>& points): id(id), points(points), start_index(0), end_index(points.size()-1) {}
 
 Trajectory::Trajectory(const uint32_t id, const std::vector<SamplePoint>& points, const int start_index,
                        const int end_index): id(id), points(points), start_index(start_index), end_index(end_index)
@@ -34,7 +33,9 @@ bool Trajectory::operator<(const Trajectory& other) const
         return start_index < other.start_index;
     }
     return id < other.id;
+
 }
+
 
 Trajectory Trajectory::operator()(const int start, const int end)
 {
@@ -88,9 +89,10 @@ ReferenceTrajectory::ReferenceTrajectory(const Trajectory& t):
 {}
 
 std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(std::vector<Trajectory>& RefSet,
-                                                                              const double epsilon)
+                                                                             const double epsilon,
+                                                                             std::function<double(SamplePoint const& a, SamplePoint const& b)> distance_function)
 {
-    std::unordered_map<Trajectory, std::vector<Trajectory>> M;
+     std::unordered_map<Trajectory, std::vector<Trajectory>> M;
     for (int i = 0; i < points.size() - 1; i++) {
         Trajectory subtraj = (*this)(i, i + 1);
 
@@ -98,7 +100,7 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
             for (int j = 0; j < refTraj.points.size() - 1; j++) {
                 for (int k = j + 1; k < refTraj.points.size(); k++) {
                     Trajectory subRefTraj = refTraj(j, k);
-                    if (MaxDTW(subtraj, subRefTraj) <= epsilon) {
+                    if (MaxDTW(subtraj, subRefTraj, distance_function) <= epsilon) {
                         subRefTraj.start_index = subRefTraj.start_index + refTraj.start_index;
                         subRefTraj.end_index = subRefTraj.end_index + refTraj.start_index;
                         M[subtraj].emplace_back(subRefTraj);
@@ -135,7 +137,7 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
             if (T_a_vec != M.end()) {
                 auto T_as = T_a_vec->second;
                 for (auto& a : T_as) {
-                    if (MaxDTW((*this)(i,j), a) <= epsilon) {
+                    if (MaxDTW((*this)(i,j), a, distance_function) <= epsilon) {
                         M[(*this)(i,j)].emplace_back(a);
                         found = true;
                     }
@@ -144,7 +146,7 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
             if (T_b_vec != M.end()) {
                 auto T_bs = T_b_vec->second;
                 for (auto& b : T_bs) {
-                    if (MaxDTW((*this)(i,j), b) <= epsilon) {
+                    if (MaxDTW((*this)(i,j), b, distance_function) <= epsilon) {
                         M[(*this)(i,j)].emplace_back(b);
                         found = true;
                     }
@@ -213,8 +215,7 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
     return M;
 }
 
-OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajectory>> M, const double tepsilon,
-                            const double sepsilon)
+OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajectory>> M, const double tepsilon, const double sepsilon, std::function<double(SamplePoint const& a, SamplePoint const& b)> distance_function)
 {
     // // Ensure we only keep the first reference for each query
     // std::unordered_map<Trajectory, std::vector<Trajectory>> simplified_M;
@@ -228,7 +229,6 @@ OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajector
     std::unordered_map<Trajectory, int> time_correction_cost{};
     std::unordered_map<Trajectory, std::vector<TimeCorrectionRecordEntry>> time_correction_record{};
     auto c = 4;
-    auto j = 1;
 
     for (auto& MRT : M) {
         auto ref = MRT.second[0];
@@ -242,10 +242,10 @@ OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajector
             auto a_i = a[i];
             auto b_i = b[i];
 
-            if (i + 1 < a.size() && euclideanDistance(b_i, a[i + 1]) < sepsilon)
-                a_i = a[i + 1];
+            if (i+1 < a.size() && distance_function(b_i, a[i+1]) < sepsilon)
+                a_i = a[i+1];
 
-            auto previousTimeStamp = i == 0 ? 0 : b[i - 1].timestamp;
+            auto previousTimeStamp = i == 0 ? 0 : b[i-1].timestamp;
             signed int leftside = abs(t + b_i.timestamp - previousTimeStamp - a_i.timestamp);
             if (leftside <= tepsilon) {
                 t = t + b_i.timestamp - previousTimeStamp;
@@ -254,11 +254,9 @@ OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajector
                 time_correction_cost[ref] += c;
                 time_correction_record[ref].emplace_back(i, t);
             }
-            j++;
         }
     }
-
-    std::vector<int> Ft(points.size() + 1, 0);   // +1 for F_T[0] = 0
+    std::vector<int> Ft(points.size() + 1, 0);      // +1 for F_T[0] = 0
     std::vector<int> pre(points.size() + 1, 0);  // -1 indicates no predecessor
     std::vector<Trajectory> T_prime;
 
@@ -302,4 +300,52 @@ OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajector
     std::reverse(T_prime.begin(), T_prime.end());
 
     return {T_prime, time_correction_record};
+}
+
+
+void convertCompressedTrajectoriesToPoints(std::vector<CompressedResult>& points, const Trajectory& trajectory_to_be_compressed, OSTCResult compressed)
+{
+    for (const auto& traj : compressed.references) {
+        auto correction = compressed.time_corrections.find(traj);
+
+        for (int i = 0; i < traj.points.size(); i++) {
+            auto point = traj.points[i];
+            auto corrections = std::vector<CompressedResultCorrection> {};
+
+            auto existing_point = std::ranges::find_if(points,
+               [&](const CompressedResult& p) {
+                   return p.id == traj.id &&
+                          p.latitude == point.latitude &&
+                          p.longitude == point.longitude &&
+                          p.timestamp == point.timestamp;
+               }
+            );
+
+            const auto does_point_exist = existing_point != points.end();
+
+            if (correction != compressed.time_corrections.end()) {
+                for (const auto& correction_entry : correction->second) {
+                    if (correction_entry.point_index == i) {
+                        corrections.emplace_back(
+                            trajectory_to_be_compressed.id,
+                            correction_entry.corrected_timestamp
+                        );
+                    }
+                }
+            }
+
+            if (does_point_exist) {
+                existing_point->corrections.insert(existing_point->corrections.end(), corrections.begin(), corrections.end());
+            }
+            else {
+                points.emplace_back(
+                    traj.id,
+                    point.latitude,
+                    point.longitude,
+                    point.timestamp,
+                    corrections
+                );
+            }
+        }
+    }
 }

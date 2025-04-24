@@ -26,12 +26,19 @@ TEST(MaxDTW, IsCorrectDistance)
     auto traj5 = Trajectory{3, std::vector<SamplePoint>{SamplePoint{6, 9, 5}}};
 
     // Test empty trajectories
-    EXPECT_EQ(0, MaxDTW(traj1, traj2));
+    EXPECT_EQ(0, MaxDTW(traj1, traj2, euclideanDistance));
 
     // Test one empty
-    EXPECT_EQ(std::numeric_limits<double>::infinity(), MaxDTW(traj1, traj3));
-    EXPECT_EQ(std::numeric_limits<double>::infinity(), MaxDTW(traj3, traj1));
-    EXPECT_GT(MaxDTW(traj3, traj5), MaxDTW(traj3, traj4));
-    EXPECT_EQ(std::sqrt(2), MaxDTW(traj3, traj4));
-    EXPECT_EQ(std::sqrt(74), MaxDTW(traj3, traj5));
+    EXPECT_EQ(std::numeric_limits<double>::infinity(), MaxDTW(traj1, traj3, euclideanDistance));
+    EXPECT_EQ(std::numeric_limits<double>::infinity(), MaxDTW(traj3, traj1, euclideanDistance));
+    EXPECT_GT(MaxDTW(traj3, traj5, euclideanDistance), MaxDTW(traj3, traj4, euclideanDistance));
+    EXPECT_EQ(std::sqrt(2), MaxDTW(traj3, traj4, euclideanDistance));
+    EXPECT_EQ(std::sqrt(74), MaxDTW(traj3, traj5, euclideanDistance));
+}
+
+TEST(haversine_distance, IsCorrectHaversineDistance) {
+    auto s1 = SamplePoint(39,116, 0);
+    auto s2 = SamplePoint(40,117, 0);
+
+    EXPECT_DOUBLE_EQ(haversine_distance(s1,s2), 140447.26786652033);
 }
