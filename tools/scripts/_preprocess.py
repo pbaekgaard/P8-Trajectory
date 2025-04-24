@@ -16,7 +16,7 @@ from _timestamporder import main as timestamporder
 from _remove_illegal_points import main as remove_illegal_points
 from _convert_timestamp_to_unix import main as timestamp_conversion
 from _ten_trajectories import main as ten_trajectories
-
+from _delimit_trajectory_length import main as delimit_trajectory_length
 
 def parse_only(value):
     """
@@ -73,6 +73,8 @@ def main(only=None):
     if only and isinstance(only, str) and ',' in only:
         only = [step.strip() for step in only.strip('{}').split(',')]
 
+
+
     # Convert to list if it's a single string
     if only and isinstance(only, str):
         only = [only]
@@ -85,7 +87,8 @@ def main(only=None):
             'limit_samplerate': 'Limiting to avg. Sample Rate',
             'remove_illegal':  'Remove illegal coordinates.',
             'convert_timestamp_to_unix': 'Convert timestamp to unix.',
-            'ten_trajectories': 'taking 10 trajectories'
+            'ten_trajectories': 'taking 10 trajectories',
+            'trajectory_length': 'trajectory length'
         }
 
         # Format each step
@@ -108,6 +111,9 @@ def main(only=None):
             formatted_output = f"{formatted_steps[0]} and {formatted_steps[1]} and {formatted_steps[2]} and {formatted_steps[3]} and {formatted_steps[4]}"
             print(f"Preprocessing only the following steps: {formatted_output}")
         elif len(formatted_steps) == 6:
+            formatted_output = f"{formatted_steps[0]} and {formatted_steps[1]} and {formatted_steps[2]} and {formatted_steps[3]} and {formatted_steps[4]} and {formatted_steps[5]}"
+            print(f"Preprocessing only the following steps: {formatted_output}")
+        elif len(formatted_steps) == 7:
             print("Preprocessing all steps.")
         # Insert selective preprocessing logic here.
     else:
@@ -123,7 +129,8 @@ def main(only=None):
         'limit_samplerate',
         'timestamporder',
         'convert_timestamp_to_unix',
-        'take_10_trajectories'
+        'take_10_trajectories',
+        'trajectory_length:10'
         ]
 
     data = load_data()
@@ -145,6 +152,10 @@ def main(only=None):
         elif step == "take_10_trajectories":
             print("TAKING ONLY THE FIRST 10 TRAJECTORIESSS!!!!...")
             data = ten_trajectories(data)
+        elif step.split(":")[0] == "trajectory_length:":
+            length = step.split(":")[1]
+            print(f"Delimiting all trajectories to length {length}")
+            data = delimit_trajectory_length(data, length)
 
 
     # ... your processing logic here ...
