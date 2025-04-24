@@ -152,8 +152,8 @@ def main(only=None):
         elif step == "take_10_trajectories":
             print("TAKING ONLY THE FIRST 10 TRAJECTORIESSS!!!!...")
             data = ten_trajectories(data)
-        elif step.split(":")[0] == "trajectory_length:":
-            length = step.split(":")[1]
+        elif step.split(":")[0] == "trajectory_length":
+            length = int(step.split(":")[1])
             print(f"Delimiting all trajectories to length {length}")
             data = delimit_trajectory_length(data, length)
 

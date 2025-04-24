@@ -1,6 +1,6 @@
 import pandas as pd
 def main(data, length):
-    data.groupby("trajectory_id").apply(
-        lambda x: x.iloc[:length]
-    ).reset_index(drop=True)
-    return data
+    trajectories = []
+    for _, group in data.groupby('trajectory_id'):
+        trajectories.append(group.head(length))
+    return pd.concat(trajectories, ignore_index=True)
