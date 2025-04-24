@@ -93,10 +93,9 @@ struct TrajectoryRemoval
 {
     const Trajectory query_trajectory;
     Trajectory trajectory_to_remove;
-    std::vector<Trajectory> ref_trajectories;
 
-    TrajectoryRemoval(const Trajectory query_traj, Trajectory trajectory_to_remove, std::vector<Trajectory> ref_trajectories):
-        query_trajectory(query_traj), trajectory_to_remove(trajectory_to_remove), ref_trajectories(ref_trajectories) {}
+    TrajectoryRemoval(const Trajectory query_traj, Trajectory trajectory_to_remove):
+        query_trajectory(query_traj), trajectory_to_remove(trajectory_to_remove) {}
 };
 
 template <>

@@ -164,7 +164,7 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
                     continue;
                 }
 
-                auto ref_iterator = M.find(query_traj.operator()(i, j));
+                auto ref_iterator = M.find((*this)(i, j));
                 if (ref_iterator != M.end()) {
                     auto& ref_trajectories = ref_iterator->second;
                     for (auto& ref_trajectory : ref_trajectories) {
@@ -174,7 +174,7 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
                         }) != ref_trajs.end();
 
                         if (is_sub_trajectory) {
-                            to_remove.push_back(TrajectoryRemoval{query_traj.operator()(i, j), ref_trajectory, ref_trajectories});
+                            to_remove.push_back(TrajectoryRemoval{(*this)(i, j), ref_trajectory});
                         }
                     }
 
@@ -186,23 +186,13 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
     for (auto& removal : to_remove) {
         // TODO: Change so that it uses M to lookup ref_trajectories instead.
         auto& ref_trajectory_to_remove = removal.trajectory_to_remove;
-        auto& ref_trajectories = removal.ref_trajectories;
+        auto iter = M.find(removal.query_trajectory);
+        if (iter == M.end()) {
+            continue;
+        }
 
-        auto is_sub_trajectory = std::ranges::find_if(to_remove,
-                                   [&](const TrajectoryRemoval& ref_traj) {
-                                   return ref_traj.query_trajectory.id == 0 && ref_traj.query_trajectory.start_index == 3 && ref_traj.query_trajectory.end_index == 4;
-                               }) != to_remove.end();
-
-        auto elo = M.find(removal.query_trajectory);
-        auto elo2 = elo->first;
-        auto elo3 = elo->second;
-
-
-        ref_trajectories.erase(std::remove_if(ref_trajectories.begin(), ref_trajectories.end(), [&](const Trajectory& traj){ return ref_trajectory_to_remove == traj; }), ref_trajectories.end());
-
-        auto elo4 = M.find(removal.query_trajectory);
-        auto elo5 = elo4->first;
-        auto elo6 = elo4->second;
+        auto& ref_trajectories = iter->second;
+        std::erase_if(ref_trajectories, [&](const Trajectory& ref_traj) { return ref_traj == ref_trajectory_to_remove; });
 
         if (ref_trajectories.size() == 0) {
             M.erase(removal.query_trajectory);
