@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <iostream>
 #ifdef Debug
-
+#include "example_trajectories.hpp"
 
 
 
