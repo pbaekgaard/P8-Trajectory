@@ -192,19 +192,8 @@ py::tuple compress(py::object rawTrajectoryArray, py::object refTrajectoryArray)
 
         py::object uncompressed_trajectory = find_uncompressed_trajectory(compressed.references, t.id);
         uncompressed_trajectories_dfs.push_back(uncompressed_trajectory);
-        // compressedTrajectories.push_back(compressed);
-        // trajectory_dfs.push_back(compressed_trajectory_to_dataframe(compressed));
-    }
-    // try {
-    //     std::vector<ReferenceTrajectory> T_prime = t.OSTC(M);
-    //     std::cout << "Compressed trajectory T':\n";
-    //     for (const auto& mrt : T_prime) {
-    //         std::cout << "MRT: (id=" << mrt.id << ", start=" << mrt.start_index << ", end=" << mrt.end_index <<
-    //         ")\n";
-    //     }
-    // } catch (const std::exception& e) {
-    //     std::cerr << "Error: " << e.what() << "\n";
-    //
+        all_references.push_back(compressed.references);
+
     py::object uncompressed_trajectories_df = concat_dfs(uncompressed_trajectories_dfs); // TODO: check uncompressed_trajectories er rigtige.
                                                             // TODO: join/merge/concat uncompressed_trajectories med refTrajectoryArray, som er et ndarray. Burde kunne lade sig gøre, fordi uncompressed er en pd.df. kan laves til et ndarray i stedet for speed.
 
