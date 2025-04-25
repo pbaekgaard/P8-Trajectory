@@ -125,7 +125,7 @@ void test_compression_to_pandas()
     }
 }
 
-py::object find_uncompressed_trajectory(std::vector<Trajectory>& T_prime, uint32_t id)
+py::object find_uncompressed_trajectory(std::vector<Trajectory>& T_prime, uint32_t id, std::vector<std::vector<int>>& used_reference_set_points)
 {
     py::list ids, lats, lons, timestamps, corrections;
     int counter = 0;
@@ -146,6 +146,10 @@ py::object find_uncompressed_trajectory(std::vector<Trajectory>& T_prime, uint32
                 corrections.append(py::none());
                 counter++;
             }
+        }
+        else
+        {
+
         }
     }
     py::dict data;
@@ -168,7 +172,7 @@ py::tuple compress(py::object rawTrajectoryArray, py::object refTrajectoryArray)
 {
     std::vector<Trajectory> rawTrajs = ndarrayToTrajectories(rawTrajectoryArray);
     std::vector<Trajectory> refTrajs = ndarrayToTrajectories(refTrajectoryArray);
-    std::vector<py::object> uncompressed_trajectories;
+    std::vector<py::object> uncompressed_trajectories_dfs;
     std::vector<OSTCResult> compressedTrajectories{};
         std::vector<py::object> trajectory_dfs{};
     constexpr auto spatial_deviation_threshold = 0.9;
@@ -187,7 +191,7 @@ py::tuple compress(py::object rawTrajectoryArray, py::object refTrajectoryArray)
         std::cout << "OSTC done" << std::endl;
 
         py::object uncompressed_trajectory = find_uncompressed_trajectory(compressed.references, t.id);
-        uncompressed_trajectories.push_back(uncompressed_trajectory);
+        uncompressed_trajectories_dfs.push_back(uncompressed_trajectory);
         // compressedTrajectories.push_back(compressed);
         // trajectory_dfs.push_back(compressed_trajectory_to_dataframe(compressed));
     }
@@ -201,10 +205,16 @@ py::tuple compress(py::object rawTrajectoryArray, py::object refTrajectoryArray)
     // } catch (const std::exception& e) {
     //     std::cerr << "Error: " << e.what() << "\n";
     //
-    py::object df1 = concat_dfs(uncompressed_trajectories); // TODO: check uncompressed_trajectories er rigtige.
+    py::object uncompressed_trajectories_df = concat_dfs(uncompressed_trajectories_dfs); // TODO: check uncompressed_trajectories er rigtige.
                                                             // TODO: join/merge/concat uncompressed_trajectories med refTrajectoryArray, som er et ndarray. Burde kunne lade sig gøre, fordi uncompressed er en pd.df. kan laves til et ndarray i stedet for speed.
-    py::object df2 = df1;
-    return py::make_tuple(df1, df2);                        // TODO: return en liste af compressed trajectories og så den mergede df
+
+
+    ref_set_df = find_ref_set_df
+
+    py::object merged_df = merge_uncompressed_and_ref_set(uncompressed_trajectories_df, ref_set_df);
+
+
+    return py::make_tuple(uncompressed_trajectories_df, uncompressed_trajectories_df);                        // TODO: return en liste af compressed trajectories og så den mergede df
 }
 
 
