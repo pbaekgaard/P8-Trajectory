@@ -1,8 +1,14 @@
+import os
 import random
+import sys
 from typing import List, Optional
 
 import matplotlib.pyplot as plt
 from matplotlib import rc, ticker
+
+sys.path.append(os.path.dirname(os.path.abspath(__file__+"/../../")))
+
+from ML.Evaluation._file_access_helper_functions import load_data_from_file
 
 
 def visualize(evaluation_results: dict, only: List[str] = []) -> None:
@@ -76,5 +82,24 @@ def visualize(evaluation_results: dict, only: List[str] = []) -> None:
 
 
 
+
 if __name__ == "__main__":
-    visualize({})
+    org_query_res : dict = load_data_from_file({
+        "filename": "original_query_results",
+        "version": 3
+    })
+
+    compressed_query_res : dict = load_data_from_file({
+        "filename": "compressed_query_results",
+        "version": 3
+    })
+    evaluation_results : dict = load_data_from_file({
+        "filename": "evaluation_results",
+        "version": 3
+    })
+    evaluation_results['query_original_dataset_time'] = org_query_res['times']['querying_time']
+    evaluation_results['query_compressed_dataset_time'] = compressed_query_res['times']['querying_time']
+    evaluation_results['compression_time'] = compressed_query_res['times']['ml_time'] + compressed_query_res['times']['compression_time']
+ 
+
+    visualize(evaluation_results)

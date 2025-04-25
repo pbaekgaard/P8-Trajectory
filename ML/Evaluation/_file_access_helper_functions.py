@@ -1,7 +1,8 @@
-import pickle
-import os
 import csv
+import os
+import pickle
 from enum import Enum
+
 
 class ClusteringMethod(Enum):
     KMEDOIDS = 1
