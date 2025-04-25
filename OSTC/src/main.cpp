@@ -187,8 +187,7 @@ py::tuple compress(py::object rawTrajectoryArray, py::object refTrajectoryArray)
         std::cout << "OSTC done" << std::endl;
 
         py::object uncompressed_trajectory = find_uncompressed_trajectory(compressed.references, t.id);
-        uncompressed_trajectories.push_back(uncompressed_trajectory)
-
+        uncompressed_trajectories.push_back(uncompressed_trajectory);
         // compressedTrajectories.push_back(compressed);
         // trajectory_dfs.push_back(compressed_trajectory_to_dataframe(compressed));
     }
