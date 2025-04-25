@@ -125,7 +125,7 @@ void test_compression_to_pandas()
     }
 }
 
-py::object find_uncompressed_trajectory(std::vector<Trajectory>& T_prime, uint32_t id, std::vector<std::vector<int>>& used_reference_set_points)
+py::object find_uncompressed_trajectory(std::vector<Trajectory>& T_prime, uint32_t id, std::unordered_map<int, std::unordered_map<int, std::vector<int>>>& used_points_from_ref_set)
 {
     py::list ids, lats, lons, timestamps, corrections;
     int counter = 0;
@@ -149,7 +149,23 @@ py::object find_uncompressed_trajectory(std::vector<Trajectory>& T_prime, uint32
         }
         else
         {
-
+            auto found_trajectory_id = used_points_from_ref_set.find(triple.id);
+            if (found_trajectory_id != used_points_from_ref_set.end())
+            {
+                for (auto i = 0; i <= triple.end_index; i++)
+                {
+                    //find out if point exists in this traj and add entire point or just time_correction
+                }
+            }
+            else
+            {
+                std::unordered_map<int, std::vector<int>> new_traj;
+                for (auto i = 0; i <= triple.end_index; i++)
+                {
+                    new_traj[i].push_back(triple.points[i].timecorrections);
+                }
+                used_points_from_ref_set[triple.id]= new_traj;
+            }
         }
     }
     py::dict data;
@@ -174,7 +190,9 @@ py::tuple compress(py::object rawTrajectoryArray, py::object refTrajectoryArray)
     std::vector<Trajectory> refTrajs = ndarrayToTrajectories(refTrajectoryArray);
     std::vector<py::object> uncompressed_trajectories_dfs;
     std::vector<OSTCResult> compressedTrajectories{};
-        std::vector<py::object> trajectory_dfs{};
+    std::vector<py::object> trajectory_dfs{};
+    std::unordered_map<int, std::unordered_map<int, std::vector<int>>> used_points_from_ref_set{};
+    std::vector<std::vector<Trajectory>> all_references;
     constexpr auto spatial_deviation_threshold = 0.9;
     constexpr auto temporal_deviation_threshold = 0.5;
     auto distance_function = haversine_distance;
@@ -190,7 +208,7 @@ py::tuple compress(py::object rawTrajectoryArray, py::object refTrajectoryArray)
         OSTCResult compressed = t.OSTC(M, temporal_deviation_threshold, spatial_deviation_threshold, distance_function);
         std::cout << "OSTC done" << std::endl;
 
-        py::object uncompressed_trajectory = find_uncompressed_trajectory(compressed.references, t.id);
+        py::object uncompressed_trajectory = find_uncompressed_trajectory(compressed.references, t.id, used_points_from_ref_set);
         uncompressed_trajectories_dfs.push_back(uncompressed_trajectory);
         all_references.push_back(compressed.references);
 
@@ -198,7 +216,8 @@ py::tuple compress(py::object rawTrajectoryArray, py::object refTrajectoryArray)
                                                             // TODO: join/merge/concat uncompressed_trajectories med refTrajectoryArray, som er et ndarray. Burde kunne lade sig gøre, fordi uncompressed er en pd.df. kan laves til et ndarray i stedet for speed.
 
 
-    ref_set_df = find_ref_set_df
+    ref_set_df = build_ref_set_df(used_points_from_ref_set);
+    list_of_triples = build_list_of_triples(all_references, refTrajs);
 
     py::object merged_df = merge_uncompressed_and_ref_set(uncompressed_trajectories_df, ref_set_df);
 
