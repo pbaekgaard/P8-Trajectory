@@ -1,19 +1,25 @@
-import os
 import argparse
-import pandas as pd
+import os
 import sys
 import time
+from typing import List
+
+import pandas as pd
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__ + "/../../")))
 
-from tools.scripts._preprocess import main as _load_data
-from tools.scripts._load_data import count_trajectories
-from ML.Evaluation.query_creation import create_queries
-from ML.Evaluation._file_access_helper_functions import load_data_from_file, save_to_file, find_newest_version, get_best_params
-from ML.Evaluation.querying import query_original_dataset, query_compressed_dataset
-from ML.Evaluation.query_accuracy import query_accuracy_evaluation
-from ML.reference_set_construction import generate_reference_set
+from ML.Evaluation._file_access_helper_functions import (find_newest_version,
+                                                         get_best_params,
+                                                         load_data_from_file,
+                                                         save_to_file)
 from ML.Evaluation.compression_ratio import compression_ratio
+from ML.Evaluation.query_accuracy import query_accuracy_evaluation
+from ML.Evaluation.query_creation import create_queries
+from ML.Evaluation.querying import (query_compressed_dataset,
+                                    query_original_dataset)
+from ML.reference_set_construction import generate_reference_set
+from tools.scripts._load_data import count_trajectories
+from tools.scripts._preprocess import main as _load_data
 
 data = [
             # Beijing Trajectories
@@ -199,11 +205,14 @@ if __name__ == '__main__':
         dataset = dataset if dataset else _load_data()
 
         accuracy, individual_accuracy_results = query_accuracy_evaluation(original_results, compressed_results, count_trajectories())
-        compression_ratio = compression_ratio(dataset) # COMPRESSION
+        accuracy : float
+        individual_accuracy_results : List[float]
 
-        print(f"evaluation done. accuracy: {accuracy}, compression ratio: {compression_ratio}. Saving...")
+        comp_ratio : float = compression_ratio(dataset) # COMPRESSION
 
-        evaluation_results = {"accuracy": accuracy, "compression_ratio": compression_ratio, "accuracy_individual_results": individual_accuracy_results}
+        print(f"evaluation done. accuracy: {accuracy}, compression ratio: {comp_ratio}. Saving...")
+
+        evaluation_results = {"accuracy": accuracy, "compression_ratio": comp_ratio, "accuracy_individual_results": individual_accuracy_results}
         save_to_file({
             "filename": "evaluation",
             "version": version_number

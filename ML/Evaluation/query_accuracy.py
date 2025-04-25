@@ -2,39 +2,39 @@ from datetime import timedelta
 
 import pandas as pd
 from sklearn.metrics import r2_score
-from datetime import timedelta
 
-from ML.Evaluation.Queries._helper_functions_and_classes import similarity_score_distance, similarity_score_time
+from ML.Evaluation.Queries._helper_functions_and_classes import (
+    similarity_score_distance, similarity_score_time)
 
 
 def query_accuracy_evaluation(y_true, y_pred, original_df):
     accuracy_results = []
     # WHERE
-    accuracy_results.append(where_query_accuracy_evaluation(y_true[0], y_pred[0], original_df))
+    accuracy_results.append(("Where", where_query_accuracy_evaluation(y_true[0], y_pred[0], original_df)))
     # print("where accuracy done")
 
     # DISTANCE
-    accuracy_results.append(distance_query_accuracy_evaluation(y_true[1], y_pred[1]))
+    accuracy_results.append(("Distance",distance_query_accuracy_evaluation(y_true[1], y_pred[1])))
     # print("distance accuracy done")
 
     # WHEN
-    accuracy_results.append(when_query_accuracy_evaluation(y_true[2], y_pred[2], original_df))
+    accuracy_results.append(("When",when_query_accuracy_evaluation(y_true[2], y_pred[2], original_df)))
     # print("when accuracy done")
 
     # HOW LONG
-    accuracy_results.append(how_long_query_accuracy_evaluation(y_true[3], y_pred[3], original_df))
+    accuracy_results.append(("How Long",how_long_query_accuracy_evaluation(y_true[3], y_pred[3], original_df)))
     # print("how_long accuracy done")
 
     # COUNT
-    accuracy_results.append(count_query_accuracy_evaluation(y_true[4], y_pred[4]))
+    accuracy_results.append(("Count",count_query_accuracy_evaluation(y_true[4], y_pred[4])))
     # print("count accuracy done")
 
     # KNN
-    accuracy_results.append(knn_query_accuracy_evaluation(y_true[5], y_pred[5], len(original_df.groupby(["trajectory_id"]))))
+    accuracy_results.append(("KNN",knn_query_accuracy_evaluation(y_true[5], y_pred[5], len(original_df.groupby(["trajectory_id"])))))
     # print("knn accuracy done")
 
     # WINDOW
-    accuracy_results.append(window_query_accuracy_evaluation(y_true[6], y_pred[6], len(original_df.groupby(["trajectory_id"]))))
+    accuracy_results.append(("Window",window_query_accuracy_evaluation(y_true[6], y_pred[6], len(original_df.groupby(["trajectory_id"])))))
     # print("window accuracy done")
 
     # TODO: Return all results so we can visualize the individual query type

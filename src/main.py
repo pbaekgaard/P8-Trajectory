@@ -8,6 +8,8 @@ import ostc
 import pandas as pd
 from pandas.io import parquet
 
+from components import visualize
+
 # Get the current frame
 frame = inspect.currentframe()
 CACHE_DIR = os.path.join(os.path.dirname(__file__), "../__CACHE/")
