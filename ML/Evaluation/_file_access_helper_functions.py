@@ -63,7 +63,7 @@ def get_best_params():
     # Extract and return the desired parameters
     return (
         ClusteringMethod[best_row["clustering_method"]],
-        best_row["clustering_param"],
+        int(best_row["clustering_param"]),
         int(best_row["batch_size"]),
         int(best_row["d_model"]),
         int(best_row["num_heads"]),

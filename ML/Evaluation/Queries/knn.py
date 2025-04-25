@@ -7,8 +7,7 @@ transformer = Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
 
 
 def knn_query_processing(knn_query, df):
-    df["timestamp"] = pd.to_datetime(df["timestamp"])
-    t1, t2 = pd.to_datetime(knn_query["time_first"]), pd.to_datetime(knn_query["time_last"])
+    t1, t2 = knn_query["time_first"], knn_query["time_last"]
 
     heap = MaxHeap(knn_query["k"])
     query_point = {"longitude": knn_query["longitude"], "latitude": knn_query["latitude"]}
