@@ -1,21 +1,23 @@
-import torch
-import pandas as pd
-import numpy as np
-from typing import List
-from sklearn_extra.cluster import KMedoids
-from sklearn.cluster import AgglomerativeClustering
-from scipy.spatial.distance import cdist
-import matplotlib.pyplot as plt
-from sklearn.decomposition import PCA
 import os
 import sys
-sys.path.append(os.path.dirname(os.path.abspath(__file__ + "/../")))
-import tools.scripts._load_data as _load_data
-import faulthandler
-from enum import Enum
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import List
 
-from ML.TrajectoryTransformer import TrajectoryTransformer
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import torch
+from scipy.spatial.distance import cdist
+from sklearn.cluster import AgglomerativeClustering
+from sklearn.decomposition import PCA
+from sklearn_extra.cluster import KMedoids
+
+sys.path.append(os.path.dirname(os.path.abspath(__file__ + "/../../../")))
+import faulthandler
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from enum import Enum
+
+import tools.scripts._load_data as _load_data
+from components.ML.TrajectoryTransformer import TrajectoryTransformer
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("device: ", device)

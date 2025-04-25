@@ -1,6 +1,5 @@
 import pandas as pd
-
-from ML.Evaluation.Queries.when import when_query_processing
+from Queries.when import when_query_processing
 
 
 def how_long_query_processing(how_long_query, group_by_df):

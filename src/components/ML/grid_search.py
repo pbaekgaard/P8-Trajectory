@@ -1,18 +1,18 @@
-import yaml
 import csv
-from sklearn.model_selection import ParameterGrid
-from enum import Enum
 import faulthandler
 import os
+from enum import Enum
+
 import pandas as pd
+import yaml
+from sklearn.model_selection import ParameterGrid
 
-from ML.reference_set_construction import generate_reference_set
 import tools.scripts._load_data as _load_data
-from ML.Evaluation.query_accuracy import query_accuracy_evaluation
-from ML.Evaluation._file_access_helper_functions import load_data_from_file
-from ML.Evaluation.querying import query_compressed_dataset
-from ML.Evaluation.main import mock_compressed_data
-
+from components.ML.reference_set_construction import generate_reference_set
+from Evaluation._file_access_helper_functions import load_data_from_file
+from Evaluation.main import mock_compressed_data
+from Evaluation.query_accuracy import query_accuracy_evaluation
+from Evaluation.querying import query_compressed_dataset
 
 faulthandler.enable()
 

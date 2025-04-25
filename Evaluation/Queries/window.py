@@ -1,7 +1,7 @@
 import pandas as pd
-from shapely.geometry import Point, LineString
-
-from ML.Evaluation.Queries._helper_functions_and_classes import get_adjusted_trajectory_segment
+from Queries._helper_functions_and_classes import \
+    get_adjusted_trajectory_segment
+from shapely.geometry import LineString, Point
 
 
 def window_query_processing(window_query, df):

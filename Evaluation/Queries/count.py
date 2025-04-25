@@ -1,6 +1,6 @@
-from haversine import haversine, Unit
+from haversine import Unit, haversine
+from Queries._helper_functions_and_classes import get_bounding_box
 
-from ML.Evaluation.Queries._helper_functions_and_classes import get_bounding_box
 
 def count_query_processing(count_query, group_by_df):
     count = 0

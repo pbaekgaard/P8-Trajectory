@@ -11,8 +11,8 @@ from pandas.io import parquet
 from components import visualize
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__+"/..")))
-from ML.Evaluation._file_access_helper_functions import get_best_params
-from ML.reference_set_construction import generate_reference_set
+from components.ML.reference_set_construction import generate_reference_set
+from Evaluation._file_access_helper_functions import get_best_params
 from tools.scripts._preprocess import main as preprocess
 
 # Get the current frame

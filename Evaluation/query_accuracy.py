@@ -1,9 +1,8 @@
 
 import pandas as pd
+from Queries._helper_functions_and_classes import (similarity_score_distance,
+                                                   similarity_score_time)
 from sklearn.metrics import r2_score
-
-from ML.Evaluation.Queries._helper_functions_and_classes import (
-    similarity_score_distance, similarity_score_time)
 
 
 def query_accuracy_evaluation(y_true, y_pred, original_df):

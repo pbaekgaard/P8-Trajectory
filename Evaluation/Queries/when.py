@@ -1,10 +1,10 @@
-from haversine import haversine, Unit
 import pandas as pd
-from shapely.geometry import Point, LineString
+from haversine import Unit, haversine
 from pyproj import Transformer
-
-from ML.Evaluation.Queries._helper_functions_and_classes import calculate_distance, closest_endpoints_on_trajectory_if_within_threshold, trajectory_df_to_linestring
-
+from Queries._helper_functions_and_classes import (
+    calculate_distance, closest_endpoints_on_trajectory_if_within_threshold,
+    trajectory_df_to_linestring)
+from shapely.geometry import LineString, Point
 
 transformer = Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
 

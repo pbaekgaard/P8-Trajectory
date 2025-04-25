@@ -1,7 +1,7 @@
 import pandas as pd
+from Queries._helper_functions_and_classes import calculate_distance
+from Queries.where import where_query_processing
 
-from ML.Evaluation.Queries.where import where_query_processing
-from ML.Evaluation.Queries._helper_functions_and_classes import calculate_distance
 
 def distance_query_processing(distance_query, group_by_df):
     first_positions = where_query_processing(distance_query["time_first"], group_by_df)

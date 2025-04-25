@@ -8,7 +8,7 @@ from matplotlib import rc, ticker
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__+"/../../")))
 
-from ML.Evaluation._file_access_helper_functions import load_data_from_file
+from Evaluation._file_access_helper_functions import load_data_from_file
 
 
 def visualize(evaluation_results: dict, only: List[str] = []) -> None:

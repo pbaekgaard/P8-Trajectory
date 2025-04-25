@@ -6,20 +6,18 @@ from typing import List
 
 import pandas as pd
 
-sys.path.append(os.path.dirname(os.path.abspath(__file__ + "/../../")))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../src/components")))
 
 import ostc
-
-from ML.Evaluation._file_access_helper_functions import (find_newest_version,
-                                                         get_best_params,
-                                                         load_data_from_file,
-                                                         save_to_file)
-from ML.Evaluation.compression_ratio import compression_ratio
-from ML.Evaluation.query_accuracy import query_accuracy_evaluation
-from ML.Evaluation.query_creation import create_queries
-from ML.Evaluation.querying import (query_compressed_dataset,
-                                    query_original_dataset)
+from _file_access_helper_functions import (find_newest_version,
+                                           get_best_params,
+                                           load_data_from_file, save_to_file)
+from compression_ratio import compression_ratio
 from ML.reference_set_construction import generate_reference_set
+from query_accuracy import query_accuracy_evaluation
+from query_creation import create_queries
+from querying import query_compressed_dataset, query_original_dataset
+
 from tools.scripts._convert_timestamp_to_unix import \
     main as _timestamp_conversion
 from tools.scripts._load_data import count_trajectories

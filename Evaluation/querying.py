@@ -1,13 +1,13 @@
 import pandas as pd
+from _file_access_helper_functions import save_to_file
+from Queries.count import count_query_processing
+from Queries.distance import distance_query_processing
+from Queries.how_long import how_long_query_processing
+from Queries.knn import knn_query_processing
+from Queries.when import when_query_processing
+from Queries.where import where_query_processing
+from Queries.window import window_query_processing
 
-from ML.Evaluation.Queries.where import where_query_processing
-from ML.Evaluation.Queries.distance import distance_query_processing
-from ML.Evaluation.Queries.when import when_query_processing
-from ML.Evaluation.Queries.how_long import how_long_query_processing
-from ML.Evaluation.Queries.count import count_query_processing
-from ML.Evaluation.Queries.knn import knn_query_processing
-from ML.Evaluation.Queries.window import window_query_processing
-from ML.Evaluation._file_access_helper_functions import save_to_file
 
 def query_original_dataset(dataset, queries):
     #TODO: MAYBE: maybe make universal query_dataset_function with query_functions as argument
