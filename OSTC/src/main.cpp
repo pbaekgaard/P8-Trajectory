@@ -265,6 +265,7 @@ py::object build_ref_set_df(std::unordered_map<int, std::vector<Trajectory>> &al
         }
         else {
             throw std::invalid_argument("Cannot find reference trajectories for " + std::to_string(traj_id));
+            //TODO: Somehow it enters here at t6, fix
         }
     }
 
@@ -286,14 +287,16 @@ void build_list_of_triples(uint32_t id, std::vector<Trajectory> references, py::
     }
     triples_dict[py::int_(id)] = triple_list;
 }
-py::object merge_uncompressed_and_ref_set(py::object uncompressed_trajectories_df, py::object ref_set_df)
+py::object merge_uncompressed_and_ref_set(py::object uncompressed_trajectories_df, py::object ref_set_df) //TODO: maybe needed later, if so it needs to be changed as well
 {
-
+    py::module_ pd = py::module_::import("pandas");
+    py::object concat = pd.attr("concat");
+    return concat(uncompressed_trajectories_df, ref_set_df);
 }
 py::tuple compress(py::object rawTrajectoryArray, py::object refTrajectoryArray)
 {
 
-    //TODO: Delete when work :)
+    //TODO: Delete when work/done testing:)
     const auto M = std::unordered_map<Trajectory, std::vector<Trajectory>>{
                     {t(0, 0), {t(0, 0)}}, {t(1, 8), {t2(0, 7)}}, {t(9, 14), {t5(6, 11)}},
                     {t(15, 16), {t6(12, 13)}}, {t(17, 19), {t7(7, 9)}},
@@ -315,7 +318,6 @@ py::tuple compress(py::object rawTrajectoryArray, py::object refTrajectoryArray)
     // auto distance_function = haversine_distance; //TODO: uncomment this shit when done testing
     auto distance_function = euclideanDistance;
 
-    // TODO: return tuple of dfs. <compressed results, df2>. compressed results is the alle the trajectories compressed. can be df or vector of tuples. df2 is the merged df of the original df and the reference set df.
     for (auto t : rawTrajs) {
         std::cout << "compressing Trajectory " << t.id << std::endl;
         std::cout << "performing MRT search" << std::endl;
@@ -331,17 +333,18 @@ py::tuple compress(py::object rawTrajectoryArray, py::object refTrajectoryArray)
         build_list_of_triples(t.id, compressed.references, triples_dict);
 
     }
-    py::object uncompressed_trajectories_df = concat_dfs(uncompressed_trajectories_dfs); // TODO: check uncompressed_trajectories er rigtige.
+    py::object uncompressed_trajectories_df = concat_dfs(uncompressed_trajectories_dfs);
                                                             // TODO: join/merge/concat uncompressed_trajectories med refTrajectoryArray, som er et ndarray. Burde kunne lade sig gøre, fordi uncompressed er en pd.df. kan laves til et ndarray i stedet for speed.
 
 
 
     auto ref_set_df = build_ref_set_df(all_references, used_points_from_ref_set);
+    std::vector<py::object> merged_dfs = {uncompressed_trajectories_df, ref_set_df};
+    py::object merged_df = concat_dfs(merged_dfs);
+    // Update: My query fellas, say concat is good, so we use that
+    // If not, we need to change  merge_uncompressed_and_ref_set, and use that one instead.
 
-    py::object merged_df = merge_uncompressed_and_ref_set(uncompressed_trajectories_df, ref_set_df); // TODO: merge those bitches, somehow
-
-
-    return py::make_tuple(triples_dict, ref_set_df);   // TODO: return en liste af compressed trajectories og så den mergede df
+    return py::make_tuple(triples_dict, merged_df);
 }
 
 
