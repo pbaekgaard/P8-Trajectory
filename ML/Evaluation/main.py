@@ -19,26 +19,26 @@ from ML.Evaluation.compression_ratio import compression_ratio
 
 data = [
             # Beijing Trajectories
-            [0, "2008-02-02 15:36:08", 116.51172, 39.92123],  # Trajectory 1
-            [0, "2008-02-02 15:40:10", 116.51222, 39.92173],
-            [0, "2008-02-02 16:00:00", 116.51372, 39.92323],
+            [0, 0, 116.51172, 39.92123],  # Trajectory 1
+            [0, 1, 116.51222, 39.92173],
+            [0, 2, 116.51372, 39.92323],
 
-            [1, "2008-02-02 14:00:00", 116.50000, 39.90000],  # Trajectory 2
-            [1, "2008-02-02 14:15:00", 116.51000, 39.91000],
+            [1, 30, 116.50000, 39.90000],  # Trajectory 2
+            [1, 45, 116.51000, 39.91000],
 
-            [2, "2008-02-02 16:10:00", 116.55000, 39.95000],  # Trajectory 3
-            [2, "2008-02-02 16:12:00", 116.55200, 39.95200],
+            [2, 50, 116.55000, 39.95000],  # Trajectory 3
+            [2, 60, 116.55200, 39.95200],
 
-            [3, "2008-02-02 13:30:00", 116.50050, 39.91050],  # Trajectory 4
-            [3, "2008-02-02 13:45:00", 116.52050, 39.93050],
-            [3, "2008-02-02 14:00:00", 116.54050, 39.95050],
+            [3, 70, 116.50050, 39.91050],  # Trajectory 4
+            [3, 75, 116.52050, 39.93050],
+            [3, 80, 116.54050, 39.95050],
 
-            [4, "2008-02-02 17:10:00", 116.57000, 39.97000],  # Trajectory 5
-            [4, "2008-02-02 17:15:00", 116.58000, 39.98000],
+            [4, 90, 116.57000, 39.97000],  # Trajectory 5
+            [4, 95, 116.58000, 39.98000],
 
-            [5, "2008-02-02 18:00:00", 116.59000, 39.99000],  # Trajectory 6
-            [5, "2008-02-02 18:05:00", 116.60000, 39.99200],
-            [5, "2008-02-02 18:10:00", 116.61000, 39.99300]
+            [5, 110, 116.59000, 39.99000],  # Trajectory 6
+            [5, 120, 116.60000, 39.99200],
+            [5, 122, 116.61000, 39.99300]
         ]
 
 
@@ -113,8 +113,8 @@ if __name__ == '__main__':
 
         if not os.path.exists(os.path.join(os.path.abspath(__file__), "..", "files", f"{version_number}-original_query_results.pkl")):
             print("Querying")
-            dataset = _load_data()
-            #dataset = _timestamp_conversion(pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"]))
+            #dataset = _load_data()
+            dataset = _timestamp_conversion(pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"]))
 
 
             query_original_dataset_time_start = time.perf_counter()
@@ -139,8 +139,8 @@ if __name__ == '__main__':
 
         if not os.path.exists(os.path.join(os.path.abspath(__file__), "..", "files", f"{version_number}-compressed_query_results.pkl")):
             print("Compressed querying")
-            #dataset = pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
-            dataset = dataset if dataset is not None else _load_data()
+            dataset = pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
+            #dataset = dataset if dataset is not None else _load_data()
 
             compression_time_start = time.perf_counter()
 
