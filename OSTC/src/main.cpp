@@ -3,8 +3,8 @@
 #include "trajectory.hpp"
 #include <unordered_map>
 #include <iostream>
-#ifdef Debug
 #include "example_trajectories.hpp"
+#ifdef Debug
 
 
 
@@ -125,7 +125,10 @@ void test_compression_to_pandas()
     }
 }
 
-py::object find_uncompressed_trajectory(std::vector<Trajectory>& T_prime, uint32_t id, std::unordered_map<int, std::unordered_map<int, std::vector<int>>>& used_points_from_ref_set)
+py::object find_uncompressed_trajectory(std::unordered_map<Trajectory, std::vector<TimeCorrectionRecordEntry>> time_cors,
+                                        std::vector<Trajectory>& T_prime,
+                                        uint32_t id,
+                                        std::unordered_map<int, std::unordered_map<int, std::vector<int>>>& used_points_from_ref_set)
 {
     py::list ids, lats, lons, timestamps, corrections;
     int counter = 0;
@@ -149,12 +152,48 @@ py::object find_uncompressed_trajectory(std::vector<Trajectory>& T_prime, uint32
         }
         else
         {
+            auto time_correction = time_cors.find(triple);
+
             auto found_trajectory_id = used_points_from_ref_set.find(triple.id);
             if (found_trajectory_id != used_points_from_ref_set.end())
             {
                 for (auto i = 0; i <= triple.end_index; i++)
                 {
-                    //find out if point exists in this traj and add entire point or just time_correction
+                    // TODO: find out if point exists in this traj and add entire point or just time_correction
+                    // If point already exists only add time_correction
+                    auto& traj = found_trajectory_id->second;
+                    auto point = traj.find(i);
+
+                    if (point != traj.end()) {
+                        if (time_correction != time_cors.end()) {
+                            auto time_correction_entries = time_correction->second;
+                            auto found_time_correction = std::ranges::find_if(time_correction_entries,
+                              [&](const TimeCorrectionRecordEntry& t) {
+                                  return t.point_index == i;
+                              }
+                            );
+
+                            if (found_time_correction != time_correction_entries.end()) {
+                                point->second.push_back(found_time_correction->corrected_timestamp);
+                            }
+                        }
+                    }
+
+                    else {
+                        // If point does not already exist add entire point and time_correction
+                        if (time_correction != time_cors.end()) {
+                            auto time_correction_entries = time_correction->second;
+                            auto found_time_correction = std::ranges::find_if(time_correction_entries,
+                              [&](const TimeCorrectionRecordEntry& t) {
+                                  return t.point_index == i;
+                              }
+                            );
+
+                            if (found_time_correction != time_correction_entries.end()) {
+                                traj[i].push_back(found_time_correction->corrected_timestamp);
+                            }
+                        }
+                    }
                 }
             }
             else
@@ -162,7 +201,18 @@ py::object find_uncompressed_trajectory(std::vector<Trajectory>& T_prime, uint32
                 std::unordered_map<int, std::vector<int>> new_traj;
                 for (auto i = 0; i <= triple.end_index; i++)
                 {
-                    new_traj[i].push_back(triple.points[i].timecorrections);
+                    if (time_correction != time_cors.end()) {
+                        auto time_correction_entries = time_correction->second;
+                        auto found_time_correction = std::ranges::find_if(time_correction_entries,
+                          [&](const TimeCorrectionRecordEntry& t) {
+                              return t.point_index == i;
+                          }
+                        );
+
+                        if (found_time_correction != time_correction_entries.end()) {
+                            new_traj[i].push_back(found_time_correction->corrected_timestamp);
+                        }
+                    }
                 }
                 used_points_from_ref_set[triple.id]= new_traj;
             }
@@ -182,11 +232,31 @@ py::object find_uncompressed_trajectory(std::vector<Trajectory>& T_prime, uint32
 
 
 
-
+py::dict convert_to_py_dict(std::unordered_map<int, std::unordered_map<int, std::vector<int>>> used_points_from_ref_set) {
+    py::dict outer_dict;
+    for (const auto& [key1, inner_map] : used_points_from_ref_set) {
+        py::dict inner_dict;
+        for (const auto& [key2, vec] : inner_map) {
+            inner_dict[py::int_(key2)] = py::cast(vec);
+        }
+        outer_dict[py::int_(key1)] = inner_dict;
+    }
+    return outer_dict;
+}
 
 py::tuple compress(py::object rawTrajectoryArray, py::object refTrajectoryArray)
 {
-    std::vector<Trajectory> rawTrajs = ndarrayToTrajectories(rawTrajectoryArray);
+
+    //TODO: Delete when work :)
+    const auto M = std::unordered_map<Trajectory, std::vector<Trajectory>>{
+                    {t(0, 0), {t(0, 0)}}, {t(1, 8), {t2(0, 7)}}, {t(9, 14), {t5(6, 11)}},
+                    {t(15, 16), {t6(12, 13)}}, {t(17, 19), {t7(7, 9)}},
+                };
+
+    std::vector<Trajectory> rawTrajs {t_copy};
+    //Delete to here
+    //TODO: Uncomment below when done testing
+    // std::vector<Trajectory> rawTrajs = ndarrayToTrajectories(rawTrajectoryArray);
     std::vector<Trajectory> refTrajs = ndarrayToTrajectories(refTrajectoryArray);
     std::vector<py::object> uncompressed_trajectories_dfs;
     std::vector<OSTCResult> compressedTrajectories{};
@@ -195,34 +265,35 @@ py::tuple compress(py::object rawTrajectoryArray, py::object refTrajectoryArray)
     std::vector<std::vector<Trajectory>> all_references;
     constexpr auto spatial_deviation_threshold = 0.9;
     constexpr auto temporal_deviation_threshold = 0.5;
-    auto distance_function = haversine_distance;
-
+    // auto distance_function = haversine_distance; //TODO: uncomment this shit when done testing
+    auto distance_function = euclideanDistance;
 
     // TODO: return tuple of dfs. <compressed results, df2>. compressed results is the alle the trajectories compressed. can be df or vector of tuples. df2 is the merged df of the original df and the reference set df.
     for (auto t : rawTrajs) {
         std::cout << "compressing Trajectory " << t.id << std::endl;
         std::cout << "performing MRT search" << std::endl;
-        const auto M = t.MRTSearch(refTrajs, spatial_deviation_threshold, distance_function);
+        // const auto M = t.MRTSearch(refTrajs, spatial_deviation_threshold, distance_function); //TODO: uncomment when done testing
         std::cout << "MRT search done" << std::endl;
         std::cout << "performing OSTC" << std::endl;
         OSTCResult compressed = t.OSTC(M, temporal_deviation_threshold, spatial_deviation_threshold, distance_function);
         std::cout << "OSTC done" << std::endl;
 
-        py::object uncompressed_trajectory = find_uncompressed_trajectory(compressed.references, t.id, used_points_from_ref_set);
+        py::object uncompressed_trajectory = find_uncompressed_trajectory(compressed.time_corrections, compressed.references, t.id, used_points_from_ref_set);
         uncompressed_trajectories_dfs.push_back(uncompressed_trajectory);
         all_references.push_back(compressed.references);
-
+    }
     py::object uncompressed_trajectories_df = concat_dfs(uncompressed_trajectories_dfs); // TODO: check uncompressed_trajectories er rigtige.
                                                             // TODO: join/merge/concat uncompressed_trajectories med refTrajectoryArray, som er et ndarray. Burde kunne lade sig gøre, fordi uncompressed er en pd.df. kan laves til et ndarray i stedet for speed.
 
 
-    ref_set_df = build_ref_set_df(used_points_from_ref_set);
-    list_of_triples = build_list_of_triples(all_references, refTrajs);
+        /*
+    auto ref_set_df = build_ref_set_df(used_points_from_ref_set);
+    auto list_of_triples = build_list_of_triples(all_references, refTrajs);
 
     py::object merged_df = merge_uncompressed_and_ref_set(uncompressed_trajectories_df, ref_set_df);
+    */
 
-
-    return py::make_tuple(uncompressed_trajectories_df, uncompressed_trajectories_df);                        // TODO: return en liste af compressed trajectories og så den mergede df
+    return py::make_tuple(uncompressed_trajectories_df, convert_to_py_dict(used_points_from_ref_set));   // TODO: return en liste af compressed trajectories og så den mergede df
 }
 
 
