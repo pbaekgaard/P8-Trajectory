@@ -128,7 +128,7 @@ void test_compression_to_pandas()
 py::object find_uncompressed_trajectory(std::unordered_map<Trajectory, std::vector<TimeCorrectionRecordEntry>> time_cors,
                                         std::vector<Trajectory>& T_prime,
                                         uint32_t id,
-                                        std::unordered_map<int, std::unordered_map<int, std::vector<std::pair<uint32_t, int>>>> &used_points_from_ref_set)
+                                        std::unordered_map<int, std::unordered_map<int, std::unordered_map<uint32_t, int>>> &used_points_from_ref_set)
 {
     py::list ids, lats, lons, timestamps, corrections;
     int counter = 0;
@@ -174,7 +174,8 @@ py::object find_uncompressed_trajectory(std::unordered_map<Trajectory, std::vect
                             );
 
                             if (found_time_correction != time_correction_entries.end()) {
-                                point->second.push_back(std::make_pair(id, found_time_correction->corrected_timestamp));
+                                //point->second.push_back(std::make_pair(id, found_time_correction->corrected_timestamp));
+                                point->second[id] = found_time_correction->corrected_timestamp;
                             }
                         }
                     }
@@ -190,7 +191,8 @@ py::object find_uncompressed_trajectory(std::unordered_map<Trajectory, std::vect
                             );
 
                             if (found_time_correction != time_correction_entries.end()) {
-                                traj[i].push_back(std::make_pair(id, found_time_correction->corrected_timestamp));
+                                //traj[i].push_back(std::make_pair(id, found_time_correction->corrected_timestamp));
+                                traj[i][id] = found_time_correction->corrected_timestamp;
                             }
                         }
                     }
@@ -198,7 +200,7 @@ py::object find_uncompressed_trajectory(std::unordered_map<Trajectory, std::vect
             }
             else
             {
-                std::unordered_map<int, std::vector<std::pair<uint32_t, int>>> new_traj;
+                std::unordered_map<int, std::unordered_map<uint32_t, int>> new_traj;
                 for (auto i = 0; i <= triple.end_index; i++)
                 {
                     if (time_correction != time_cors.end()) {
@@ -210,7 +212,8 @@ py::object find_uncompressed_trajectory(std::unordered_map<Trajectory, std::vect
                         );
 
                         if (found_time_correction != time_correction_entries.end()) {
-                            new_traj[i].push_back(std::make_pair(id, found_time_correction->corrected_timestamp));
+                            //new_traj[i].push_back(std::make_pair(id, found_time_correction->corrected_timestamp));
+                            new_traj[i][id] = found_time_correction->corrected_timestamp;
                         }
                     }
                 }
@@ -229,43 +232,18 @@ py::object find_uncompressed_trajectory(std::unordered_map<Trajectory, std::vect
     return pd.attr("DataFrame")(data);
 }
 
-py::object build_ref_set_df(std::unordered_map<int, std::vector<Trajectory>> &all_references,
-                            std::unordered_map<int, std::unordered_map<int, std::vector<std::pair<uint32_t, int>>>> &used_points_from_ref_set)
+py::object build_ref_set_df(std::vector<Trajectory> &ref_trajectories,
+std::unordered_map<int, std::unordered_map<int, std::unordered_map<uint32_t, int>>> &used_points_from_ref_set)
 {
     py::list ids, lats, lons, timestamps, corrections;
 
     for (const auto &[traj_id, points_and_corrections_map] : used_points_from_ref_set) {
-        auto ref_traj_vector = all_references.find(traj_id);
-        if (ref_traj_vector != all_references.end())
-        {
-            for (const auto &traj: ref_traj_vector->second)
-            {
-                for (int i = 0; i < traj.points.size(); i++)
-                {
-                    py::dict correction_dict;
-                    ids.append(traj_id);
-                    lats.append(traj.points[i].latitude);
-                    lons.append(traj.points[i].longitude);
-                    timestamps.append(traj.points[i].timestamp);
-
-                    auto point_iter = points_and_corrections_map.find(i);
-                    if (point_iter != points_and_corrections_map.end()) {
-                        auto time_corrections = point_iter->second;
-
-                        for (const auto &correction_pair : time_corrections) {
-                            correction_dict[py::int_(correction_pair.first)] = py::int_(correction_pair.second);
-                        }
-                        corrections.append(correction_dict);
-                    }
-                    else {
-                        corrections.append(py::none());
-                    }
-                }
-            }
-        }
-        else {
-            throw std::invalid_argument("Cannot find reference trajectories for " + std::to_string(traj_id));
-            //TODO: Somehow it enters here at t6, fix
+        for (const auto &[point_id, point_corrections] : points_and_corrections_map){
+            ids.append(traj_id);
+            lats.append(ref_trajectories[traj_id].points[point_id].latitude);
+            lons.append(ref_trajectories[traj_id].points[point_id].longitude);
+            timestamps.append(ref_trajectories[traj_id].points[point_id].timestamp);
+            corrections.append(point_corrections);
         }
     }
 
@@ -279,13 +257,31 @@ py::object build_ref_set_df(std::unordered_map<int, std::vector<Trajectory>> &al
     py::module_ pd = py::module_::import("pandas");
     return pd.attr("DataFrame")(data);
 }
-void build_list_of_triples(uint32_t id, std::vector<Trajectory> references, py::dict &triples_dict) {
-    py::list triple_list;
-    for (const auto &ref_traj : references)
-    {
-        triple_list.append(py::make_tuple(ref_traj.id,ref_traj.start_index, ref_traj.end_index));
+int compute_missing_ids_till_now(int startindex, std::unordered_map<int, std::unordered_map<uint32_t, int>> point_correction_map){
+    int count = 0;
+    for (int i = 0; i < startindex; i++){
+        // if point not found: count++
+        auto point_not_found = point_correction_map.find(i) == point_correction_map.end();
+        if (point_not_found){
+            count++;
+        }
     }
-    triples_dict[py::int_(id)] = triple_list;
+    return count;
+}
+py::dict build_triples(std::unordered_map<int, std::vector<Trajectory>> all_compressed,
+                       std::unordered_map<int, std::unordered_map<int, std::unordered_map<uint32_t, int>>> used_points_from_ref_set) {
+    py::dict triples_dict;
+    for(const auto &[traj_id, compressed] : all_compressed) {
+        py::list triple_list;
+        for (const auto &compressed_traj : compressed)
+        {
+            auto missing_ids_till_now = compute_missing_ids_till_now(compressed_traj.start_index, used_points_from_ref_set[traj_id]);
+            triple_list.append(py::make_tuple(compressed_traj.id,compressed_traj.start_index - missing_ids_till_now, compressed_traj.end_index - missing_ids_till_now));
+        }
+        triples_dict[py::int_(traj_id)] = triple_list;
+    }
+
+    return triples_dict;
 }
 py::object merge_uncompressed_and_ref_set(py::object uncompressed_trajectories_df, py::object ref_set_df) //TODO: maybe needed later, if so it needs to be changed as well
 {
@@ -306,11 +302,11 @@ py::tuple compress(py::object rawTrajectoryArray, py::object refTrajectoryArray)
     //Delete to here
     //TODO: Uncomment below when done testing
     // std::vector<Trajectory> rawTrajs = ndarrayToTrajectories(rawTrajectoryArray);
-    //std::vector<Trajectory> refTrajs = ndarrayToTrajectories(refTrajectoryArray);
+    std::vector<Trajectory> refTrajs = ndarrayToTrajectories(refTrajectoryArray);
     std::vector<py::object> uncompressed_trajectories_dfs;
     std::vector<OSTCResult> compressedTrajectories{};
     std::vector<py::object> trajectory_dfs{};
-    std::unordered_map<int, std::unordered_map<int, std::vector<std::pair<uint32_t, int>>>> used_points_from_ref_set{};
+    std::unordered_map<int, std::unordered_map<int, std::unordered_map<uint32_t, int>>> used_points_from_ref_set{};
     std::unordered_map<int, std::vector<Trajectory>> all_references;
     py::dict triples_dict;
     constexpr auto spatial_deviation_threshold = 0.9;
@@ -326,11 +322,10 @@ py::tuple compress(py::object rawTrajectoryArray, py::object refTrajectoryArray)
         std::cout << "performing OSTC" << std::endl;
         OSTCResult compressed = t.OSTC(M, temporal_deviation_threshold, spatial_deviation_threshold, distance_function);
         std::cout << "OSTC done" << std::endl;
+        all_references[t.id] = compressed.references;
 
         py::object uncompressed_trajectory = find_uncompressed_trajectory(compressed.time_corrections, compressed.references, t.id, used_points_from_ref_set);
         uncompressed_trajectories_dfs.push_back(uncompressed_trajectory);
-        all_references[t.id] = compressed.references;
-        build_list_of_triples(t.id, compressed.references, triples_dict);
 
     }
     py::object uncompressed_trajectories_df = concat_dfs(uncompressed_trajectories_dfs);
@@ -338,7 +333,8 @@ py::tuple compress(py::object rawTrajectoryArray, py::object refTrajectoryArray)
 
 
 
-    auto ref_set_df = build_ref_set_df(all_references, used_points_from_ref_set);
+    auto ref_set_df = build_ref_set_df(refTrajs, used_points_from_ref_set);
+    triples_dict = build_triples(all_references, used_points_from_ref_set);
     std::vector<py::object> merged_dfs = {uncompressed_trajectories_df, ref_set_df};
     py::object merged_df = concat_dfs(merged_dfs);
     // Update: My query fellas, say concat is good, so we use that
