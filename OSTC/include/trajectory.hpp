@@ -2,24 +2,39 @@
 #define __TRAJECTORY_HPP__
 
 #include <cmath>
-#include <iostream>
 #include <unordered_map>
 #include <cstdint>
 #include <iomanip>
 #include <string>
+#include <utility>
 #include <vector>
-#include <cmath>
+#include <functional>
+
+struct Trajectory;
+struct OSTCResult;
 
 struct SamplePoint
 {
-    double longitude;       // longitude
-    double latitude;        // latitude
-    std::string timestamp;  // timestamp
+    double longitude;  // longitude
+    double latitude;   // latitude
+    int timestamp;     // timestamp
 
-    SamplePoint(double x, double y, std::string t): longitude(x), latitude(y), timestamp(std::move(t)) {}
+    SamplePoint(double latitude, double longitude, int t): longitude(longitude), latitude(latitude), timestamp(t) {}
 
     bool operator==(const SamplePoint& other) const;
 };
+
+struct TimeCorrectionRecordEntry
+{
+    int point_index;
+    int corrected_timestamp;
+    TimeCorrectionRecordEntry(int idx, int ct): point_index(idx), corrected_timestamp(ct) {};
+};
+
+inline bool operator==(const TimeCorrectionRecordEntry& lhs, const TimeCorrectionRecordEntry& rhs)
+{
+    return lhs.point_index == rhs.point_index && lhs.corrected_timestamp == rhs.corrected_timestamp;
+}
 
 inline std::ostream& operator<<(std::ostream& os, const SamplePoint& point)
 {
@@ -35,6 +50,8 @@ struct ReferenceTrajectory
     short end_index = -1;
 
     ReferenceTrajectory(uint32_t id, short start_index, short end_index);
+    bool operator==(const ReferenceTrajectory& other) const;
+    ReferenceTrajectory(const Trajectory& t);
 };
 
 struct Trajectory
@@ -44,10 +61,15 @@ struct Trajectory
     int start_index = -1;
     int end_index = -1;
 
+    Trajectory(): id(0), start_index(-1), end_index(-1) {}
     Trajectory(const uint32_t id, const std::vector<SamplePoint>& points);
     Trajectory(const uint32_t id, const std::vector<SamplePoint>& points, int start_index, int end_index);
 
     Trajectory operator()(int start, int end);
+    Trajectory operator()(int start, int end) const;
+    bool operator<(const Trajectory& other) const;
+
+    Trajectory operator+(Trajectory other);
 
     bool operator==(const Trajectory& other) const;
 
@@ -60,10 +82,18 @@ struct Trajectory
         }
         return os;
     }
-    std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> MRTSearch(std::vector<Trajectory>& Trajectories,
-                                                                               std::vector<uint32_t> RefSet,
-                                                                               const double epsilon);
-    std::vector<ReferenceTrajectory> OSTC(std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> M);
+
+    std::unordered_map<Trajectory, std::vector<Trajectory>> MRTSearch(std::vector<Trajectory>& RefSet, double epsilon, std::function<double(SamplePoint const& a,SamplePoint const & b)> distance_function);
+    OSTCResult OSTC(std::unordered_map<Trajectory, std::vector<Trajectory>> M, double tepsilon, double sepsilon, std::function<double(SamplePoint const& a, SamplePoint const& b)> distance_function);
+};
+
+struct TrajectoryRemoval
+{
+    const Trajectory query_trajectory;
+    Trajectory trajectory_to_remove;
+
+    TrajectoryRemoval(const Trajectory query_traj, Trajectory trajectory_to_remove):
+        query_trajectory(query_traj), trajectory_to_remove(trajectory_to_remove) {}
 };
 
 template <>
@@ -71,5 +101,47 @@ struct std::hash<Trajectory>
 {
     std::size_t operator()(const Trajectory& t) const noexcept;
 };
+
+struct CompressedResultCorrection
+{
+    uint32_t id;
+    int corrected_timestamp;
+
+    CompressedResultCorrection(const uint32_t id, const int ct) : id(id), corrected_timestamp(ct) {};
+
+    bool operator==(const CompressedResultCorrection& other) const
+    {
+        return id == other.id && corrected_timestamp == other.corrected_timestamp;
+    };
+};
+
+struct CompressedResult
+{
+    uint32_t id;
+    double latitude;
+    double longitude;
+    int timestamp;
+    std::vector<CompressedResultCorrection> corrections;
+
+    CompressedResult(const uint32_t id, const double latitude, const double longitude, const int timestamp, std::vector<CompressedResultCorrection> corrections)
+        : id(id), latitude(latitude), longitude(longitude), timestamp(timestamp), corrections(std::move(corrections)) {};
+
+    bool operator==(const CompressedResult& other) const
+    {
+        return id == other.id && latitude == other.latitude && longitude == other.longitude && timestamp == other.timestamp && corrections == other.corrections;
+    };
+};
+
+struct OSTCResult
+{
+    std::vector<Trajectory> references{};
+    std::unordered_map<Trajectory, std::vector<TimeCorrectionRecordEntry>> time_corrections;
+
+    OSTCResult(std::vector<Trajectory> references,
+               std::unordered_map<Trajectory, std::vector<TimeCorrectionRecordEntry>> time_corrections):
+        references(std::move(references)), time_corrections(std::move(time_corrections)) {};
+};
+
+void convertCompressedTrajectoriesToPoints(std::vector<CompressedResult>& points, const Trajectory& trajectory_to_be_compressed, OSTCResult compressed);
 
 #endif

@@ -3,11 +3,16 @@
 #include <vector>
 #include "trajectory.hpp"
 #include <ranges>
-
 #include "distance.hpp"
-#include <cmath>
+
+#include <functional>
 #include <unordered_map>
+#include <map>
+#include <ranges>
 #include <iostream>
+#include <map>
+#include <set>
+#include <unordered_set>
 #if _WIN32
 #include <cstdint>
 #endif
@@ -17,17 +22,54 @@ bool SamplePoint::operator==(const SamplePoint& other) const
     return longitude == other.longitude && latitude == other.latitude && timestamp == other.timestamp;
 }
 
-Trajectory::Trajectory(const uint32_t id, const std::vector<SamplePoint>& points): id(id), points(points) {}
+Trajectory::Trajectory(const uint32_t id, const std::vector<SamplePoint>& points): id(id), points(points), start_index(0), end_index(points.size()-1) {}
+
 Trajectory::Trajectory(const uint32_t id, const std::vector<SamplePoint>& points, const int start_index,
                        const int end_index): id(id), points(points), start_index(start_index), end_index(end_index)
 {}
 
+bool Trajectory::operator<(const Trajectory& other) const
+{
+    if (id == other.id) {
+        return start_index < other.start_index;
+    }
+    return id < other.id;
+
+}
+
+
 Trajectory Trajectory::operator()(const int start, const int end)
 {
+    if (end + 1 > points.size()) {
+        return Trajectory(id, std::vector<SamplePoint>(points.begin() + start, points.begin() + end), start, end);
+    }
+
     return Trajectory(id, std::vector<SamplePoint>(points.begin() + start, points.begin() + end + 1), start, end);
 }
 
+Trajectory Trajectory::operator()(const int start, const int end) const
+{
+    if (end + 1 > points.size()) {
+        return Trajectory(id, std::vector<SamplePoint>(points.begin() + start, points.begin() + end), start, end);
+    }
+
+    return Trajectory(id, std::vector<SamplePoint>(points.begin() + start, points.begin() + end + 1), start, end);
+}
+
+Trajectory Trajectory::operator+(Trajectory other)
+{
+    auto mergedPoints = points;
+    std::copy(other.points.begin() + 1, other.points.end(), std::back_inserter(mergedPoints));
+
+    return Trajectory(id, mergedPoints, start_index, other.end_index);
+}
+
 bool Trajectory::operator==(const Trajectory& other) const
+{
+    return (id == other.id && start_index == other.start_index && end_index == other.end_index);
+}
+
+bool ReferenceTrajectory::operator==(const ReferenceTrajectory& other) const
 {
     return (id == other.id && start_index == other.start_index && end_index == other.end_index);
 }
@@ -43,154 +85,276 @@ ReferenceTrajectory::ReferenceTrajectory(const uint32_t id, const short start_in
     id(id), start_index(start_index), end_index(end_index)
 {}
 
-std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> Trajectory::MRTSearch(
-    std::vector<Trajectory>& Trajectories, std::vector<uint32_t> RefSet, const double epsilon)
+ReferenceTrajectory::ReferenceTrajectory(const Trajectory& t):
+    id(t.id), start_index(t.start_index), end_index(t.end_index)
+{}
+
+std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(std::vector<Trajectory>& RefSet,
+                                                                             const double epsilon,
+                                                                             std::function<double(SamplePoint const& a, SamplePoint const& b)> distance_function)
 {
-    std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> M;
+     std::unordered_map<Trajectory, std::vector<Trajectory>> M;
+    for (int i = 0; i < points.size() - 1; i++) {
+        Trajectory subtraj = (*this)(i, i + 1);
 
-    // Step 1: Compute MRT sets for all length-2 sub-trajectories T^(i,i+1)
-    for (int i = 0; i < static_cast<int>(points.size()) - 1; ++i) {
-        Trajectory subTraj = (*this)(i, i + 1);
-
-        // Store MRTs as ReferenceTrajectory objects
-        std::vector<ReferenceTrajectory> mrtSet;
-
-        // Compare against all reference sub-trajectories in R
-        for (uint32_t refIdx : RefSet) {
-            Trajectory& refTraj = Trajectories[refIdx];
-            for (int k = 0; k < static_cast<int>(refTraj.points.size()) - 1; ++k) {
-                Trajectory refSubTraj = refTraj(k, k + 1);
-                if (maxDTW(subTraj, refSubTraj) <= epsilon) {
-                    // Store the (id, start, end) triplet instead of the full Trajectory
-                    mrtSet.emplace_back(refSubTraj.id, refSubTraj.start_index, refSubTraj.end_index);
+        for (auto refTraj : RefSet) {
+            for (int j = 0; j < refTraj.points.size() - 1; j++) {
+                for (int k = j + 1; k < refTraj.points.size(); k++) {
+                    Trajectory subRefTraj = refTraj(j, k);
+                    if (MaxDTW(subtraj, subRefTraj, distance_function) <= epsilon) {
+                        subRefTraj.start_index = subRefTraj.start_index + refTraj.start_index;
+                        subRefTraj.end_index = subRefTraj.end_index + refTraj.start_index;
+                        M[subtraj].emplace_back(subRefTraj);
+                    }
                 }
+
             }
         }
-
-        // Store the MRT set in M
-        M[subTraj] = mrtSet;
     }
 
-    // Step 2: Compute MRT sets for sub-trajectories of length 3 to |T|
-    for (int n = 3; n <= static_cast<int>(points.size()); ++n) {
-        bool hasMRT = false;
+    for (int n = 2; n < points.size(); n++) {
+        auto found = false;
 
-        // For each sub-trajectory T^(i,j) of length n
-        for (int i = 0; i <= static_cast<int>(points.size()) - n; ++i) {
-            int j = i + n - 1;
-            Trajectory subTraj = (*this)(i, j);
+        for (int i = 0, j = i + n; j <= points.size() - 1; i++, j++) {
+            Trajectory sub_left = (*this)(i, j - 1);
+            Trajectory sub_right = (*this)(j - 1, j);
 
-            // Store MRTs as ReferenceTrajectory objects
-            std::vector<ReferenceTrajectory> mrtSet;
+            auto T_a_vec = M.find(sub_left);
+            auto T_b_vec = M.find(sub_right);
 
-            // Get the MRT sets of T^(i,j-1) and T^(j-1,j)
-            Trajectory subTraj1 = (*this)(i, j - 1);  // T^(i,j-1)
-            Trajectory subTraj2 = (*this)(j - 1, j);  // T^(j-1,j)
-            auto it1 = M.find(subTraj1);
-            auto it2 = M.find(subTraj2);
-            if (it1 == M.end() || it2 == M.end())
-                continue;
+            if (T_a_vec != M.end() && T_b_vec != M.end()) {
+                const std::vector<Trajectory>& T_as = T_a_vec->second;
+                const std::vector<Trajectory>& T_bs = T_b_vec->second;
 
-            const std::vector<ReferenceTrajectory>& mrtSet1 = it1->second;  // M(T^(i,j-1))
-            const std::vector<ReferenceTrajectory>& mrtSet2 = it2->second;  // M(T^(j-1,j))
-
-            // Step 3: Check if MRTs of T^(i,j-1) can be extended to T^(i,j)
-            for (const ReferenceTrajectory& Tmn : mrtSet1) {
-                // Reconstruct the Trajectory object for Tmn to compute MaxDTW
-                Trajectory TmnTraj = Trajectories[Tmn.id](Tmn.start_index, Tmn.end_index);
-                if (maxDTW(subTraj, TmnTraj) <= epsilon) {
-                    mrtSet.push_back(Tmn);
-                }
-            }
-
-            // Step 4: Join MRTs of T^(i,j-1) and T^(j-1,j) if they are contiguous
-            for (const ReferenceTrajectory& Tmn : mrtSet1) {
-                for (const ReferenceTrajectory& Tst : mrtSet2) {
-                    // Check if Tmn and Tst are from the same trajectory and contiguous
-                    if (Tmn.id == Tst.id && Tmn.end_index + 1 == Tst.start_index) {
-                        // Create the joined sub-trajectory T_a^(m,t) as a ReferenceTrajectory
-                        ReferenceTrajectory joinedRefTraj(Tmn.id, Tmn.start_index, Tst.end_index);
-                        // Reconstruct the Trajectory object to compute MaxDTW
-                        Trajectory joinedTraj = Trajectories[Tmn.id](Tmn.start_index, Tst.end_index);
-                        if (maxDTW(subTraj, joinedTraj) <= epsilon) {
-                            mrtSet.push_back(joinedRefTraj);
+                for (Trajectory a : T_as) {
+                    for (auto& b : T_bs) {
+                        if (a.id == b.id && a.end_index == b.start_index) {
+                            M[(*this)(i,j)].emplace_back(a + b);
+                            found = true;
                         }
                     }
                 }
             }
-
-            // Store the MRT set in M
-            if (!mrtSet.empty()) {
-                hasMRT = true;
-                M[subTraj] = mrtSet;
+            if (T_a_vec != M.end()) {
+                auto T_as = T_a_vec->second;
+                for (auto& a : T_as) {
+                    if (MaxDTW((*this)(i,j), a, distance_function) <= epsilon) {
+                        M[(*this)(i,j)].emplace_back(a);
+                        found = true;
+                    }
+                }
+            }
+            if (T_b_vec != M.end()) {
+                auto T_bs = T_b_vec->second;
+                for (auto& b : T_bs) {
+                    if (MaxDTW((*this)(i,j), b, distance_function) <= epsilon) {
+                        M[(*this)(i,j)].emplace_back(b);
+                        found = true;
+                    }
+                }
             }
         }
 
-        // Step 5: Early termination if no sub-trajectories of length n have MRTs
-        if (!hasMRT) {
-            break;
+        if (!found) break;
+    }
+
+    std::vector<TrajectoryRemoval> to_remove;
+
+    for (auto& [query_traj, ref_trajs] : M) {
+        auto query_start_index = query_traj.start_index;
+        auto query_end_index = query_traj.end_index;
+
+        for (auto i = query_start_index; i <= query_end_index - 1; i++) {
+            for (auto j = i + 1; j <= query_end_index; j++) {
+                if (i == query_start_index && j == query_end_index) {
+                    continue;
+                }
+
+                auto ref_iterator = M.find((*this)(i, j));
+                if (ref_iterator != M.end()) {
+                    auto& ref_trajectories = ref_iterator->second;
+                    for (auto& ref_trajectory : ref_trajectories) {
+                        auto is_sub_trajectory = std::ranges::find_if(ref_trajs,
+                            [&](const Trajectory& ref_traj) {
+                            return ref_trajectory.id == ref_traj.id && ref_trajectory.start_index >= ref_traj.start_index && ref_trajectory.end_index <= ref_traj.end_index;
+                        }) != ref_trajs.end();
+
+                        if (is_sub_trajectory) {
+                            to_remove.push_back(TrajectoryRemoval{(*this)(i, j), ref_trajectory});
+                        }
+                    }
+
+                }
+            }
         }
+    }
+
+    for (auto& removal : to_remove) {
+        auto& ref_trajectory_to_remove = removal.trajectory_to_remove;
+        auto iter = M.find(removal.query_trajectory);
+        if (iter == M.end()) {
+            continue;
+        }
+
+        auto& ref_trajectories = iter->second;
+        std::erase_if(ref_trajectories, [&](const Trajectory& ref_traj) { return ref_traj == ref_trajectory_to_remove; });
+
+        if (ref_trajectories.size() == 0) {
+            M.erase(removal.query_trajectory);
+        }
+    }
+
+    for (auto& [query_traj, ref_trajs] : M) {
+        std::unordered_set<Trajectory> seen;
+        ref_trajs.erase(std::remove_if(ref_trajs.begin(), ref_trajs.end(),
+                       [&seen](Trajectory x){
+                           return !seen.insert(x).second;   // true  ⇒ duplicate
+                       }),
+        ref_trajs.end());
     }
 
     return M;
 }
 
-std::vector<ReferenceTrajectory> Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<ReferenceTrajectory>> M)
+OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajectory>> M, const double tepsilon, const double sepsilon, std::function<double(SamplePoint const& a, SamplePoint const& b)> distance_function)
 {
-    std::vector<int64_t> FT(points.size() + 1, std::numeric_limits<int64_t>::max());
-    FT[0] = 0;
-    std::vector<int> prev(points.size() + 1, -1);
+    // // Ensure we only keep the first reference for each query
+    // std::unordered_map<Trajectory, std::vector<Trajectory>> simplified_M;
+    // for (auto& [query_traj, ref_trajs] : M) {
+    //     if (!ref_trajs.empty()) {
+    //         simplified_M[query_traj] = {ref_trajs[0]};
+    //     }
+    // }
+    // M = simplified_M;
 
-    for (int i = 1; i <= static_cast<int>(points.size()); ++i) {
-        int64_t minCost = FT[i - 1] + 8;  // Cost of storing the i-th point as an original sample
-        int bestJ = i;                    // Default to storing the point directly
+    std::unordered_map<Trajectory, int> time_correction_cost{};
+    std::unordered_map<Trajectory, std::vector<TimeCorrectionRecordEntry>> time_correction_record{};
+    auto c = 4;
 
-        for (int j = 1; j <= i; ++j) {
-            Trajectory subTraj = (*this)(j - 1, i - 1);
-            auto it = M.find(subTraj);
+    for (auto i = 0; i < points.size(); i++) {
+        auto subtraj = (*this)(i,i);
+        auto TT = M.find(subtraj);
+        if (TT == M.end()) {
+            M[subtraj].emplace_back(subtraj);
+        }
+    }
+
+    for (auto& MRT : M) {
+        auto ref = MRT.second[0];
+        auto a = MRT.first.points;
+        auto b = ref.points;
+
+        signed int t = 0;
+        time_correction_cost[ref] = 0;
+
+        for (int i = 0; i <= b.size() - 1; i++) {
+            auto a_i = a[i];
+            auto b_i = b[i];
+
+            if (i+1 < a.size() && distance_function(b_i, a[i+1]) < sepsilon)
+                a_i = a[i+1];
+
+            auto previousTimeStamp = i == 0 ? 0 : b[i-1].timestamp;
+            signed int leftside = abs(t + b_i.timestamp - previousTimeStamp - a_i.timestamp);
+            if (leftside <= tepsilon) {
+                t = t + b_i.timestamp - previousTimeStamp;
+            } else {
+                t = std::max(a_i.timestamp, previousTimeStamp);
+                time_correction_cost[ref] += c;
+                time_correction_record[ref].emplace_back(i, t);
+            }
+        }
+    }
+    std::vector<int> Ft(points.size() + 1, 0);      // +1 for F_T[0] = 0
+    std::vector<int> pre(points.size() + 1, 0);  // -1 indicates no predecessor
+    std::vector<Trajectory> T_prime;
+
+    for (size_t i = 1; i <= points.size(); ++i) {
+        // int min_cost = Ft[i - 1] + 12;
+        int min_cost = 8 * points.size();
+
+        for (size_t j = 1; j <= i; ++j) {
+            Trajectory sub_traj = (*this)(j - 1, i - 1);
+            auto it = M.find(sub_traj);
             if (it != M.end() && !it->second.empty()) {
-                int64_t cost = FT[j - 1] + 8;  // Cost of using an MRT
-                if (cost < minCost) {
-                    minCost = cost;
-                    bestJ = j;
+                auto time_correction_cost_lookup = std::numeric_limits<int>::max();
+                for (auto traj : it->second) {
+                    time_correction_cost_lookup = std::min(time_correction_cost_lookup, Ft[j-1] + time_correction_cost.find(traj)->second);
+                }
+                int cost = std::min(Ft[i - 1] + 12, time_correction_cost_lookup + 8);
+
+                if (cost < min_cost) {
+                    min_cost = cost;
+                    pre[i] = j-1;
                 }
             }
         }
-
-        FT[i] = minCost;
-        prev[i] = bestJ;
+        Ft[i] = min_cost;
     }
 
-    // Debug: Print FT and prev
-    std::cout << "FT: ";
-    for (int i = 0; i <= points.size(); ++i) {
-        std::cout << FT[i] << " ";
-    }
-    std::cout << "\nprev: ";
-    for (int i = 0; i <= points.size(); ++i) {
-        std::cout << prev[i] << " ";
-    }
-    std::cout << "\n";
 
-    std::vector<ReferenceTrajectory> T_prime;
     int i = points.size();
     while (i > 0) {
-        int j = prev[i];
-        if (j == -1) {
-            break;
-        }
-        if (j == i) {  // Store the original point
-            // Note: Adjust this based on how you want to represent original points in T_prime
-            i--;
-        } else {  // Use an MRT
-            Trajectory subTraj = (*this)(j - 1, i - 1);
-            auto it = M.find(subTraj);
+        if (pre[i] == i - 1) {
+            T_prime.emplace_back((*this)(i - 1, i - 1));
+            --i;
+        } else {
+            Trajectory sub_traj = (*this)(pre[i], i - 1);
+            auto it = M.find(sub_traj);
             if (it != M.end() && !it->second.empty()) {
-                T_prime.push_back(it->second[0]);
+                T_prime.emplace_back(it->second[0]);
             }
-            i = j - 1;
+            i = pre[i];
         }
     }
-    std::ranges::reverse(T_prime.begin(), T_prime.end());
-    return T_prime;
+    std::reverse(T_prime.begin(), T_prime.end());
+
+    return {T_prime, time_correction_record};
+}
+
+void convertCompressedTrajectoriesToPoints(std::vector<CompressedResult>& points, const Trajectory& trajectory_to_be_compressed, OSTCResult compressed)
+{
+    for (const auto& traj : compressed.references) {
+        auto correction = compressed.time_corrections.find(traj);
+
+        for (int i = 0; i < traj.points.size(); i++) {
+            auto point = traj.points[i];
+            auto corrections = std::vector<CompressedResultCorrection> {};
+
+            auto existing_point = std::ranges::find_if(points,
+               [&](const CompressedResult& p) {
+                   return p.id == traj.id &&
+                          p.latitude == point.latitude &&
+                          p.longitude == point.longitude &&
+                          p.timestamp == point.timestamp;
+               }
+            );
+
+            const auto does_point_exist = existing_point != points.end();
+
+            if (correction != compressed.time_corrections.end()) {
+                for (const auto& correction_entry : correction->second) {
+                    if (correction_entry.point_index == i) {
+                        corrections.emplace_back(
+                            trajectory_to_be_compressed.id,
+                            correction_entry.corrected_timestamp
+                        );
+                    }
+                }
+            }
+
+            if (does_point_exist) {
+                existing_point->corrections.insert(existing_point->corrections.end(), corrections.begin(), corrections.end());
+            }
+            else {
+                points.emplace_back(
+                    traj.id,
+                    point.latitude,
+                    point.longitude,
+                    point.timestamp,
+                    corrections
+                );
+            }
+        }
+    }
 }

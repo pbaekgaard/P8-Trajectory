@@ -145,10 +145,11 @@ def normalize_df(df):
     :return: normalized Dataframe.
     normalizes according to highest and lowest value for that column in entire df. 1 is max, 0 is min.
     """
-    df['t_relative'] = (df['t_relative'] - df['t_relative'].min()) / (df['t_relative'].max() - df['t_relative'].min())
-    df['longitude'] = (df['longitude'] - df['longitude'].min()) / (df['longitude'].max() - df['longitude'].min())
-    df['latitude'] = (df['latitude'] - df['latitude'].min()) / (df['latitude'].max() - df['latitude'].min())
-    return df
+    norm_df = df.copy()
+    norm_df['t_relative'] = (df['t_relative'] - df['t_relative'].min()) / (df['t_relative'].max() - df['t_relative'].min())
+    norm_df['longitude'] = (df['longitude'] - df['longitude'].min()) / (df['longitude'].max() - df['longitude'].min())
+    norm_df['latitude'] = (df['latitude'] - df['latitude'].min()) / (df['latitude'].max() - df['latitude'].min())
+    return norm_df
 
 
 def get_first_x_trajectories(trajectories: pd.DataFrame, num_trajectories: int = None) -> pd.DataFrame:
@@ -170,11 +171,10 @@ def get_first_x_trajectories(trajectories: pd.DataFrame, num_trajectories: int =
 
 def generate_reference_set(df: pd.DataFrame, clustering_method: ClusteringMethod, clustering_param: int | float, batch_size: int, d_model: int, num_heads: int, clustering_metric: str, num_layers: int) -> (pd.DataFrame, pd.DataFrame, List, List, List):
     df = pd.DataFrame(df, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
-    df['timestamp'] = pd.to_datetime(df['timestamp'])
     df['t_relative'] = df.groupby('trajectory_id')['timestamp'].transform(
-        lambda x: (x - x.min()).dt.total_seconds()
+        lambda x: x - x.min()
     )  # convert to delta_seconds from start.
-    df = normalize_df(df)
+    normalized_df = normalize_df(df)
 
     print("instantiating model...")
     model = TrajectoryTransformer(
@@ -185,7 +185,7 @@ def generate_reference_set(df: pd.DataFrame, clustering_method: ClusteringMethod
     # model.train() # IF TRAIN
     model.eval()
 
-    df_batches = split_into_batches(df, batch_size=batch_size)
+    df_batches = split_into_batches(normalized_df, batch_size=batch_size)
     trajectory_tensors = []
 
     def process_batch(batch):
