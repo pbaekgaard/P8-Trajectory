@@ -41,46 +41,26 @@ namespace py = pybind11;
 // Custom format descriptor for std::tuple<int, std::string, double, double>
 void say_hello() { std::cout << "Hello From C++!" << std::endl; }
 
+std::vector<Trajectory> ndarrayToTrajectories(py::object array)
+{
+    // Convert the Python object to a list of lists
+    auto py_list = array.cast<py::list>();
+    std::vector<Trajectory> trajectories;
+    std::unordered_map<int, std::vector<SamplePoint>> traject_dict;
+    for (const auto& row_handle : py_list) {
+        auto row = row_handle.cast<py::list>();  // Cast to py::list
+        int id = row[0].cast<float>();
+        auto timestamp = row[1].cast<float>();
+        auto latitude = row[2].cast<float>();
+        auto longitude = row[3].cast<float>();
+        auto point = SamplePoint(latitude, longitude, timestamp);
 
-std::vector<Trajectory> ndarrayToTrajectories(py::array_t<double> array) {
-    // Access the array as a 2D array using .at() to safely access elements
-    py::buffer_info buf_info = array.request();
-
-    // Check if the input is 2D
-    if (buf_info.ndim != 2) {
-        throw std::runtime_error("Expected a 2D array");
+        traject_dict[id].push_back(point);
     }
-
-    // Get the number of rows and columns
-    size_t n_rows = buf_info.shape[0];
-    size_t n_cols = buf_info.shape[1];
-
-    // Ensure the array has at least 4 columns
-    if (n_cols < 4) {
-        throw std::runtime_error("Array must have at least 4 columns (id, timestamp, longitude, latitude)");
+    for (const auto& [id, points] : traject_dict) {
+        trajectories.push_back(Trajectory(id, points));
     }
-
-    // Create the result container
-    std::unordered_map<int, Trajectory> traj_map;
-
-    // Loop through the rows of the array and extract values
-    for (size_t i = 0; i < n_rows; ++i) {
-        int id = static_cast<int>(array.at(i, 0));      // Column 0: id
-        int timestamp = static_cast<int>(array.at(i, 0));             // Column 1: timestamp
-        float longitude = static_cast<float>(array.at(i, 0));            // Column 2: longitude
-        float latitude = static_cast<float>(array.at(i, 0));                // Column 3: latitude
-
-        // Add the point to the corresponding trajectory
-        traj_map[id].id = id;
-        traj_map[id].points.push_back(Point{longitude, latitude, timestamp});
-    }
-
-    // Convert the map to a vector
-    std::vector<Trajectory> result;
-    for (auto& [id, traj] : traj_map)
-        result.push_back(std::move(traj));
-
-    return result;
+    return trajectories;
 }
 
 void print_numpy(py::object array)
@@ -181,7 +161,6 @@ py::object find_uncompressed_trajectory(std::unordered_map<Trajectory, std::vect
             {
                 for (auto i = 0; i <= triple.end_index; i++)
                 {
-                    // TODO: find out if point exists in this traj and add entire point or just time_correction
                     // If point already exists only add time_correction
                     auto &traj = found_trajectory_id->second;
                     auto point = traj.find(i);
@@ -261,11 +240,24 @@ std::unordered_map<int, std::unordered_map<int, std::unordered_map<uint32_t, int
 
     for (const auto &[traj_id, points_and_corrections_map] : used_points_from_ref_set) {
         for (const auto &[point_id, point_corrections] : points_and_corrections_map){
-            ids.append(traj_id);
-            lats.append(ref_trajectories[traj_id].points[point_id].latitude);
-            lons.append(ref_trajectories[traj_id].points[point_id].longitude);
-            timestamps.append(ref_trajectories[traj_id].points[point_id].timestamp);
-            corrections.append(point_corrections);
+
+            auto found_ref_traj = std::ranges::find_if(ref_trajectories, [&](const Trajectory &t) {
+                return t.id == traj_id;
+            });
+
+            if (found_ref_traj != ref_trajectories.end()) {
+                ids.append(traj_id);
+
+                auto point = found_ref_traj->points[point_id];
+                lats.append(point.latitude);
+                lons.append(point.longitude);
+                timestamps.append(point.timestamp);
+
+                corrections.append(point_corrections);
+            }
+            else {
+                std::cout << "cannot find for " + std::to_string(traj_id) << " ";
+            }
         }
     }
 
@@ -318,15 +310,15 @@ py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray)
 {
 
     //TODO: Delete when work/done testing:)
-    /*const auto M_opt = std::unordered_map<Trajectory, std::vector<Trajectory>>{
+    const auto M = std::unordered_map<Trajectory, std::vector<Trajectory>>{
                     {t(0, 0), {t(0, 0)}}, {t(1, 8), {t2(0, 7)}}, {t(9, 14), {t5(6, 11)}},
                     {t(15, 16), {t6(12, 13)}}, {t(17, 19), {t7(7, 9)}},
-                };*/
+                };
 
-    //std::vector<Trajectory> rawTrajs {t};
+    std::vector<Trajectory> rawTrajs {t};
     //Delete to here
     std::cout << "we not done it yet" << std::endl;
-    std::vector<Trajectory> rawTrajs = ndarrayToTrajectories(rawTrajectoryArray);
+    //std::vector<Trajectory> rawTrajs = ndarrayToTrajectories(rawTrajectoryArray); // TODO: uncomment this shit when done testing
     std::vector<Trajectory> refTrajs = ndarrayToTrajectories(refTrajectoryArray);
     std::cout << "we done it" << std::endl;
     std::vector<py::object> uncompressed_trajectories_dfs;
@@ -337,13 +329,13 @@ py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray)
     py::dict triples_dict;
     constexpr auto spatial_deviation_threshold = 0.9;
     constexpr auto temporal_deviation_threshold = 0.5;
-    auto distance_function = haversine_distance; //TODO: uncomment this shit when done testing
-    //auto distance_function = euclideanDistance;
+    //auto distance_function = haversine_distance; //TODO: uncomment this shit when done testing
+    auto distance_function = euclideanDistance;
 
     for (auto t : rawTrajs) {
         std::cout << "compressing Trajectory " << t.id << std::endl;
         std::cout << "performing MRT search" << std::endl;
-        const auto M = t.MRTSearch(refTrajs, spatial_deviation_threshold, distance_function); //TODO: uncomment when done testing
+        //const auto M = t.MRTSearch(refTrajs, spatial_deviation_threshold, distance_function); //TODO: uncomment when done testing
         std::cout << "MRT search done" << std::endl;
         std::cout << "performing OSTC" << std::endl;
         OSTCResult compressed = t.OSTC(M, temporal_deviation_threshold, spatial_deviation_threshold, distance_function);
@@ -351,18 +343,22 @@ py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray)
         all_references[t.id] = compressed.references;
 
         py::object uncompressed_trajectory = find_uncompressed_trajectory(compressed.time_corrections, compressed.references, t.id, used_points_from_ref_set);
+        std::cout << "find_uncompressed_trajectory done" << std::endl;
         uncompressed_trajectories_dfs.push_back(uncompressed_trajectory);
 
     }
     py::object uncompressed_trajectories_df = concat_dfs(uncompressed_trajectories_dfs);
                                                             // TODO: join/merge/concat uncompressed_trajectories med refTrajectoryArray, som er et ndarray. Burde kunne lade sig gøre, fordi uncompressed er en pd.df. kan laves til et ndarray i stedet for speed.
-
+    std::cout << "concat done" << std::endl;
 
 
     auto ref_set_df = build_ref_set_df(refTrajs, used_points_from_ref_set);
+    std::cout << "build_ref_set_df done" << std::endl;
     triples_dict = build_triples(all_references, used_points_from_ref_set);
+    std::cout << "build_triples done" << std::endl;
     std::vector<py::object> merged_dfs = {uncompressed_trajectories_df, ref_set_df};
     py::object merged_df = concat_dfs(merged_dfs);
+    std::cout << "concat_dfs done" << std::endl;
     // Update: My query fellas, say concat is good, so we use that
     // If not, we need to change  merge_uncompressed_and_ref_set, and use that one instead.
 
