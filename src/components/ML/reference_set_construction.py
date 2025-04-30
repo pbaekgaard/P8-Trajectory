@@ -17,7 +17,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from enum import Enum
 
 import tools.scripts._load_data as _load_data
-from components.ML.TrajectoryTransformer import TrajectoryTransformer
+from src.components.ML.TrajectoryTransformer import TrajectoryTransformer
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("device: ", device)

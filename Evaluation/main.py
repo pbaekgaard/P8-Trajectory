@@ -8,7 +8,7 @@ import pandas as pd
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../src/components")))
 
-import ostc
+# import ostc
 from _file_access_helper_functions import (find_newest_version,
                                            get_best_params,
                                            load_data_from_file, save_to_file)
@@ -23,29 +23,28 @@ from tools.scripts._convert_timestamp_to_unix import \
 from tools.scripts._load_data import count_trajectories
 from tools.scripts._preprocess import main as _load_data
 
-data = [
-            # Beijing Trajectories
-            [0, "2008-02-02 15:36:08", 116.51172, 39.92123],  # Trajectory 1
-            [0, "2008-02-02 15:40:10", 116.51222, 39.92173],
-            [0, "2008-02-02 16:00:00", 116.51372, 39.92323],
+data = [        # Beijing Trajectories
+    [0, 1201956968, 116.51172, 39.92123],  # Trajectory 1
+    [0, 1201958410, 116.51222, 39.92173],
+    [0, 1201965600, 116.51372, 39.92323],
 
-            [1, "2008-02-02 14:00:00", 116.50000, 39.90000],  # Trajectory 2
-            [1, "2008-02-02 14:15:00", 116.51000, 39.91000],
+    [1, 1201951200, 116.50000, 39.90000],  # Trajectory 2
+    [1, 1201952100, 116.51000, 39.91000],
 
-            [2, "2008-02-02 16:10:00", 116.55000, 39.95000],  # Trajectory 3
-            [2, "2008-02-02 16:12:00", 116.55200, 39.95200],
+    [2, 1201966200, 116.55000, 39.95000],  # Trajectory 3
+    [2, 1201966320, 116.55200, 39.95200],
 
-            [3, "2008-02-02 13:30:00", 116.50050, 39.91050],  # Trajectory 4
-            [3, "2008-02-02 13:45:00", 116.52050, 39.93050],
-            [3, "2008-02-02 14:00:00", 116.54050, 39.95050],
+    [3, 1201949400, 116.50050, 39.91050],  # Trajectory 4
+    [3, 1201950300, 116.52050, 39.93050],
+    [3, 1201951200, 116.54050, 39.95050],
 
-            [4, "2008-02-02 17:10:00", 116.57000, 39.97000],  # Trajectory 5
-            [4, "2008-02-02 17:15:00", 116.58000, 39.98000],
+    [4, 1201969800, 116.57000, 39.97000],  # Trajectory 5
+    [4, 1201970100, 116.58000, 39.98000],
 
-            [5, "2008-02-02 18:00:00", 116.59000, 39.99000],  # Trajectory 6
-            [5, "2008-02-02 18:05:00", 116.60000, 39.99200],
-            [5, "2008-02-02 18:10:00", 116.61000, 39.99300]
-        ]
+    [5, 1201972800, 116.59000, 39.99000],  # Trajectory 6
+    [5, 1201973100, 116.60000, 39.99200],
+    [5, 1201973400, 116.61000, 39.99300]
+]
 
 
 def mock_compressed_data(df_lol, reference_set_lol):
@@ -119,8 +118,8 @@ if __name__ == '__main__':
 
         if not os.path.exists(os.path.join(os.path.abspath(__file__), "..", "files", f"{version_number}-original_query_results.pkl")):
             print("Querying")
-            dataset = _load_data()
-            #dataset = _timestamp_conversion(pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"]))
+            # dataset = _load_data()
+            dataset = _timestamp_conversion(pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"]))
 
 
             query_original_dataset_time_start = time.perf_counter()
@@ -145,8 +144,8 @@ if __name__ == '__main__':
 
         if not os.path.exists(os.path.join(os.path.abspath(__file__), "..", "files", f"{version_number}-compressed_query_results.pkl")):
             print("Compressed querying")
-            #dataset = pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
-            dataset = dataset if dataset is not None else _load_data()
+            dataset = pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
+            # dataset = dataset if dataset is not None else _load_data()
 
             compression_time_start = time.perf_counter()
 
@@ -159,19 +158,19 @@ if __name__ == '__main__':
             compression_time_ml_end = time.perf_counter()
             ml_time = compression_time_ml_end - compression_time_start
 
-            # compressed_dataset, merged_df = mock_compressed_data(df, reference_set)
-            numpy_df = df.to_numpy()
-            numpy_ref_set = reference_set.to_numpy()
-            compressed_dataset, merged_df = ostc.compress(numpy_df, numpy_ref_set) # TODO: merged_df not implemented in c++ package yet.
+            compressed_dataset, merged_df = mock_compressed_data(df, reference_set)
+            # numpy_df = df.to_numpy()
+            # numpy_ref_set = reference_set.to_numpy()
+            # compressed_dataset, merged_df = ostc.compress(numpy_df, numpy_ref_set) # TODO: merged_df not implemented in c++ package yet.
             #TODO: compressed_dataset might be list of tuples depending on c++ implementation.
-            print(f"shape of compressed_dataset: {compressed_dataset.shape}")
+            # print(f"shape of compressed_dataset: {compressed_dataset.shape}")
             print(f"length of compressed_dataset: {len(compressed_dataset)}")
             compression_time_end = time.perf_counter()
             compression_time = compression_time_end - compression_time_ml_end
 
             query_compressed_dataset_time_start = time.perf_counter()
-            # query_result = query_compressed_dataset(compressed_dataset, merged_df, queries)
-            query_result = "sup digga" # TODO: spelling error needs fix
+            query_result = query_compressed_dataset(compressed_dataset, merged_df, queries)
+            # query_result = "sup digga" # TODO: spelling error needs fix
             query_compressed_dataset_time_end = time.perf_counter()
             query_compressed_dataset_time = query_compressed_dataset_time_end - query_compressed_dataset_time_start
 
@@ -181,7 +180,9 @@ if __name__ == '__main__':
                     "ml_time": ml_time,
                     "compression_time": compression_time,
                     "querying_time": query_compressed_dataset_time
-                }
+                },
+                "compressed_dataset": compressed_dataset,
+                "merged_dataset": merged_df,
             }
 
             save_to_file({
@@ -207,9 +208,10 @@ if __name__ == '__main__':
             "version": version_number
         })["data"]
 
-        dataset = dataset if dataset is not None else _load_data()
+        # dataset = dataset if dataset is not None else _load_data()
+        dataset = pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
 
-        accuracy, individual_accuracy_results = query_accuracy_evaluation(original_results, compressed_results, count_trajectories())
+        accuracy, individual_accuracy_results = query_accuracy_evaluation(original_results, compressed_results, dataset)
         accuracy : float
         individual_accuracy_results : List[float]
 

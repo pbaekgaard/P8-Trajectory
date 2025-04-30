@@ -4,11 +4,13 @@ import sys
 from typing import List, Optional
 
 import matplotlib.pyplot as plt
+import pandas as pd
 from matplotlib import rc, ticker
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__+"/../../")))
 
 from Evaluation._file_access_helper_functions import load_data_from_file
+from tools.scripts._preprocess import main as _load_data
 
 
 def visualize(evaluation_results: dict, only: List[str] = []) -> None:
@@ -32,7 +34,7 @@ def visualize(evaluation_results: dict, only: List[str] = []) -> None:
 
 
 
-    if("accuracy" in only or len(only) == 0):
+    if "accuracy" in only or len(only) == 0:
         # MOCK DATA
         n = 7
         raw = [random.uniform(-2, 2) for _ in range(n)]
@@ -52,10 +54,10 @@ def visualize(evaluation_results: dict, only: List[str] = []) -> None:
         plt.show()
 
 
-    if("compression_ratio" in only or len(only) == 0):
+    if "compression_ratio" in only or len(only) == 0:
         pass
 
-    if("times" in only or len(only) == 0):
+    if "times" in only or len(only) == 0:
         # MOCK DATA
         qorg_data_time = 10.0
         qcomp_data_time = 3.5
@@ -78,9 +80,56 @@ def visualize(evaluation_results: dict, only: List[str] = []) -> None:
         plt.show()
 
 
+def visualize_trajectories(visualize_dict: dict, only: List[str] = []) -> None:
+    compressed_dataset = visualize_dict["compressed"]
+    merged_df = visualize_dict["reference_set"]
+    original_dataset = visualize_dict["original"]
 
+    random_compressed_traj_key = random.choice(list(compressed_dataset))
+    random_compressed_traj_value = compressed_dataset[random_compressed_traj_key]
+    last_point = None
 
+    plt.figure(figsize=(8, 6))
+    plt.ylabel("Latitude")
+    plt.xlabel("Longitude")
+    color_of_original = "black"
 
+    original_trajectory_to_plot = original_dataset[original_dataset["trajectory_id"] == random_compressed_traj_key]
+    if "not_rest" in only or len(only) == 0:
+        for triple in random_compressed_traj_value:
+            ref_traj_id = triple[0]
+            start_index = triple[1]
+            end_index = triple[2]
+
+            trajectory_to_plot = merged_df[merged_df["trajectory_id"] == ref_traj_id].iloc[start_index:end_index + 1]
+            if last_point is not None:
+                list_to_plot = pd.concat([last_point, trajectory_to_plot.iloc[[0]]])
+                plt.plot(list_to_plot["longitude"], list_to_plot["latitude"], color='grey')
+
+            if ref_traj_id == random_compressed_traj_key:
+                plt.plot(trajectory_to_plot["longitude"], trajectory_to_plot["latitude"], color=color_of_original)
+            else:
+                plt.plot(trajectory_to_plot["longitude"], trajectory_to_plot["latitude"])
+
+            last_point = trajectory_to_plot.iloc[[-1]]
+
+        plt.plot(original_trajectory_to_plot["longitude"], original_trajectory_to_plot["latitude"], color=color_of_original)
+        plt.show()
+
+    if "rest" in only or len(only) == 0:
+        for triple in random_compressed_traj_value:
+            ref_traj_id = triple[0]
+            start_index = triple[1]
+            end_index = triple[2]
+
+            if ref_traj_id == random_compressed_traj_key: continue
+
+            trajectory_to_plot = merged_df[merged_df["trajectory_id"] == ref_traj_id].iloc[start_index:end_index + 1]
+
+            plt.plot(trajectory_to_plot["longitude"], trajectory_to_plot["latitude"])
+
+        plt.plot(original_trajectory_to_plot["longitude"], original_trajectory_to_plot["latitude"], color=color_of_original)
+        plt.show()
 
 
 if __name__ == "__main__":
@@ -94,12 +143,42 @@ if __name__ == "__main__":
         "version": 3
     })
     evaluation_results : dict = load_data_from_file({
-        "filename": "evaluation_results",
+        "filename": "evaluation",
         "version": 3
     })
     evaluation_results['query_original_dataset_time'] = org_query_res['times']['querying_time']
     evaluation_results['query_compressed_dataset_time'] = compressed_query_res['times']['querying_time']
     evaluation_results['compression_time'] = compressed_query_res['times']['ml_time'] + compressed_query_res['times']['compression_time']
- 
+
+    visualize_traj_dict = {}
+
+    visualize_traj_dict["compressed"] = compressed_query_res["compressed_dataset"]
+    visualize_traj_dict["reference_set"] = compressed_query_res["merged_dataset"]
+    visualize_traj_dict["original"] = _load_data()
+
+    # MOCK DATA
+#     visualize_traj_dict["original"] = pd.DataFrame([
+#     [0, 1201956968, 116.51172, 39.92123],  # Trajectory 1
+#     [0, 1201958410, 116.51222, 39.92173],
+#     [0, 1201965600, 116.51372, 39.92323],
+#
+#     [1, 1201951200, 116.50000, 39.90000],  # Trajectory 2
+#     [1, 1201952100, 116.51000, 39.91000],
+#
+#     [2, 1201966200, 116.55000, 39.95000],  # Trajectory 3
+#     [2, 1201966320, 116.55200, 39.95200],
+#
+#     [3, 1201949400, 116.50050, 39.91050],  # Trajectory 4
+#     [3, 1201950300, 116.52050, 39.93050],
+#     [3, 1201951200, 116.54050, 39.95050],
+#
+#     [4, 1201969800, 116.57000, 39.97000],  # Trajectory 5
+#     [4, 1201970100, 116.58000, 39.98000],
+#
+#     [5, 1201972800, 116.59000, 39.99000],  # Trajectory 6
+#     [5, 1201973100, 116.60000, 39.99200],
+#     [5, 1201973400, 116.61000, 39.99300]
+# ], columns=["trajectory_id", "timestamp", "longitude", "latitude"])
 
     visualize(evaluation_results)
+    visualize_trajectories(visualize_traj_dict)

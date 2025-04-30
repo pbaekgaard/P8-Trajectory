@@ -36,7 +36,7 @@ def query_accuracy_evaluation(y_true, y_pred, original_df):
     # print("window accuracy done")
 
     # TODO: Return all results so we can visualize the individual query type
-    return sum(accuracy_results) / len(accuracy_results), accuracy_results
+    return sum(accuracy_result[1] for accuracy_result in accuracy_results) / len(accuracy_results), accuracy_results
 
 
 def where_query_accuracy_evaluation(y_true, y_pred, original_df):
