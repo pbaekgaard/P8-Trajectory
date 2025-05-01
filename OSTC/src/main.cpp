@@ -310,15 +310,15 @@ py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray)
 {
 
     //TODO: Delete when work/done testing:)
-    const auto M = std::unordered_map<Trajectory, std::vector<Trajectory>>{
+    /*const auto M = std::unordered_map<Trajectory, std::vector<Trajectory>>{
                     {t(0, 0), {t(0, 0)}}, {t(1, 8), {t2(0, 7)}}, {t(9, 14), {t5(6, 11)}},
                     {t(15, 16), {t6(12, 13)}}, {t(17, 19), {t7(7, 9)}},
-                };
+                };*/
 
-    std::vector<Trajectory> rawTrajs {t};
+    // std::vector<Trajectory> rawTrajs {t};
     //Delete to here
     std::cout << "we not done it yet" << std::endl;
-    //std::vector<Trajectory> rawTrajs = ndarrayToTrajectories(rawTrajectoryArray); // TODO: uncomment this shit when done testing
+    std::vector<Trajectory> rawTrajs = ndarrayToTrajectories(rawTrajectoryArray); // TODO: uncomment this shit when done testing
     std::vector<Trajectory> refTrajs = ndarrayToTrajectories(refTrajectoryArray);
     std::cout << "we done it" << std::endl;
     std::vector<py::object> uncompressed_trajectories_dfs;
@@ -329,13 +329,13 @@ py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray)
     py::dict triples_dict;
     constexpr auto spatial_deviation_threshold = 0.9;
     constexpr auto temporal_deviation_threshold = 0.5;
-    //auto distance_function = haversine_distance; //TODO: uncomment this shit when done testing
-    auto distance_function = euclideanDistance;
+    auto distance_function = haversine_distance; //TODO: uncomment this shit when done testing
+    //auto distance_function = euclideanDistance;
 
     for (auto t : rawTrajs) {
         std::cout << "compressing Trajectory " << t.id << std::endl;
         std::cout << "performing MRT search" << std::endl;
-        //const auto M = t.MRTSearch(refTrajs, spatial_deviation_threshold, distance_function); //TODO: uncomment when done testing
+        const auto M = t.MRTSearch(refTrajs, spatial_deviation_threshold, distance_function); //TODO: uncomment when done testing
         std::cout << "MRT search done" << std::endl;
         std::cout << "performing OSTC" << std::endl;
         OSTCResult compressed = t.OSTC(M, temporal_deviation_threshold, spatial_deviation_threshold, distance_function);
