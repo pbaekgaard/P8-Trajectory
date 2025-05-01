@@ -172,7 +172,7 @@ py::object find_uncompressed_trajectory(std::unordered_map<Trajectory, std::vect
             auto found_trajectory_id = used_points_from_ref_set.find(triple.id);
             if (found_trajectory_id != used_points_from_ref_set.end())
             {
-                for (auto i = 0; i <= triple.end_index; i++)
+                for (auto i = triple.start_index; i <= triple.end_index; i++)
                 {
                     // If point already exists only add time_correction
                     auto &traj = found_trajectory_id->second;
@@ -215,7 +215,7 @@ py::object find_uncompressed_trajectory(std::unordered_map<Trajectory, std::vect
             else
             {
                 std::unordered_map<int, std::unordered_map<uint32_t, int>> new_traj;
-                for (auto i = 0; i <= triple.end_index; i++)
+                for (auto i = triple.start_index; i <= triple.end_index; i++)
                 {
                     if (time_correction != time_cors.end()) {
                         auto time_correction_entries = time_correction->second;
@@ -228,6 +228,9 @@ py::object find_uncompressed_trajectory(std::unordered_map<Trajectory, std::vect
                         if (found_time_correction != time_correction_entries.end()) {
                             //new_traj[i].push_back(std::make_pair(id, found_time_correction->corrected_timestamp));
                             new_traj[i][id] = found_time_correction->corrected_timestamp;
+                        }
+                        else {
+                            new_traj[i][id] = {};
                         }
                     }
                 }
@@ -257,8 +260,10 @@ std::unordered_map<int, std::unordered_map<int, std::unordered_map<uint32_t, int
 
     std::cout << "u_p_f_r_s : " << std::endl;
     for (auto [id, points_and_corrections] : used_points_from_ref_set) {
-        for ( auto [inner_id, points_and_corrections] : points_and_corrections ) {
-            std::cout << "id: " << inner_id << std::endl;
+        std::cout << "outer id: " << id << std::endl;
+        std::cout << "points_and_corrections.size: " << points_and_corrections.size() << std::endl;
+        for ( auto [point_id, point_corrections] : points_and_corrections ) {
+            std::cout << "point id: " << point_id << std::endl;
         }
     }
 
@@ -270,7 +275,6 @@ std::unordered_map<int, std::unordered_map<int, std::unordered_map<uint32_t, int
             });
 
             if (found_ref_traj != ref_trajectories.end()) {
-                std::cout << "id: " << found_ref_traj->id << std::endl;
                 ids.append(traj_id);
 
                 auto point = found_ref_traj->points[point_id];
@@ -355,7 +359,7 @@ py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray)
     std::unordered_map<int, std::unordered_map<int, std::unordered_map<uint32_t, int>>> used_points_from_ref_set{};
     std::unordered_map<int, std::vector<Trajectory>> all_references;
     py::dict triples_dict;
-    constexpr auto temporal_deviation_threshold = 6000;
+    constexpr auto temporal_deviation_threshold = 0.5;
     auto distance_function = haversine_distance; //TODO: uncomment this shit when done testing
     constexpr auto spatial_deviation_threshold = 20000;
     //auto distance_function = euclideanDistance;
