@@ -134,11 +134,16 @@ py::object find_uncompressed_trajectory(std::unordered_map<Trajectory, std::vect
 {
     py::list ids, lats, lons, timestamps, corrections;
     int counter = 0;
+    std::cout << std::endl << std::endl << std::endl;
+    std::cout << id << std::endl;
+
 
     for (Trajectory &triple : T_prime)
     {
+        std::cout << "triple: " <<triple << std::endl;
         if (triple.id == id)
         {
+            std::cout << "we in" << std::endl;
             triple.end_index = counter + (triple.end_index - triple.start_index);
             triple.start_index = counter;
 
@@ -223,6 +228,8 @@ py::object find_uncompressed_trajectory(std::unordered_map<Trajectory, std::vect
         }
     }
     py::dict data;
+
+    std::cout << "size ids: " << ids.size() << std::endl;
     data["trajectory_id"] = ids;
     data["latitude"] = lats;
     data["longitude"] = lons;
@@ -317,10 +324,11 @@ py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray)
 
     // std::vector<Trajectory> rawTrajs {t};
     //Delete to here
-    std::cout << "we not done it yet" << std::endl;
+    std::cout << "we not done it       yet" << std::endl;
     std::vector<Trajectory> rawTrajs = ndarrayToTrajectories(rawTrajectoryArray); // TODO: uncomment this shit when done testing
     std::vector<Trajectory> refTrajs = ndarrayToTrajectories(refTrajectoryArray);
-    std::cout << "we done it" << std::endl;
+    std::cout << "rawTrajs size: " << rawTrajs.size() << std::endl;
+    std::cout << "refTrajs size: " << refTrajs.size() << std::endl;
     std::vector<py::object> uncompressed_trajectories_dfs;
     std::vector<OSTCResult> compressedTrajectories{};
     std::vector<py::object> trajectory_dfs{};
@@ -340,21 +348,23 @@ py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray)
         std::cout << "performing OSTC" << std::endl;
         OSTCResult compressed = t.OSTC(M, temporal_deviation_threshold, spatial_deviation_threshold, distance_function);
         std::cout << "OSTC done" << std::endl;
+        std::cout << "" << std::endl;
+
         all_references[t.id] = compressed.references;
-
         py::object uncompressed_trajectory = find_uncompressed_trajectory(compressed.time_corrections, compressed.references, t.id, used_points_from_ref_set);
-        std::cout << "find_uncompressed_trajectory done" << std::endl;
+        std::cout << "uncompressed: " << uncompressed_trajectory << std::endl;
         uncompressed_trajectories_dfs.push_back(uncompressed_trajectory);
-
     }
     py::object uncompressed_trajectories_df = concat_dfs(uncompressed_trajectories_dfs);
                                                             // TODO: join/merge/concat uncompressed_trajectories med refTrajectoryArray, som er et ndarray. Burde kunne lade sig gøre, fordi uncompressed er en pd.df. kan laves til et ndarray i stedet for speed.
     std::cout << "concat done" << std::endl;
-
+    std::cout << "uncompressed: " << uncompressed_trajectories_df << std::endl;
 
     auto ref_set_df = build_ref_set_df(refTrajs, used_points_from_ref_set);
+    std::cout << "ref set: " << ref_set_df << std::endl;
     std::cout << "build_ref_set_df done" << std::endl;
     triples_dict = build_triples(all_references, used_points_from_ref_set);
+    std::cout << "triples: " << triples_dict << std::endl;
     std::cout << "build_triples done" << std::endl;
     std::vector<py::object> merged_dfs = {uncompressed_trajectories_df, ref_set_df};
     py::object merged_df = concat_dfs(merged_dfs);
