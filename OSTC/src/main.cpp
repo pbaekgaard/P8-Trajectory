@@ -60,6 +60,14 @@ std::vector<Trajectory> ndarrayToTrajectories(py::object array)
     for (const auto& [id, points] : traject_dict) {
         trajectories.push_back(Trajectory(id, points));
     }
+    std::cout << "trajectory output from ndarray" << std::endl;
+    for (const auto trajectory  : trajectories) {
+        std:: cout << trajectory.id << std::endl;
+        for (const auto& point : trajectory.points) {
+            std::cout << point << std::endl;
+        }
+    }
+
     return trajectories;
 }
 
@@ -245,6 +253,15 @@ std::unordered_map<int, std::unordered_map<int, std::unordered_map<uint32_t, int
 {
     py::list ids, lats, lons, timestamps, corrections;
 
+    std::cout << "u_p_f_r_s size : " << used_points_from_ref_set.size() << std::endl;
+
+    std::cout << "u_p_f_r_s : " << std::endl;
+    for (auto [id, points_and_corrections] : used_points_from_ref_set) {
+        for ( auto [inner_id, points_and_corrections] : points_and_corrections ) {
+            std::cout << "id: " << inner_id << std::endl;
+        }
+    }
+
     for (const auto &[traj_id, points_and_corrections_map] : used_points_from_ref_set) {
         for (const auto &[point_id, point_corrections] : points_and_corrections_map){
 
@@ -253,6 +270,7 @@ std::unordered_map<int, std::unordered_map<int, std::unordered_map<uint32_t, int
             });
 
             if (found_ref_traj != ref_trajectories.end()) {
+                std::cout << "id: " << found_ref_traj->id << std::endl;
                 ids.append(traj_id);
 
                 auto point = found_ref_traj->points[point_id];
@@ -274,6 +292,8 @@ std::unordered_map<int, std::unordered_map<int, std::unordered_map<uint32_t, int
     data["longitude"] = lons;
     data["timestamp"] = timestamps;
     data["timestamp_corrected"] = corrections;
+
+
 
     py::module_ pd = py::module_::import("pandas");
     return pd.attr("DataFrame")(data);
@@ -335,9 +355,9 @@ py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray)
     std::unordered_map<int, std::unordered_map<int, std::unordered_map<uint32_t, int>>> used_points_from_ref_set{};
     std::unordered_map<int, std::vector<Trajectory>> all_references;
     py::dict triples_dict;
-    constexpr auto spatial_deviation_threshold = 0.9;
-    constexpr auto temporal_deviation_threshold = 0.5;
+    constexpr auto temporal_deviation_threshold = 6000;
     auto distance_function = haversine_distance; //TODO: uncomment this shit when done testing
+    constexpr auto spatial_deviation_threshold = 20000;
     //auto distance_function = euclideanDistance;
 
     for (auto t : rawTrajs) {
@@ -351,6 +371,11 @@ py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray)
         std::cout << "" << std::endl;
 
         all_references[t.id] = compressed.references;
+
+        for (auto &traj : compressed.references) {
+            std::cout << "adding Trajectory " << traj.id << std::endl;
+        }
+
         py::object uncompressed_trajectory = find_uncompressed_trajectory(compressed.time_corrections, compressed.references, t.id, used_points_from_ref_set);
         std::cout << "uncompressed: " << uncompressed_trajectory << std::endl;
         uncompressed_trajectories_dfs.push_back(uncompressed_trajectory);

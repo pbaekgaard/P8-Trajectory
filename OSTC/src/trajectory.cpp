@@ -147,6 +147,9 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
 
 OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajectory>> M, const double tepsilon, const double sepsilon, std::function<double(SamplePoint const& a, SamplePoint const& b)> distance_function)
 {
+
+    std::cout << "M.size inside ostc: " << M.size() << std::endl;
+
     // Ensure we only keep the first reference for each query
     std::unordered_map<Trajectory, std::vector<Trajectory>> simplified_M;
     for (auto& [query_traj, ref_trajs] : M) {
@@ -224,6 +227,11 @@ OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajector
         }
     }
     std::reverse(T_prime.begin(), T_prime.end());
+
+    std::cout << std::endl << std::endl << "T_prime from ostc:" << std::endl;
+    for (auto& T : T_prime) {
+        std::cout << T << std::endl;
+    }
 
     return {T_prime, time_correction_record};
 }
