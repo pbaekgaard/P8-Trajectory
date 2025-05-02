@@ -348,11 +348,8 @@ py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray)
 
     // std::vector<Trajectory> rawTrajs {t};
     //Delete to here
-    std::cout << "we not done it       yet" << std::endl;
     std::vector<Trajectory> rawTrajs = ndarrayToTrajectories(rawTrajectoryArray); // TODO: uncomment this shit when done testing
     std::vector<Trajectory> refTrajs = ndarrayToTrajectories(refTrajectoryArray);
-    std::cout << "rawTrajs size: " << rawTrajs.size() << std::endl;
-    std::cout << "refTrajs size: " << refTrajs.size() << std::endl;
     std::vector<py::object> uncompressed_trajectories_dfs;
     std::vector<OSTCResult> compressedTrajectories{};
     std::vector<py::object> trajectory_dfs{};

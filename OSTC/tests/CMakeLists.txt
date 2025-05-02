@@ -11,10 +11,15 @@ file(GLOB_RECURSE Sources
 # Add an executable for the tests
 add_executable(${This} ${Sources})
 
+find_package(Python3 REQUIRED COMPONENTS Development)
+
 # Link to the required libraries
 target_link_libraries(${This} PUBLIC
     gtest_main
     ostc_lib
+    pybind11::module
+    Python3::Python
+
 )
 
 # Add a CTest to run the tests
