@@ -8,7 +8,7 @@ import pandas as pd
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../src/components")))
 
-# import ostc
+import ostc
 from _file_access_helper_functions import (find_newest_version,
                                            get_best_params,
                                            load_data_from_file, save_to_file)
