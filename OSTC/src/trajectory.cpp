@@ -218,15 +218,6 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
 
 OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajectory>> M, const double tepsilon, const double sepsilon, std::function<double(SamplePoint const& a, SamplePoint const& b)> distance_function)
 {
-    // // Ensure we only keep the first reference for each query
-    // std::unordered_map<Trajectory, std::vector<Trajectory>> simplified_M;
-    // for (auto& [query_traj, ref_trajs] : M) {
-    //     if (!ref_trajs.empty()) {
-    //         simplified_M[query_traj] = {ref_trajs[0]};
-    //     }
-    // }
-    // M = simplified_M;
-
     std::unordered_map<Trajectory, int> time_correction_cost{};
     std::unordered_map<Trajectory, std::vector<TimeCorrectionRecordEntry>> time_correction_record{};
     auto c = 4;
@@ -270,28 +261,23 @@ OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajector
     std::vector<Trajectory> T_prime;
 
     for (size_t i = 1; i <= points.size(); ++i) {
-        // int min_cost = Ft[i - 1] + 12;
-        int min_cost = 8 * points.size();
+        int min_cost = Ft[i - 1] + 12;
 
         for (size_t j = 1; j <= i; ++j) {
             Trajectory sub_traj = (*this)(j - 1, i - 1);
             auto it = M.find(sub_traj);
             if (it != M.end() && !it->second.empty()) {
-                auto time_correction_cost_lookup = std::numeric_limits<int>::max();
-                for (auto traj : it->second) {
-                    time_correction_cost_lookup = std::min(time_correction_cost_lookup, Ft[j-1] + time_correction_cost.find(traj)->second);
-                }
-                int cost = std::min(Ft[i - 1] + 12, time_correction_cost_lookup + 8);
+                auto time_correction_cost_lookup = time_correction_cost.find(it->second[0])->second;
+                int cost = std::min(Ft[i - 1] + 12, Ft[j - 1] + time_correction_cost_lookup + 8);
 
                 if (cost < min_cost) {
                     min_cost = cost;
-                    pre[i] = j-1;
+                    pre[i] = j - 1;
                 }
             }
         }
         Ft[i] = min_cost;
     }
-
 
     int i = points.size();
     while (i > 0) {
@@ -311,6 +297,7 @@ OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajector
 
     return {T_prime, time_correction_record};
 }
+
 
 void convertCompressedTrajectoriesToPoints(std::vector<CompressedResult>& points, const Trajectory& trajectory_to_be_compressed, OSTCResult compressed)
 {

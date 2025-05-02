@@ -8,7 +8,7 @@ import pandas as pd
 # Suppress FutureWarnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/raw/taxi_log_2008_by_id"))
-PKL_DATA_DIR = os.path.abspath(os.path.join("../../data", "orignial_data.pkl"))
+PKL_DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data", "orignial_data.pkl"))
 COMPRESSED_DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/compressed_data"))
 
 

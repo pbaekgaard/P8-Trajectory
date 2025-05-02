@@ -8,7 +8,7 @@ import pandas as pd
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../src/components")))
 
-# import ostc
+import ostc
 from _file_access_helper_functions import (find_newest_version,
                                            get_best_params,
                                            load_data_from_file, save_to_file)
@@ -162,15 +162,12 @@ if __name__ == '__main__':
             numpy_df = df.to_numpy()
             numpy_ref_set = reference_set.to_numpy()
             compressed_dataset, merged_df = ostc.compress(numpy_df, numpy_ref_set) # TODO: merged_df not implemented in c++ package yet.
-            # TODO: compressed_dataset might be list of tuples depending on c++ implementation.
-            print(f"shape of compressed_dataset: {compressed_dataset.shape}")
-            print(f"length of compressed_dataset: {len(compressed_dataset)}")
+            #TODO: compressed_dataset might be list of tuples depending on c++ implementation.
             compression_time_end = time.perf_counter()
             compression_time = compression_time_end - compression_time_ml_end
 
             query_compressed_dataset_time_start = time.perf_counter()
             query_result = query_compressed_dataset(compressed_dataset, merged_df, queries)
-            # query_result = "sup digga" # TODO: spelling error needs fix
             query_compressed_dataset_time_end = time.perf_counter()
             query_compressed_dataset_time = query_compressed_dataset_time_end - query_compressed_dataset_time_start
 
