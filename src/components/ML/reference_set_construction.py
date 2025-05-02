@@ -101,7 +101,7 @@ def df_to_tensor(df: pd.DataFrame):
     return batch_tensor, mask_tensor
 
 
-def visualize_in_PCA(df, trajectory_representations: np.ndarray, representative_indices: np.ndarray, reference_set: List, clusteringMethod: ClusteringMethod):
+def visualize_in_PCA(df, trajectory_representations: np.ndarray, representative_indices: np.ndarray, reference_set: List, clusteringMethod: ClusteringMethod, length: str=None):
     """
     Visualizes the trajectory embeddings in 2D using PCA and labels them with their indices.
 
@@ -128,14 +128,17 @@ def visualize_in_PCA(df, trajectory_representations: np.ndarray, representative_
         edgecolors="black", s=150, marker="X"
     )
 
+    # We need to add one to the representative_indices because they are 0 indexed but our traj_ids are 1 indexed
+    traj_ids = np.sort(np.concatenate((df["trajectory_id"].unique(), (representative_indices + 1))))
+
     # Add trajectory indices as labels
     for i, (x, y) in enumerate(trajectory_pca):
-        plt.text(x, y, str(i) + ":" + str(df['trajectory_id'].unique()[i]), fontsize=10, ha='right', va='bottom', color='black')
+        plt.text(x, y, str(i) + ":" + str(traj_ids[i]), fontsize=10, ha='right', va='bottom', color='black')
 
     # Labels and legend
     plt.xlabel("PCA Component 1")
     plt.ylabel("PCA Component 2")
-    plt.title("Trajectory Embeddings Visualized with PCA using " + clusteringMethod.name)
+    plt.title("Trajectory Embeddings Visualized with PCA using " + clusteringMethod.name + " for " + length)
     plt.legend()
     plt.grid(True)
     plt.show()

@@ -87,7 +87,7 @@ def main(only=None):
             'limit_samplerate': 'Limiting to avg. Sample Rate',
             'remove_illegal':  'Remove illegal coordinates.',
             'convert_timestamp_to_unix': 'Convert timestamp to unix.',
-            'ten_trajectories': 'taking 10 trajectories',
+            'take_10_trajectories': 'taking 10 trajectories',
             'trajectory_length': 'trajectory length'
         }
 
