@@ -1,9 +1,0 @@
-batch_size: [5, 10]
-d_model: [64, 128]
-num_heads: [2, 4]
-num_layers: [2, 3]
-clustering_method: ["KMEDOIDS", "AGGLOMERATIVE"]
-clustering_param:
-  KMEDOIDS: [500, 1000]
-  AGGLOMERATIVE: [0.25, 0.5]
-clustering_metric: ["euclidean"]
