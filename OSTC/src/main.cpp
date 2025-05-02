@@ -359,7 +359,7 @@ py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray)
     std::unordered_map<int, std::unordered_map<int, std::unordered_map<uint32_t, int>>> used_points_from_ref_set{};
     std::unordered_map<int, std::vector<Trajectory>> all_references;
     py::dict triples_dict;
-    constexpr auto temporal_deviation_threshold = 0.5;
+    constexpr auto temporal_deviation_threshold = 60;
     auto distance_function = haversine_distance; //TODO: uncomment this shit when done testing
     constexpr auto spatial_deviation_threshold = 20000;
     //auto distance_function = euclideanDistance;
