@@ -159,8 +159,8 @@ if __name__ == '__main__':
             ml_time = compression_time_ml_end - compression_time_start
 
             # compressed_dataset, merged_df = mock_compressed_data(df, reference_set)
-            numpy_df = df.to_numpy()
-            numpy_ref_set = reference_set.to_numpy()
+            numpy_df = df.to_records()
+            numpy_ref_set = reference_set.to_records()
             compressed_dataset, merged_df = ostc.compress(numpy_df, numpy_ref_set) # TODO: merged_df not implemented in c++ package yet.
             #TODO: compressed_dataset might be list of tuples depending on c++ implementation.
             compression_time_end = time.perf_counter()

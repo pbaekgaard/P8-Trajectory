@@ -12,8 +12,8 @@ std::vector<Trajectory> ndarrayToTrajectories(py::object array)
     std::unordered_map<int, std::vector<SamplePoint>> traject_dict;
     for (const auto& row_handle : py_list) {
         auto row = row_handle.cast<py::list>();  // Cast to py::list
-        int id = row[0].cast<float>();
-        auto timestamp = row[1].cast<float>();
+        int id = row[0].cast<int>();
+        auto timestamp = row[1].cast<int>();
         auto longitude = row[2].cast<float>();
         auto latitude = row[3].cast<float>();
         auto point = SamplePoint(latitude, longitude, timestamp);

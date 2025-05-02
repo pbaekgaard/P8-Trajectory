@@ -12,18 +12,16 @@ file(GLOB_RECURSE Sources
 add_executable(${This} ${Sources})
 
 find_package(Python COMPONENTS Interpreter Development REQUIRED)
-
-pybind11_add_module(pybind
-        compress/compress_tests.cpp  # Contains the pybind11 module definition
+include_directories(
+        ../extern/pybind11/include
 )
 
 # Link to the required libraries
 target_link_libraries(${This} PUBLIC
         gtest_main
         ostc_lib
-        pybind11::module
-        Python3::Python
-
+        pybind11::pybind11
+        Python::Python
 )
 
 # Add a CTest to run the tests
