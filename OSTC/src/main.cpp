@@ -36,40 +36,11 @@ void run_example()
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
+#include <compress.hpp>
 
 namespace py = pybind11;
 // Custom format descriptor for std::tuple<int, std::string, double, double>
 void say_hello() { std::cout << "Hello From C++!" << std::endl; }
-
-std::vector<Trajectory> ndarrayToTrajectories(py::object array)
-{
-    // Convert the Python object to a list of lists
-    auto py_list = array.cast<py::list>();
-    std::vector<Trajectory> trajectories;
-    std::unordered_map<int, std::vector<SamplePoint>> traject_dict;
-    for (const auto& row_handle : py_list) {
-        auto row = row_handle.cast<py::list>();  // Cast to py::list
-        int id = row[0].cast<float>();
-        auto timestamp = row[1].cast<float>();
-        auto longitude = row[2].cast<float>();
-        auto latitude = row[3].cast<float>();
-        auto point = SamplePoint(latitude, longitude, timestamp);
-
-        traject_dict[id].push_back(point);
-    }
-    for (const auto& [id, points] : traject_dict) {
-        trajectories.push_back(Trajectory(id, points));
-    }
-    std::cout << "trajectory output from ndarray" << std::endl;
-    for (const auto trajectory  : trajectories) {
-        std:: cout << trajectory.id << std::endl;
-        for (const auto& point : trajectory.points) {
-            std::cout << point << std::endl;
-        }
-    }
-
-    return trajectories;
-}
 
 void print_numpy(py::object array)
 {
@@ -148,14 +119,12 @@ py::object find_uncompressed_trajectory(std::unordered_map<Trajectory, std::vect
 
     for (Trajectory &triple : T_prime)
     {
-        std::cout << "triple: " <<triple << std::endl;
         if (triple.id == id)
         {
-            std::cout << "we in" << std::endl;
             triple.end_index = counter + (triple.end_index - triple.start_index);
             triple.start_index = counter;
 
-            for (auto i = 0; i <= triple.end_index; i++)
+            for (auto i = triple.start_index; i <= triple.end_index; i++)
             {
                 ids.append(id);
                 lats.append(triple.points[i].latitude);
@@ -348,11 +317,10 @@ py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray)
 
     // std::vector<Trajectory> rawTrajs {t};
     //Delete to here
-    std::cout << "we not done it       yet" << std::endl;
+
+
     std::vector<Trajectory> rawTrajs = ndarrayToTrajectories(rawTrajectoryArray); // TODO: uncomment this shit when done testing
     std::vector<Trajectory> refTrajs = ndarrayToTrajectories(refTrajectoryArray);
-    std::cout << "rawTrajs size: " << rawTrajs.size() << std::endl;
-    std::cout << "refTrajs size: " << refTrajs.size() << std::endl;
     std::vector<py::object> uncompressed_trajectories_dfs;
     std::vector<OSTCResult> compressedTrajectories{};
     std::vector<py::object> trajectory_dfs{};
@@ -361,7 +329,7 @@ py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray)
     py::dict triples_dict;
     constexpr auto temporal_deviation_threshold = 60;
     auto distance_function = haversine_distance; //TODO: uncomment this shit when done testing
-    constexpr auto spatial_deviation_threshold = 20000;
+    constexpr auto spatial_deviation_threshold = 200;
     //auto distance_function = euclideanDistance;
 
     for (auto t : rawTrajs) {
