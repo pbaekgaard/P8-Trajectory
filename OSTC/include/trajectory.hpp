@@ -66,6 +66,7 @@ struct Trajectory
     Trajectory(const uint32_t id, const std::vector<SamplePoint>& points, int start_index, int end_index);
 
     Trajectory operator()(int start, int end);
+    Trajectory operator()(int start, int end) const;
     bool operator<(const Trajectory& other) const;
 
     Trajectory operator+(Trajectory other);
@@ -84,6 +85,15 @@ struct Trajectory
 
     std::unordered_map<Trajectory, std::vector<Trajectory>> MRTSearch(std::vector<Trajectory>& RefSet, double epsilon, std::function<double(SamplePoint const& a,SamplePoint const & b)> distance_function);
     OSTCResult OSTC(std::unordered_map<Trajectory, std::vector<Trajectory>> M, double tepsilon, double sepsilon, std::function<double(SamplePoint const& a, SamplePoint const& b)> distance_function);
+};
+
+struct TrajectoryRemoval
+{
+    const Trajectory query_trajectory;
+    Trajectory trajectory_to_remove;
+
+    TrajectoryRemoval(const Trajectory query_traj, Trajectory trajectory_to_remove):
+        query_trajectory(query_traj), trajectory_to_remove(trajectory_to_remove) {}
 };
 
 template <>

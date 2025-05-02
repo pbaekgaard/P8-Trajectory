@@ -11,7 +11,7 @@
 
 void run_example()
 {
-    constexpr auto spatial_deviation_threshold = 0.9;
+    constexpr auto spatial_deviation_threshold = 1.0;
     constexpr auto temporal_deviation_threshold = 0.5;
     std::vector<Trajectory> RefSet{t1, t2, t3(2, 14), t4, t5, t6, t7};
     auto distance_function = euclideanDistance;
