@@ -51,8 +51,8 @@ std::vector<Trajectory> ndarrayToTrajectories(py::object array)
         auto row = row_handle.cast<py::list>();  // Cast to py::list
         int id = row[0].cast<float>();
         auto timestamp = row[1].cast<float>();
-        auto latitude = row[2].cast<float>();
-        auto longitude = row[3].cast<float>();
+        auto longitude = row[2].cast<float>();
+        auto latitude = row[3].cast<float>();
         auto point = SamplePoint(latitude, longitude, timestamp);
 
         traject_dict[id].push_back(point);
