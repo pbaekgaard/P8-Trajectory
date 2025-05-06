@@ -268,7 +268,7 @@ py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray)
         all_compressed_results[t.id] = compressed;
     }
 
-    triples_dict = build_triples_and_unreferenced_df(all_compressed_results, refTrajectoryArray);
+    auto (triples_dict, unreferenced_df) = build_triples_and_unreferenced_df(all_compressed_results, refTrajectoryArray);
 
     py::object uncompressed_trajectories_df = concat_dfs(uncompressed_trajectories_dfs);
                                                             // TODO: join/merge/concat uncompressed_trajectories med refTrajectoryArray, som er et ndarray. Burde kunne lade sig gøre, fordi uncompressed er en pd.df. kan laves til et ndarray i stedet for speed.
