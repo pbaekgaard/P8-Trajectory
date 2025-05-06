@@ -108,6 +108,7 @@ void test_compression_to_pandas()
 
 std::tuple<py::dict, py::object> build_triples_and_unreferenced_df(std::unordered_map<int, OSTCResult>& compressed_results, py::object& numpy_reference_set)
 {
+    // returns all triples and full unreferenced_df. Takes input of compressed results (triples before they are made into python syntax). Also updates numpy reference_set with time corrections
     py::dict data;
     py::list ids, lats, lons, timestamps, corrections;
     py::dict all_triples;
@@ -267,7 +268,7 @@ py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray)
         all_compressed_results[t.id] = compressed;
     }
 
-    triples_dict = build_triples(all_compressed_results, refTrajectoryArray)
+    triples_dict = build_triples_and_unreferenced_df(all_compressed_results, refTrajectoryArray);
 
     py::object uncompressed_trajectories_df = concat_dfs(uncompressed_trajectories_dfs);
                                                             // TODO: join/merge/concat uncompressed_trajectories med refTrajectoryArray, som er et ndarray. Burde kunne lade sig gøre, fordi uncompressed er en pd.df. kan laves til et ndarray i stedet for speed.
