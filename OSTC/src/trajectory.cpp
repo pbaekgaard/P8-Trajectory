@@ -252,7 +252,7 @@ OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajector
             } else {
                 t = std::max(a_i.timestamp, previousTimeStamp);
                 time_correction_cost[ref] += c;
-                time_correction_record[ref].emplace_back(i, t);
+                time_correction_record[ref].emplace_back(MRT.first.id, ref.start_index + i, t);
             }
         }
     }

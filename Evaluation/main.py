@@ -107,7 +107,7 @@ if __name__ == '__main__':
             version_number = find_newest_version() + 1
 
         # create all that does not exist
-        if not os.path.exists(os.path.join(os.path.abspath(__file__), "..", "files", f"{version_number}-queries_for_evaluation.pkl")):
+        if not os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "files", f"{version_number}-queries_for_evaluation.pkl")):
             print("Query creation")
             create_queries(amount_of_individual_queries=1, version=version_number)
         queries = load_data_from_file({
@@ -116,7 +116,7 @@ if __name__ == '__main__':
         })
         #queries = dummy_create_queries()
 
-        if not os.path.exists(os.path.join(os.path.abspath(__file__), "..", "files", f"{version_number}-original_query_results.pkl")):
+        if not os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "files", f"{version_number}-original_query_results.pkl")):
             print("Querying")
             dataset = _load_data()
             #dataset = _timestamp_conversion(pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"]))
@@ -142,9 +142,9 @@ if __name__ == '__main__':
                 "version": version_number
             }, result)
 
-        if not os.path.exists(os.path.join(os.path.abspath(__file__), "..", "files", f"{version_number}-compressed_query_results.pkl")):
+        if not os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "files", f"{version_number}-compressed_query_results.pkl")):
             print("Compressed querying")
-            # dataset = pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
+            #dataset = pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
             dataset = dataset if dataset is not None else _load_data()
 
             compression_time_start = time.perf_counter()
@@ -161,8 +161,7 @@ if __name__ == '__main__':
             # compressed_dataset, merged_df = mock_compressed_data(df, reference_set)
             numpy_df = df.to_records()
             numpy_ref_set = reference_set.to_records()
-            compressed_dataset, merged_df = ostc.compress(numpy_df, numpy_ref_set) # TODO: merged_df not implemented in c++ package yet.
-            #TODO: compressed_dataset might be list of tuples depending on c++ implementation.
+            compressed_dataset, merged_df = ostc.compress(numpy_df, numpy_ref_set) # TODO: output wong
             compression_time_end = time.perf_counter()
             compression_time = compression_time_end - compression_time_ml_end
 

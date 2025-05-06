@@ -1,13 +1,8 @@
 #include <gtest/gtest.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-#include <pybind11/numpy.h>
 #include <compress.hpp>
 #include <pybind11/embed.h>
 
 // TODO: Check at ndarraytotrajectories virker med rigtigt data. At timestamps ikke bliver lavet om længere.
-
-namespace py = pybind11;
 
 py::object create_mock_trajectory_data() {
     py::list data;
@@ -138,4 +133,10 @@ TEST(ndarrayToTrajectories, check_trajectory_point)
     EXPECT_FLOAT_EQ(trajectories[6].points[0].longitude, 116.36422f);
     EXPECT_FLOAT_EQ(trajectories[6].points[0].latitude, 39.88781f);
     EXPECT_EQ(trajectories[6].points[0].timestamp, 1201959232);
+}
+
+TEST(compress_test, check_compressed_results) {
+    auto mock = create_mock_trajectory_data();
+    auto compressed_result = compress(mock, mock);
+    EXPECT_EQ(compressed_result.size(), 0);
 }
