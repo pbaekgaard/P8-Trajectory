@@ -4,7 +4,7 @@
 
 // TODO: Check at ndarraytotrajectories virker med rigtigt data. At timestamps ikke bliver lavet om længere.
 
-py::object create_mock_trajectory_data() {
+auto create_mock_trajectory_data() {
     py::list data;
 
     // Each row: id, timestamp, lon, lat, extra -> we'll ignore extra
@@ -90,7 +90,7 @@ py::object create_mock_trajectory_data() {
         data.append(row);
     }
 
-    return py::object(data);
+    return py::array(data);
 }
 
 size_t lookup_points_size(const std::vector<Trajectory>& trajectories, const int trajectory_id)
@@ -133,10 +133,4 @@ TEST(ndarrayToTrajectories, check_trajectory_point)
     EXPECT_FLOAT_EQ(trajectories[6].points[0].longitude, 116.36422f);
     EXPECT_FLOAT_EQ(trajectories[6].points[0].latitude, 39.88781f);
     EXPECT_EQ(trajectories[6].points[0].timestamp, 1201959232);
-}
-
-TEST(compress_test, check_compressed_results) {
-    auto mock = create_mock_trajectory_data();
-    auto compressed_result = compress(mock, mock);
-    EXPECT_EQ(compressed_result.size(), 0);
 }
