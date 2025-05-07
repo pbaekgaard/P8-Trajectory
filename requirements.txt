@@ -9,11 +9,3 @@ scikit-learn-extra==0.3.0
 -e ../OSTCpytest
 pyarrow
 fastparquet
-pandas
-numpy
-torch
-scikit-learn
-scikit-learn-extra
-haversine
-shapely
-pyproj
