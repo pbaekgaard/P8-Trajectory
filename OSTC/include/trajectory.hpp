@@ -15,11 +15,11 @@ struct OSTCResult;
 
 struct SamplePoint
 {
-    double longitude;  // longitude
-    double latitude;   // latitude
+    float longitude;  // longitude
+    float latitude;   // latitude
     int timestamp;     // timestamp
 
-    SamplePoint(double latitude, double longitude, int t): longitude(longitude), latitude(latitude), timestamp(t) {}
+    SamplePoint(float latitude, float longitude, int t): longitude(longitude), latitude(latitude), timestamp(t) {}
 
     bool operator==(const SamplePoint& other) const;
 };

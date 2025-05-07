@@ -130,13 +130,13 @@ std::tuple<py::dict, py::object> build_triples_and_unreferenced_df(std::unordere
                 const auto new_end_index = counter + (triple.end_index - triple.start_index);
                 const auto new_start_index = counter;
 
-                for (auto i = new_start_index; i <= new_end_index; i++)
+                for (auto i = 0; i <= (triple.end_index - triple.start_index); i++)
                 {
-                    ids.append(id);
-                    lats.append(triple.points[i].latitude);
-                    lons.append(triple.points[i].longitude);
-                    timestamps.append(triple.points[i].timestamp);// nested list of dicts
-                    corrections.append(py::none());
+                    ids.append(py::int_(id));
+                    lats.append(py::float_(triple.points[i].latitude));
+                    lons.append(py::float_(triple.points[i].longitude));
+                    timestamps.append(py::int_(triple.points[i].timestamp));// nested list of dicts
+                    corrections.append(py::dict{});
                     counter++;
                 }
 

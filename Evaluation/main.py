@@ -159,11 +159,12 @@ if __name__ == '__main__':
             ml_time = compression_time_ml_end - compression_time_start
 
             # compressed_dataset, merged_df = mock_compressed_data(df, reference_set)
-            numpy_df = df.to_records()
-            numpy_ref_set = reference_set.to_records()
-            compressed_dataset, merged_df = ostc.compress(numpy_df, numpy_ref_set) # TODO: output wong
+            numpy_df = df.to_records(index=False)
+            numpy_ref_set = reference_set.to_records(index=False)
+            compressed_dataset, merged_df = ostc.compress(numpy_df, numpy_ref_set)
             compression_time_end = time.perf_counter()
             compression_time = compression_time_end - compression_time_ml_end
+            print(compression_time)
 
             query_compressed_dataset_time_start = time.perf_counter()
             query_result = query_compressed_dataset(compressed_dataset, merged_df, queries)
