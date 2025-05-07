@@ -2,6 +2,8 @@
 #include "trajectory.hpp"  // Include the header for SamplePoint
 #include "distance.hpp"    // Include the header for euclideanDistance function
 
+#include <chrono>
+
 // Test the EuclideanDistance function for correctness
 TEST(EuclideanDistance, IsCorrectDistance)
 {
@@ -39,6 +41,7 @@ TEST(MaxDTW, IsCorrectDistance)
 TEST(haversine_distance, IsCorrectHaversineDistance) {
     auto s1 = SamplePoint(39,116, 0);
     auto s2 = SamplePoint(40,117, 0);
+
 
     EXPECT_DOUBLE_EQ(haversine_distance(s1,s2), 140447.26786652033);
 }

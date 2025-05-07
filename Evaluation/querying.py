@@ -64,6 +64,7 @@ def query_compressed_dataset(compressed_dataset, merged_df, queries):
     result = query_original_dataset(df, queries)
     return result
 
+# TODO: Sort each trajectory on timestamp
 def reconstruct_trajectories(compressed_dataset, merged_df):
     reconstructed_trajectories = []
     for new_id, compressed_trajectory in compressed_dataset.items():
