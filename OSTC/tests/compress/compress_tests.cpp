@@ -90,7 +90,7 @@ auto create_mock_trajectory_data() {
         data.append(row);
     }
 
-    return py::array(data);
+    return py::object(data);
 }
 
 size_t lookup_points_size(const std::vector<Trajectory>& trajectories, const int trajectory_id)

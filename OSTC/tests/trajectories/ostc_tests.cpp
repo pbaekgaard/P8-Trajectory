@@ -17,9 +17,9 @@ TEST(OSTC, outputs_correct_values)
     EXPECT_EQ(compressed.references, expected_references);
 
     const auto expected_time_corrections = std::unordered_map<Trajectory, std::vector<TimeCorrectionRecordEntry>>{
-        {t7(7, 9), {TimeCorrectionRecordEntry(0, 0, 18)}},
-        {t6(12, 13), {TimeCorrectionRecordEntry(0, 0, 16)}},
-        {t5(6, 11), {TimeCorrectionRecordEntry(0, 0, 10)}},
+        {t7(7, 9), {TimeCorrectionRecordEntry(0, 7, 18)}},
+        {t6(12, 13), {TimeCorrectionRecordEntry(0, 12, 16)}},
+        {t5(6, 11), {TimeCorrectionRecordEntry(0, 6, 10)}},
         {t2(0, 7), {TimeCorrectionRecordEntry(0, 3, 6), TimeCorrectionRecordEntry(0, 6, 8)}},
     };
 
