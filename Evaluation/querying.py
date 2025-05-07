@@ -1,5 +1,10 @@
+import os
+import sys
+
 import pandas as pd
-from _file_access_helper_functions import save_to_file
+
+sys.path.append(os.path.abspath(os.path.dirname(__file__)))
+
 from Queries.count import count_query_processing
 from Queries.distance import distance_query_processing
 from Queries.how_long import how_long_query_processing

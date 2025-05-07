@@ -1,18 +1,21 @@
 import csv
 import faulthandler
 import os
+import sys
 from enum import Enum
 
+import ostc
 import pandas as pd
 import yaml
 from sklearn.model_selection import ParameterGrid
 
-import tools.scripts._load_data as _load_data
-from components.ML.reference_set_construction import generate_reference_set
-from Evaluation._file_access_helper_functions import load_data_from_file
-from Evaluation.main import mock_compressed_data
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
+
+import tools.scripts._preprocess as _load_data
+from reference_set_construction import generate_reference_set
+from Evaluation._file_access_helper_functions import load_data_from_file, find_newest_version
 from Evaluation.query_accuracy import query_accuracy_evaluation
-from Evaluation.querying import query_compressed_dataset
+from Evaluation.querying import query_compressed_dataset, query_original_dataset
 
 faulthandler.enable()
 
@@ -52,17 +55,22 @@ data = [
             [5, "2008-02-02 18:10:00", 116.61000, 39.99300]
         ]
 
-dataset = pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
+# dataset = pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
 
-#dataset = _load_data.main()
+dataset = _load_data.main()
 # df, unique_trajectories = get_first_x_trajectories(trajectories=dataset, num_trajectories=10)
 unique_trajectories = dataset["trajectory_id"].unique()
-y_true = load_data_from_file({
-    "filename": "original_query_results",
-})["data"]
+
 queries = load_data_from_file({
     "filename": "queries_for_evaluation",
 })
+
+if not os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../Evaluation/files", f"{find_newest_version()}-original_query_results.pkl")):
+    y_true = query_original_dataset(dataset, queries)
+else:
+    y_true = load_data_from_file({
+        "filename": "original_query_results",
+    })["data"]
 
 # Load params
 with open("grid_search_params.yml", "r") as f:
@@ -74,7 +82,7 @@ static_grid = list(ParameterGrid({k: param_config[k] for k in static_keys}))
 
 # Prepare log file
 
-path = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "Evaluation", "files"))
+path = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../Evaluation", "files"))
 log_file = "grid_search_results.csv"
 path_log_file = os.path.join(path, log_file)
 log_fields = static_keys + ["clustering_param", "score"]
@@ -98,7 +106,7 @@ for static_params in static_grid:
 
 
         #try:
-        df_out, representative_trajectories, reference_set, representative_indices, trajectory_representations = generate_reference_set(
+        df_out, reference_set,_,_,_ = generate_reference_set(
             batch_size=static_params["batch_size"],
             d_model=static_params["d_model"],
             num_heads=static_params["num_heads"],
@@ -109,7 +117,7 @@ for static_params in static_grid:
             clustering_metric=static_params["clustering_metric"],
         )
 
-        compressed_data, merged_df = mock_compressed_data()
+        compressed_data, merged_df,_,_ = ostc.compress(df_out.to_records(index=False), reference_set.to_records(index=False))
         y_pred = query_compressed_dataset(compressed_dataset=compressed_data, merged_df=merged_df, queries=queries)
 
         score = custom_scoring(y_pred=y_pred)

@@ -1,6 +1,6 @@
 
 import pandas as pd
-from Queries._helper_functions_and_classes import (similarity_score_distance,
+from Evaluation.Queries._helper_functions_and_classes import (similarity_score_distance,
                                                    similarity_score_time)
 from sklearn.metrics import r2_score
 
@@ -73,6 +73,7 @@ def distance_query_accuracy_evaluation(y_true, y_pred):
         if len(recurring_ids) == 0:
             results.append(0)
             continue
+        # TODO: This give nan when list has only one element... D:
         r2 = r2_score([distance for distance in y_true[i][y_true[i]["trajectory_id"].isin(recurring_ids)]["distance"]],
                  [distance for distance in y_pred[i][y_pred[i]["trajectory_id"].isin(recurring_ids)]["distance"]])
         result = r2 - (len(unique_ids) / (len(recurring_ids) + len(unique_ids)))

@@ -26,7 +26,6 @@ def load_data_from_file(metadata):
         data = pickle.load(f)
     return data
 
-
 def find_newest_version():
     Dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "files"))
     files = [f for f in os.listdir(Dir) if os.path.isfile(os.path.join(Dir, f)) and f.endswith('.pkl')]
