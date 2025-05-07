@@ -28,7 +28,8 @@ if(Debug)
         src/distance.cpp
     )
     add_executable(${This}
-        src/main.cpp  # Change this if needed
+        src/main.cpp
+            # Change this if needed
     )
     target_link_libraries(${This} PRIVATE ostc_lib)
     target_compile_definitions(${This} PRIVATE Debug)  # Define Debug for preprocessor
