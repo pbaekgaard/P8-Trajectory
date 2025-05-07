@@ -295,6 +295,23 @@ OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajector
     }
     std::reverse(T_prime.begin(), T_prime.end());
 
+    for (auto t = T_prime.begin(); t != T_prime.end() - 1; ++t) {
+        auto next_trajectory = (t+1);
+        if (t->id == next_trajectory->id && t->end_index+1 == next_trajectory->start_index) {
+            auto concatted_points = std::vector<SamplePoint>();
+            concatted_points.reserve(t->points.size() + next_trajectory->points.size());
+            concatted_points.insert(concatted_points.end(), t->points.begin(), t->points.end());
+            concatted_points.insert(concatted_points.end(), next_trajectory->points.begin(), next_trajectory->points.end());
+
+            next_trajectory->points = concatted_points;
+            next_trajectory->start_index = t->start_index;
+
+            T_prime.erase(t);
+            // We need to adjust i because we remove t, which results in a shift to the left of all elements of T_prime
+            --t;
+        }
+    }
+
     return {T_prime, time_correction_record};
 }
 

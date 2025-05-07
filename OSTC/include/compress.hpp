@@ -3,6 +3,7 @@
 
 #include <distance.hpp>
 #include <example_trajectories.hpp>
+#include <chrono>
 #include <trajectory.hpp>
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
@@ -214,19 +215,23 @@ py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray)
     constexpr auto temporal_deviation_threshold = 60;
     //constexpr auto temporal_deviation_threshold = 0.5;
     auto distance_function = haversine_distance; //TODO: uncomment this shit when done testing
-    constexpr auto spatial_deviation_threshold = 20000;
+    constexpr auto spatial_deviation_threshold = 20000; // TODO: Change to 200 when running actual compression
     //constexpr auto spatial_deviation_threshold = 0.9;
     //auto distance_function = euclideanDistance;
+    float duration_MRTSearch = 0;
+    float duration_OSTC = 0;
+
 
     for (auto t : rawTrajs) {
-        std::cout << "compressing Trajectory " << t.id << std::endl;
         std::cout << "performing MRT search" << std::endl;
+        auto start_MRTSearch = std::chrono::high_resolution_clock::now();
         const auto M = t.MRTSearch(refTrajs, spatial_deviation_threshold, distance_function); //TODO: uncomment when done testing
+        duration_MRTSearch += std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start_MRTSearch).count();
         std::cout << "MRT search done" << std::endl;
-        std::cout << "performing OSTC" << std::endl;
+        auto start_OSTC = std::chrono::high_resolution_clock::now();
         OSTCResult compressed = t.OSTC(M, temporal_deviation_threshold, spatial_deviation_threshold, distance_function);
+        duration_OSTC += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_OSTC).count();
         std::cout << "OSTC done" << std::endl;
-        std::cout << "" << std::endl;
 
         all_compressed_results[t.id] = compressed;
     }
@@ -236,9 +241,10 @@ py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray)
 
     auto reference_map_df = reference_map_to_df(reference_set_map);
     std::vector<py::object> merged_dfs = {reference_map_df, unreferenced_df};
+    std::cout << "Concatting dfs" << std::endl;
     py::object merged_df = concat_dfs(merged_dfs);
     std::cout << "concat_dfs done" << std::endl;
-
-    return py::make_tuple(triples_dict, merged_df);
+    // Duration_MRTSearch and duration_OSTC is returned in milliseconds
+    return py::make_tuple(triples_dict, merged_df, py::float_(duration_MRTSearch), py::float_(duration_OSTC / 1000));
 }
 #endif

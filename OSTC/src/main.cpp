@@ -19,17 +19,6 @@ void run_example()
 
     const auto M = t.MRTSearch(RefSet, spatial_deviation_threshold, euclideanDistance);
     OSTCResult compressed = t.OSTC(M,temporal_deviation_threshold, spatial_deviation_threshold, euclideanDistance);
-    std::cout << M.size() << std::endl;
-    // try {
-    //     std::vector<ReferenceTrajectory> T_prime = t.OSTC(M);
-    //     std::cout << "Compressed trajectory T':\n";
-    //     for (const auto& mrt : T_prime) {
-    //         std::cout << "MRT: (id=" << mrt.id << ", start=" << mrt.start_index << ", end=" << mrt.end_index <<
-    //         ")\n";
-    //     }
-    // } catch (const std::exception& e) {
-    //     std::cerr << "Error: " << e.what() << "\n";
-    // }
 }
 #endif
 #ifndef Debug
@@ -100,7 +89,6 @@ PYBIND11_MODULE(ostc, m)
 #ifdef Debug
 int main()
 {
-    std::cout << "Hello from Debug Main" << std::endl;
     run_example();
     return 0;
 }

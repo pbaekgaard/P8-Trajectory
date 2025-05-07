@@ -161,9 +161,11 @@ if __name__ == '__main__':
             # compressed_dataset, merged_df = mock_compressed_data(df, reference_set)
             numpy_df = df.to_records(index=False)
             numpy_ref_set = reference_set.to_records(index=False)
-            compressed_dataset, merged_df = ostc.compress(numpy_df, numpy_ref_set)
+            compressed_dataset, merged_df, duration_MRTSearch, duration_OSTC = ostc.compress(numpy_df, numpy_ref_set)
             compression_time_end = time.perf_counter()
             compression_time = compression_time_end - compression_time_ml_end
+            print("MRT: ", duration_MRTSearch)
+            print("OSTC: ", duration_OSTC)
             print(compression_time)
 
             query_compressed_dataset_time_start = time.perf_counter()
@@ -176,6 +178,8 @@ if __name__ == '__main__':
                 "times": {
                     "ml_time": ml_time,
                     "compression_time": compression_time,
+                    "Total_MRT_time": duration_MRTSearch,
+                    "Total_OSTC_time": duration_OSTC,
                     "querying_time": query_compressed_dataset_time
                 },
                 "compressed_dataset": compressed_dataset,
