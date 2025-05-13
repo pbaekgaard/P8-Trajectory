@@ -119,6 +119,9 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
         auto found = false;
         for (int i = 0, j = i + n; j <= points.size() - 1; i++, j++) {
             std::cout << "loop 4. i is " << i << std::endl;
+            std::cout << "loop 4. j is " << j << std::endl;
+            std::cout << "loop 4. points.size() is " << points.size() << std::endl;
+
             Trajectory sub_left = (*this)(i, j - 1);
             Trajectory sub_right = (*this)(j - 1, j);
 
@@ -130,10 +133,8 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
                 const std::vector<Trajectory>& T_bs = T_b_vec->second;
 
                 for (Trajectory a : T_as) {
-                    std::cout << "loop 5." << i << std::endl;
 
                     for (auto& b : T_bs) {
-                        std::cout << "loop 6." << i << std::endl;
                         if (a.id == b.id && a.end_index == b.start_index) {
                             M[(*this)(i,j)].emplace_back(a + b);
                             found = true;

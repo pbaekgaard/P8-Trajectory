@@ -215,7 +215,7 @@ py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray)
     constexpr auto temporal_deviation_threshold = 60;
     //constexpr auto temporal_deviation_threshold = 0.5;
     auto distance_function = haversine_distance; //TODO: uncomment this shit when done testing
-    constexpr auto spatial_deviation_threshold = 20000; // TODO: Change to 200 when running actual compression
+    constexpr auto spatial_deviation_threshold = 200; // TODO: Change to 200 when running actual compression
     //constexpr auto spatial_deviation_threshold = 0.9;
     //auto distance_function = euclideanDistance;
     float duration_MRTSearch = 0;
