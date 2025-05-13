@@ -215,7 +215,7 @@ py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray)
     constexpr auto temporal_deviation_threshold = 60;
     //constexpr auto temporal_deviation_threshold = 0.5;
     auto distance_function = haversine_distance; //TODO: uncomment this shit when done testing
-    constexpr auto spatial_deviation_threshold = 20000; // TODO: Change to 200 when running actual compression
+    constexpr auto spatial_deviation_threshold = 200; // TODO: Change to 200 when running actual compression
     //constexpr auto spatial_deviation_threshold = 0.9;
     //auto distance_function = euclideanDistance;
     float duration_MRTSearch = 0;
@@ -225,7 +225,7 @@ py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray)
     for (auto t : rawTrajs) {
         std::cout << "performing MRT search" << std::endl;
         auto start_MRTSearch = std::chrono::high_resolution_clock::now();
-        const auto M = t.MRTSearch(refTrajs, spatial_deviation_threshold, distance_function); //TODO: uncomment when done testing
+        const auto M = t.MRTSearchOptimized(refTrajs, spatial_deviation_threshold, distance_function);
         duration_MRTSearch += std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start_MRTSearch).count();
         std::cout << "MRT search done" << std::endl;
         auto start_OSTC = std::chrono::high_resolution_clock::now();
