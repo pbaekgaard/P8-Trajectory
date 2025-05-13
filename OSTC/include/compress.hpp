@@ -225,7 +225,7 @@ py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray)
     for (auto t : rawTrajs) {
         std::cout << "performing MRT search" << std::endl;
         auto start_MRTSearch = std::chrono::high_resolution_clock::now();
-        const auto M = t.MRTSearch(refTrajs, spatial_deviation_threshold, distance_function); //TODO: uncomment when done testing
+        const auto M = t.MRTSearchOptimized(refTrajs, spatial_deviation_threshold, distance_function);
         duration_MRTSearch += std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start_MRTSearch).count();
         std::cout << "MRT search done" << std::endl;
         auto start_OSTC = std::chrono::high_resolution_clock::now();
