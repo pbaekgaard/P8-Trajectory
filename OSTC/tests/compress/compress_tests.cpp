@@ -290,3 +290,93 @@ TEST(MRT_VS_MRTOptimized, threshold_20000)
     EXPECT_TRUE(duration_MRTSearch - duration_MRTSearchOptimized > -3);
 
 }
+
+
+TEST(MRTOptimized, rest_data)
+{
+    auto T1 = Trajectory(
+        1, std::vector<SamplePoint>{SamplePoint(2.0, 2.5, 0), SamplePoint(1.5, 3.0, 0), SamplePoint(1.5, 4.0, 0),
+                                    SamplePoint(1.5, 5.5, 0), SamplePoint(1.5, 7.0, 0), SamplePoint(1.5, 8.5, 0),
+                                    SamplePoint(1.5, 9.5, 0), SamplePoint(1.5, 10.5, 0), SamplePoint(1.5, 12.0, 0),
+                                    SamplePoint(1.5, 13.0, 0), SamplePoint(2, 14.0, 0), SamplePoint(3, 14.5, 0),
+                                    SamplePoint(5, 14.5, 0), SamplePoint(6.5, 14.5, 0)});
+    auto T2 = Trajectory(
+        2, std::vector<SamplePoint>{SamplePoint(5.0, 16.0, 0), SamplePoint(7.5, 16.0, 0), SamplePoint(8.5, 16.0, 0),
+                                    SamplePoint(9.5, 16.0, 0), SamplePoint(12, 15.5, 0), SamplePoint(12.5, 14.5, 0),
+                                    SamplePoint(12.5, 13.5, 0), SamplePoint(12.5, 12.0, 0), SamplePoint(14.0, 12.5, 0),
+                                    SamplePoint(15.0, 11.0, 0), SamplePoint(16.5, 11.0, 0), SamplePoint(17.5, 11.0, 0),
+                                    SamplePoint(18.5, 11.0, 0), SamplePoint(19.5, 11.5, 0), SamplePoint(19.5, 12.0, 0),
+                                    SamplePoint(19.5, 13.5, 0), SamplePoint(19.5, 14.5, 0)});
+
+    auto T3 = Trajectory(
+        3, std::vector<SamplePoint>{SamplePoint(5.5, 14.0, 0), SamplePoint(7.0, 14.0, 0), SamplePoint(8, 14.5, 0),
+                                    SamplePoint(10.0, 14.5, 0), SamplePoint(11.0, 14.0, 0), SamplePoint(11.5, 12.0, 0),
+                                    SamplePoint(9.5, 12.0, 0), SamplePoint(8.0, 12.0, 0), SamplePoint(6.5, 12.0, 0),
+                                    SamplePoint(4.5, 12.0, 0), SamplePoint(3.5, 12.0, 0), SamplePoint(2.5, 11.0, 0),
+                                    SamplePoint(2, 10.5, 0), SamplePoint(2, 9.0, 0), SamplePoint(2, 8.0, 0)});
+
+    auto T4 = Trajectory(4, std::vector<SamplePoint>{
+                                SamplePoint(5.5, 14.0, 0),  SamplePoint(6.5, 14.0, 0), SamplePoint(7.5, 14.5, 0),
+                                SamplePoint(8.5, 14.5, 0),  SamplePoint(9.5, 14.0, 0), SamplePoint(11.5, 12.0, 0),
+                                SamplePoint(11.5, 10.0, 0), SamplePoint(11.5, 8.5, 0), SamplePoint(11.5, 8.0, 0),
+                                SamplePoint(11.5, 6.0, 0),  SamplePoint(11.5, 5.0, 0), SamplePoint(12.5, 4.0, 0),
+                                SamplePoint(13.0, 3.5, 0),  SamplePoint(13.5, 3.0, 0), SamplePoint(13.5, 2.0, 0),
+                                SamplePoint(13.5, 1.0, 0),  SamplePoint(12.5, 1.0, 0), SamplePoint(10.5, 1.0, 0),
+                                SamplePoint(8.5, 1.0, 0),
+
+                            });
+
+    auto T5 = Trajectory(
+        5, std::vector<SamplePoint>{SamplePoint(20.5, 13.0, 0), SamplePoint(19.0, 13.0, 0), SamplePoint(17.5, 13.0, 0),
+                                    SamplePoint(16.0, 13.0, 0), SamplePoint(14.5, 13.0, 0), SamplePoint(13.5, 12.5, 0),
+                                    SamplePoint(12.5, 11.0, 0), SamplePoint(12.5, 10.0, 0), SamplePoint(12.5, 8.0, 0),
+                                    SamplePoint(12.5, 6.0, 0), SamplePoint(13.5, 4.5, 0), SamplePoint(14.5, 3.5, 0)});
+
+    auto T6 = Trajectory(
+        6, std::vector<SamplePoint>{SamplePoint(2.0, 6.0, 0), SamplePoint(2.0, 4.5, 0), SamplePoint(2.0, 3.5, 0),
+                                    SamplePoint(2.5, 2.5, 0), SamplePoint(3.5, 2.5, 0), SamplePoint(4.5, 2.5, 0),
+                                    SamplePoint(5.5, 2.5, 0), SamplePoint(6.5, 2.5, 0), SamplePoint(7.5, 2.5, 0),
+                                    SamplePoint(9.0, 2.5, 0), SamplePoint(11.0, 2.5, 0), SamplePoint(12.0, 2.5, 0),
+                                    SamplePoint(14.5, 2.5, 0), SamplePoint(16.0, 2.5, 0)});
+
+    auto T7 = Trajectory(
+        7, std::vector<SamplePoint>{SamplePoint(15.5, 6.5, 0), SamplePoint(15.5, 6.0, 0), SamplePoint(15.5, 5.0, 0),
+                                    SamplePoint(16.5, 5.0, 0), SamplePoint(17.5, 5.0, 0), SamplePoint(17.5, 4.0, 0),
+                                    SamplePoint(18.0, 3.0, 0), SamplePoint(18.0, 2.5, 0), SamplePoint(20.0, 2.5, 0),
+                                    SamplePoint(22.0, 2.5, 0)});
+
+    auto references = std::vector<Trajectory>{T1, T2, T3, T4, T5, T6, T7};
+
+    auto T = Trajectory(0, std::vector<SamplePoint>{
+                               SamplePoint(3.0, 15.5, 0),  SamplePoint(5.0, 15.5, 0),  SamplePoint(7.0, 15.5, 0),
+                               SamplePoint(8.5, 15.5, 0),  SamplePoint(9.5, 15.5, 0),  SamplePoint(10.0, 15.5, 0),
+                               SamplePoint(11.5, 15.5, 0), SamplePoint(12.0, 14.0, 0), SamplePoint(12.0, 12.0, 0),
+                               SamplePoint(12.0, 11.0, 0), SamplePoint(12.0, 10.0, 0), SamplePoint(12.0, 8.0, 0),
+                               SamplePoint(12.0, 5.5, 0),  SamplePoint(13.0, 4.0, 0),  SamplePoint(14.0, 3.0, 0),
+                               SamplePoint(14.0, 2.0, 0),  SamplePoint(16.0, 2.0, 0),  SamplePoint(18.5, 2.0, 0),
+                               SamplePoint(20.5, 2.0, 0),  SamplePoint(21.5, 2.0, 0),
+                           });
+    auto M_optimized = T.MRTSearchOptimized(references, 1, euclideanDistance);
+
+    auto M = T.MRTSearchOptimized(references, 1, euclideanDistance);
+
+    EXPECT_EQ(M, M_optimized);
+
+    auto expected_M1 = std::vector<Trajectory>{T1(11,13)};
+    auto expected_M2 = std::vector<Trajectory>{T2(0,7)};
+    auto expected_M3 = std::vector<Trajectory>{T3(2, 3)};
+    auto expected_M4 = std::vector<Trajectory>{T3(4, 5)};
+    auto expected_M5 = std::vector<Trajectory>{T5(6, 11)};
+    auto expected_M6 = std::vector<Trajectory>{T4(5, 14)};
+    auto expected_M7 = std::vector<Trajectory>{T6(12, 13)};
+    auto expected_M8 = std::vector<Trajectory>{T7(7, 9)};
+
+    // EXPECT_EQ(M[T(0,2)], expected_M1);
+    // EXPECT_EQ(M[T(1, 8)], expected_M2);
+    // EXPECT_EQ(M[T(3, 5)], expected_M3);
+    // EXPECT_EQ(M[T(7, 8)], expected_M4);
+    // EXPECT_EQ(M[T(9, 14)], expected_M5);
+    // EXPECT_EQ(M[T(9, 15)], expected_M6);
+    // EXPECT_EQ(M[T(14, 16)], expected_M7);
+    // EXPECT_EQ(M[T(17, 19)], expected_M8);
+}
