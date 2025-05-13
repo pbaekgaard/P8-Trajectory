@@ -118,9 +118,6 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
         std::cout << "loop 3. n.tuples. n is " << n << std::endl;
         auto found = false;
         for (int i = 0, j = i + n; j <= points.size() - 1; i++, j++) {
-            std::cout << "loop 4. i is " << i << std::endl;
-            std::cout << "loop 4. j is " << j << std::endl;
-            std::cout << "loop 4. points.size() is " << points.size() << std::endl;
 
             Trajectory sub_left = (*this)(i, j - 1);
             Trajectory sub_right = (*this)(j - 1, j);
@@ -145,7 +142,6 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
             if (T_a_vec != M.end()) {
                 auto T_as = T_a_vec->second;
                 for (auto& a : T_as) {
-                    std::cout << "loop 7." << i << std::endl;
                     if (MaxDTW((*this)(i,j), a, distance_function) <= epsilon) {
                         M[(*this)(i,j)].emplace_back(a);
                         found = true;
@@ -155,7 +151,6 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
             if (T_b_vec != M.end()) {
                 auto T_bs = T_b_vec->second;
                 for (auto& b : T_bs) {
-                    std::cout << "loop 8." << i << std::endl;
                     if (MaxDTW((*this)(i,j), b, distance_function) <= epsilon) {
                         M[(*this)(i,j)].emplace_back(b);
                         found = true;
