@@ -228,6 +228,7 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearchOpt
                                                                              const double epsilon,
                                                                              std::function<double(SamplePoint const& a, SamplePoint const& b)> distance_function)
 {
+    std::cout << "loop 1. doubles" << std::endl;
      std::unordered_map<Trajectory, std::vector<Trajectory>> M;
     for (int i = 0; i < points.size() - 1; i++) {
         Trajectory subtraj = (*this)(i, i + 1);
@@ -246,10 +247,10 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearchOpt
             }
         }
     }
-
+    std::cout << "loop 2. n-tuples" << std::endl;
     for (int n = 2; n < points.size(); n++) {
         auto found = false;
-
+        std::cout << "loop 3. n.tuples. n is " << n << std::endl;
         for (int i = 0, j = i + n; j <= points.size() - 1; i++, j++) {
             Trajectory sub_left = (*this)(i, j - 1);
             Trajectory sub_right = (*this)(j - 1, j);
@@ -305,6 +306,8 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearchOpt
 
     std::vector<TrajectoryRemoval> to_remove;
 
+    std::cout << "loop 4. ref trajectories." << std::endl;
+
     for (auto& [query_traj, ref_trajs] : M) {
         auto query_start_index = query_traj.start_index;
         auto query_end_index = query_traj.end_index;
@@ -334,6 +337,7 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearchOpt
         }
     }
 
+    std::cout << "loop 5. removals" << std::endl;
     for (auto& removal : to_remove) {
         auto& ref_trajectory_to_remove = removal.trajectory_to_remove;
         auto iter = M.find(removal.query_trajectory);
@@ -349,6 +353,7 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearchOpt
         }
     }
 
+    std::cout << "loop 6. M." << std::endl;
     for (auto& [query_traj, ref_trajs] : M) {
         std::unordered_set<Trajectory> seen;
         ref_trajs.erase(std::remove_if(ref_trajs.begin(), ref_trajs.end(),
