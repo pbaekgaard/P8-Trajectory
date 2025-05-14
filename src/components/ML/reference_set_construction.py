@@ -16,7 +16,7 @@ import faulthandler
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from enum import Enum
 
-import tools.scripts._load_data as _load_data
+import tools.scripts._preprocess as _load_data
 from src.components.ML.TrajectoryTransformer import TrajectoryTransformer
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -235,14 +235,11 @@ def generate_reference_set(df: pd.DataFrame, clustering_method: ClusteringMethod
 
                 representative_indices.append(original_index)
 
-    print("cluster labels: ", cluster_labels)
-    print("representative_indices: ", representative_indices)
 
     reference_set = []
     for cluster_label in cluster_labels:
         reference_set.append(representative_indices[cluster_label]) # ref set links to medoid ID.
         # reference_set.append(unique_trajectories[representative_indices[cluster_label]]) # ref set links to trajID
-    print("reference set: ", reference_set)
 
     rep_ids = df['trajectory_id'].unique()[representative_indices]
     mask = np.isin(df['trajectory_id'].values, rep_ids)
@@ -256,7 +253,6 @@ def generate_reference_set(df: pd.DataFrame, clustering_method: ClusteringMethod
 
 if __name__ == "__main__":
     faulthandler.enable()  # så kan vi se, hvis vi løber tør for memory
-    num_trajectories = 10
     batch_size = 5
     clusteringMethod = ClusteringMethod.KMEDOIDS
     n_clusters = 3
@@ -265,8 +261,6 @@ if __name__ == "__main__":
 
 
     all_df = _load_data.main()
-
-    all_df = get_first_x_trajectories(trajectories=all_df, num_trajectories=10)
 
     df, representative_trajectories, reference_set, representative_indices, trajectory_representations = generate_reference_set(
         batch_size=batch_size,

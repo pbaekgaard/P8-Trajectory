@@ -232,14 +232,9 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearchOpt
 {
     std::cout << "loop 1. doubles" << std::endl;
     std::unordered_map<Trajectory, std::vector<Trajectory>> M;
+    std::cout << "Size of RefSet: " << RefSet.size() << std::endl;
     #pragma omp parallel
     {
-        // Only one thread prints the total number of threads
-        #pragma omp single
-        {
-            std::cout << "OpenMP is using " << omp_get_num_threads() << " threads." << std::endl;
-        }
-
         #pragma omp for schedule(dynamic)
         for (int i = 0; i < points.size() - 1; i++) {
             Trajectory subtraj = (*this)(i, i + 1);

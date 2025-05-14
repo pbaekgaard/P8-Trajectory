@@ -148,9 +148,9 @@ if __name__ == '__main__':
             dataset = dataset if dataset is not None else _load_data()
 
             compression_time_start = time.perf_counter()
-
             clustering_method, clustering_param, batch_size, d_model, num_heads, clustering_metric, num_layers = get_best_params()
-            df, reference_set,_,_,_ = generate_reference_set(
+
+            df, reference_set, ref_ids,_,_ = generate_reference_set(
                 df=dataset, clustering_method=clustering_method, clustering_param=clustering_param,
                 batch_size=batch_size, d_model=d_model, num_heads=num_heads, clustering_metric=clustering_metric,
                 num_layers=num_layers

@@ -34,6 +34,18 @@ std::vector<Trajectory> ndarrayToTrajectories(py::object array)
     return trajectories;
 }
 
+std::vector<int> pyListToIds(py::object array)
+{
+    auto py_list = array.cast<py::list>();
+    std::vector<int> ids;
+
+    for (const auto& row : py_list) {
+        int id = row.cast<int>();
+        ids.push_back(id);
+    }
+    return ids;
+}
+
 
 struct ReferenceSetMapKey
 {
@@ -192,7 +204,7 @@ py::object concat_dfs(const std::vector<py::object> &dfs)
     return concat(dfs);
 }
 
-py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray)
+py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray, py::list refIds)
 {
     //TODO: Delete when work/done testing:)
     /*const auto M = std::unordered_map<Trajectory, std::vector<Trajectory>>{
@@ -207,6 +219,7 @@ py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray)
 
     std::vector<Trajectory> rawTrajs = ndarrayToTrajectories(rawTrajectoryArray); // TODO: uncomment this shit when done testing
     std::vector<Trajectory> refTrajs = ndarrayToTrajectories(refTrajectoryArray);
+    std::vector<int> ref_ids = pyListToIds(refIds);
 
     std::vector<py::object> uncompressed_trajectories_dfs;
     std::vector<OSTCResult> compressedTrajectories{};
@@ -223,9 +236,14 @@ py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray)
 
 
     for (auto t : rawTrajs) {
+        auto ref_trajectory_id = ref_ids[t.id];
+        auto ref_trajectory = std::ranges::find_if(refTrajs, [&](const Trajectory &ref_traj) {
+            return ref_trajectory_id == ref_traj.id;
+        });
+        std::vector<Trajectory> ref_trajectories = std::vector<Trajectory>{*ref_trajectory};
         std::cout << "performing MRT search" << std::endl;
         auto start_MRTSearch = std::chrono::high_resolution_clock::now();
-        const auto M = t.MRTSearchOptimized(refTrajs, spatial_deviation_threshold, distance_function);
+        const auto M = t.MRTSearchOptimized(ref_trajectories, spatial_deviation_threshold, distance_function);
         duration_MRTSearch += std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start_MRTSearch).count();
         std::cout << "MRT search done" << std::endl;
         auto start_OSTC = std::chrono::high_resolution_clock::now();
