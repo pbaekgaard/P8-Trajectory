@@ -5,6 +5,7 @@
 #include <ranges>
 #include "distance.hpp"
 
+#include <omp.h>
 #include <functional>
 #include <unordered_map>
 #include <map>
@@ -16,6 +17,7 @@
 #if _WIN32
 #include <cstdint>
 #endif
+
 
 bool SamplePoint::operator==(const SamplePoint& other) const
 {
@@ -229,24 +231,61 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearchOpt
                                                                              std::function<double(SamplePoint const& a, SamplePoint const& b)> distance_function)
 {
     std::cout << "loop 1. doubles" << std::endl;
-     std::unordered_map<Trajectory, std::vector<Trajectory>> M;
-    for (int i = 0; i < points.size() - 1; i++) {
-        Trajectory subtraj = (*this)(i, i + 1);
+    std::unordered_map<Trajectory, std::vector<Trajectory>> M;
+    #pragma omp parallel
+    {
+        // Only one thread prints the total number of threads
+        #pragma omp single
+        {
+            std::cout << "OpenMP is using " << omp_get_num_threads() << " threads." << std::endl;
+        }
 
-        for (auto refTraj : RefSet) {
-            for (int j = 0; j < refTraj.points.size() - 1; j++) {
-                for (int k = j + 1; k < refTraj.points.size(); k++) {
-                    Trajectory subRefTraj = refTraj(j, k);
-                    if (MaxDTW(subtraj, subRefTraj, distance_function) <= epsilon) {
-                        subRefTraj.start_index = subRefTraj.start_index + refTraj.start_index;
-                        subRefTraj.end_index = subRefTraj.end_index + refTraj.start_index;
-                        M[subtraj].emplace_back(subRefTraj);
+        #pragma omp for schedule(dynamic)
+        for (int i = 0; i < points.size() - 1; i++) {
+            Trajectory subtraj = (*this)(i, i + 1);
+
+            for (auto& refTraj : RefSet) {
+                for (int j = 0; j < refTraj.points.size() - 1; j++) {
+                    for (int k = j + 1; k < refTraj.points.size(); k++) {
+                        Trajectory subRefTraj = refTraj(j, k);
+                        if (MaxDTW(subtraj, subRefTraj, distance_function) <= epsilon) {
+                            subRefTraj.start_index += refTraj.start_index;
+                            subRefTraj.end_index += refTraj.start_index;
+
+                            // Protect shared map with critical section
+                            #pragma omp critical
+                            {
+                                M[subtraj].emplace_back(subRefTraj);
+                            }
+                        }
                     }
                 }
-
             }
         }
     }
+    // #pragma omp parallel for schedule(dynamic)
+    // for (int i = 0; i < points.size() - 1; i++) {
+    //     Trajectory subtraj = (*this)(i, i + 1);
+    //
+    //     for (auto& refTraj : RefSet) {
+    //         for (int j = 0; j < refTraj.points.size() - 1; j++) {
+    //             for (int k = j + 1; k < refTraj.points.size(); k++) {
+    //                 Trajectory subRefTraj = refTraj(j, k);
+    //                 if (MaxDTW(subtraj, subRefTraj, distance_function) <= epsilon) {
+    //                     subRefTraj.start_index += refTraj.start_index;
+    //                     subRefTraj.end_index += refTraj.start_index;
+    //
+    //                     // Protect shared map with critical section
+    //                     #pragma omp critical
+    //                     {
+    //                         M[subtraj].emplace_back(subRefTraj);
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
+
     std::cout << "loop 2. n-tuples" << std::endl;
     for (int n = 2; n < points.size(); n++) {
         auto found = false;
