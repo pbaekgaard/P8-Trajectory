@@ -239,25 +239,17 @@ py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray, p
 
 
     for (auto t : rawTrajs) {
-        std::cout << "t.id: " << t.id << std::endl;
-        std::cout << "ref_ids size: " << ref_ids.size() << std::endl;
-
         auto ref_trajectory_id = ref_ids[t.id];
         auto ref_trajectory = std::ranges::find_if(refTrajs, [&](const Trajectory &ref_traj) {
             return ref_trajectory_id == ref_traj.id;
         });
-        std::cout << "ref_trajectory == end(): " << (ref_trajectory == refTrajs.end()) << std::endl;
         std::vector<Trajectory> ref_trajectories = std::vector<Trajectory>{*ref_trajectory};
-        std::cout << "Size of ref_trajectories: " << ref_trajectories.size() << std::endl;
-        std::cout << "performing MRT search" << std::endl;
         auto start_MRTSearch = std::chrono::high_resolution_clock::now();
         const auto M = t.MRTSearchOptimized(ref_trajectories, spatial_deviation_threshold, distance_function);
         duration_MRTSearch += std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start_MRTSearch).count();
-        std::cout << "MRT search done" << std::endl;
         auto start_OSTC = std::chrono::high_resolution_clock::now();
         OSTCResult compressed = t.OSTC(M, temporal_deviation_threshold, spatial_deviation_threshold, distance_function);
         duration_OSTC += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_OSTC).count();
-        std::cout << "OSTC done" << std::endl;
 
         all_compressed_results[t.id] = compressed;
     }
@@ -267,9 +259,7 @@ py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray, p
 
     auto reference_map_df = reference_map_to_df(reference_set_map);
     std::vector<py::object> merged_dfs = {reference_map_df, unreferenced_df};
-    std::cout << "Concatting dfs" << std::endl;
     py::object merged_df = concat_dfs(merged_dfs);
-    std::cout << "concat_dfs done" << std::endl;
     // Duration_MRTSearch and duration_OSTC is returned in milliseconds
     return py::make_tuple(triples_dict, merged_df, py::float_(duration_MRTSearch), py::float_(duration_OSTC / 1000));
 }

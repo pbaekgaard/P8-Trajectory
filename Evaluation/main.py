@@ -108,7 +108,6 @@ if __name__ == '__main__':
 
         # create all that does not exist
         if not os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "files", f"{version_number}-queries_for_evaluation.pkl")):
-            print("Query creation")
             create_queries(amount_of_individual_queries=1, version=version_number)
         queries = load_data_from_file({
             "filename": "queries_for_evaluation",
@@ -117,7 +116,6 @@ if __name__ == '__main__':
         #queries = dummy_create_queries()
 
         if not os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "files", f"{version_number}-original_query_results.pkl")):
-            print("Querying")
             dataset = _load_data()
             #dataset = _timestamp_conversion(pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"]))
 
@@ -143,7 +141,6 @@ if __name__ == '__main__':
             }, result)
 
         if not os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "files", f"{version_number}-compressed_query_results.pkl")):
-            print("Compressed querying")
             #dataset = pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
             dataset = dataset if dataset is not None else _load_data()
 
@@ -164,9 +161,6 @@ if __name__ == '__main__':
             compressed_dataset, merged_df, duration_MRTSearch, duration_OSTC = ostc.compress(numpy_df, numpy_ref_set)
             compression_time_end = time.perf_counter()
             compression_time = compression_time_end - compression_time_ml_end
-            print("MRT: ", duration_MRTSearch)
-            print("OSTC: ", duration_OSTC)
-            print(compression_time)
 
             query_compressed_dataset_time_start = time.perf_counter()
             query_result = query_compressed_dataset(compressed_dataset, merged_df, queries)
@@ -198,7 +192,6 @@ if __name__ == '__main__':
         else:
             version_number = find_newest_version()
 
-        print("evaluating..")
         original_results = load_data_from_file({
             "filename": "original_query_results",
             "version": version_number
@@ -217,8 +210,6 @@ if __name__ == '__main__':
         individual_accuracy_results : List[float]
 
         comp_ratio : float = compression_ratio(dataset) # COMPRESSION
-
-        print(f"evaluation done. accuracy: {accuracy}, compression ratio: {comp_ratio}. Saving...")
 
         evaluation_results = {"accuracy": accuracy, "compression_ratio": comp_ratio, "accuracy_individual_results": individual_accuracy_results}
         save_to_file({

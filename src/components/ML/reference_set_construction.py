@@ -20,9 +20,6 @@ import tools.scripts._preprocess as _load_data
 from src.components.ML.TrajectoryTransformer import TrajectoryTransformer
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print("device: ", device)
-print("CUDA available: ", torch.cuda.is_available())
-
 
 class ClusteringMethod(Enum):
     KMEDOIDS = 1
@@ -178,7 +175,6 @@ def generate_reference_set(df: pd.DataFrame, clustering_method: ClusteringMethod
     )  # convert to delta_seconds from start.
     normalized_df = normalize_df(df)
 
-    print("instantiating model...")
     model = TrajectoryTransformer(
         d_model=d_model,
         num_heads=num_heads,
@@ -248,7 +244,6 @@ def generate_reference_set(df: pd.DataFrame, clustering_method: ClusteringMethod
     representative_trajectories = df.loc[mask]
     df = df.loc[~mask]
 
-    # print(representative_trajectories)
 
     return df, representative_trajectories, reference_set, representative_indices, trajectory_tensors, ref_ids
 
