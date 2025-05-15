@@ -206,6 +206,8 @@ def generate_reference_set(df: pd.DataFrame, clustering_method: ClusteringMethod
         for future in as_completed(futures):
             trajectory_tensors.append(future.result())
 
+    print("finished processing batches")
+
     trajectory_tensors = torch.cat(trajectory_tensors, dim=0).numpy()
 
     clustering = None
