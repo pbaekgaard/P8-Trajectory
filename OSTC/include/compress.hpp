@@ -206,7 +206,6 @@ py::object concat_dfs(const std::vector<py::object> &dfs)
 
 py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray, py::list refIds)
 {
-    std::cout << "Enter c++" << std::endl;
     //TODO: Delete when work/done testing:)
     /*const auto M = std::unordered_map<Trajectory, std::vector<Trajectory>>{
                     {t(0, 0), {t(0, 0)}}, {t(1, 8), {t2(0, 7)}}, {t(9, 14), {t5(6, 11)}},
@@ -237,13 +236,10 @@ py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray, p
 
 
     for (auto t : rawTrajs) {
-        std::cout << "Test 1" << std::endl;
         auto ref_trajectory_id = ref_ids[t.id - 1];
-        std::cout << "Test 2" << std::endl;
         auto ref_trajectory = std::ranges::find_if(refTrajs, [&](const Trajectory &ref_traj) {
             return ref_trajectory_id == ref_traj.id;
         });
-        std::cout << "Test 3" << std::endl;
         std::vector<Trajectory> ref_trajectories = std::vector<Trajectory>{*ref_trajectory};
         std::cout << "performing MRT search" << std::endl;
         auto start_MRTSearch = std::chrono::high_resolution_clock::now();
