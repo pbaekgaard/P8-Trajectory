@@ -50,17 +50,22 @@ def where_query_accuracy_evaluation(y_true, y_pred, original_df):
         pred_set = set(y_pred[i]["trajectory_id"])
         recurring_ids = true_set.intersection(pred_set)
         unique_ids = true_set.symmetric_difference(pred_set)
+        counter = 0
 
         for trajectory_id, trajectory in group_by:
             if trajectory_id in recurring_ids:
                 true_point = y_true[i][y_true[i]["trajectory_id"] == trajectory_id][["longitude", "latitude"]]
                 pred_point = y_pred[i][y_pred[i]["trajectory_id"] == trajectory_id][["longitude", "latitude"]]
-                sum_score += similarity_score_distance(true_point, pred_point, trajectory)
+                sum_sim = similarity_score_distance(true_point, pred_point, trajectory)
+                if sum_sim is not None:
+                    sum_score += sum_sim
+                else:
+                    counter += 1
             elif trajectory_id in unique_ids:
                 sum_score += 0
             else:
                 sum_score += 1
-        sum_score /= len(group_by)
+        sum_score /= (len(group_by) - counter)
         results.append(sum_score)
     return sum(results) / len(results)
 
