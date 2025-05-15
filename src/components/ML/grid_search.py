@@ -112,19 +112,19 @@ with Progress(
     TimeRemainingColumn(),
     transient=False,
 ) as progress:
-    total_task = progress.add_task("[green]Total Progress", total=total_iterations)
-    static_task = progress.add_task("[yellow]Static Grid Params", total=len(static_grid))
+    # total_task = progress.add_task("[green]Total Progress", total=total_iterations)
+    # static_task = progress.add_task("[yellow]Static Grid Params", total=len(static_grid))
     
     for static_params in static_grid:
         method_name = static_params["clustering_method"]
         clustering_method_enum = ClusteringMethod[method_name]
         clustering_params = param_config["clustering_param"][method_name]
 
-        cluster_task = progress.add_task(f"[cyan]{method_name} configs", total=len(clustering_params))
+        # cluster_task = progress.add_task(f"[cyan]{method_name} configs", total=len(clustering_params))
 
         for clustering_param in clustering_params:
-            progress.console.print(f"🔍 [bold]Running config:[/] {static_params}, clustering_param: {clustering_param}")
-            progress.console.print(f"🔍 Running iteration {count} of {total_iterations}")
+            # progress.console.print(f"🔍 [bold]Running config:[/] {static_params}, clustering_param: {clustering_param}")
+            # progress.console.print(f"🔍 Running iteration {count} of {total_iterations}")
 
             # try:
             df_out, reference_set, _, _, _, ref_ids = generate_reference_set(
