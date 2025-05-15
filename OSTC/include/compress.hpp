@@ -244,6 +244,7 @@ py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray, p
             return ref_trajectory_id == ref_traj.id;
         });
         std::vector<Trajectory> ref_trajectories = std::vector<Trajectory>{*ref_trajectory};
+        std::cout << "Size of ref_trajectories: " << ref_trajectories.size() << std::endl;
         std::cout << "performing MRT search" << std::endl;
         auto start_MRTSearch = std::chrono::high_resolution_clock::now();
         const auto M = t.MRTSearchOptimized(ref_trajectories, spatial_deviation_threshold, distance_function);
