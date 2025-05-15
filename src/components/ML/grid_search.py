@@ -3,6 +3,7 @@ import faulthandler
 import os
 import sys
 from enum import Enum
+import warnings
 
 import ostc
 import pandas as pd
@@ -23,7 +24,9 @@ from Evaluation.query_accuracy import query_accuracy_evaluation
 from Evaluation.querying import (query_compressed_dataset,
                                  query_original_dataset)
 
+
 faulthandler.enable()
+warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 # Your Enum
 class ClusteringMethod(Enum):

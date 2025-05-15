@@ -3,6 +3,7 @@ import os
 import sys
 import time
 from typing import List
+import warnings
 
 import pandas as pd
 
@@ -22,6 +23,8 @@ from tools.scripts._convert_timestamp_to_unix import \
     main as _timestamp_conversion
 from tools.scripts._load_data import count_trajectories
 from tools.scripts._preprocess import main as _load_data
+
+warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 data = [        # Beijing Trajectories
     [0, 1201956968, 116.51172, 39.92123],  # Trajectory 1
