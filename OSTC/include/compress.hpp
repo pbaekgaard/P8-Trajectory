@@ -243,6 +243,7 @@ py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray, p
         auto ref_trajectory = std::ranges::find_if(refTrajs, [&](const Trajectory &ref_traj) {
             return ref_trajectory_id == ref_traj.id;
         });
+        std::cout << "ref_trajectory == end(): " << (ref_trajectory == refTrajs.end()) << std::endl;
         std::vector<Trajectory> ref_trajectories = std::vector<Trajectory>{*ref_trajectory};
         std::cout << "Size of ref_trajectories: " << ref_trajectories.size() << std::endl;
         std::cout << "performing MRT search" << std::endl;
