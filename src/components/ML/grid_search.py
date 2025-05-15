@@ -127,23 +127,16 @@ with Progress(
             progress.console.print(f"🔍 Running iteration {count} of {total_iterations}")
 
             # try:
-
             df_out, reference_set, ref_ids, _, _ = generate_reference_set(
-                df=dataset, clustering_method=ClusteringMethod.KMEDOIDS, clustering_param=1000,
-                batch_size=128, d_model=64, num_heads=2, clustering_metric="euclidean",
-                num_layers=2
+                batch_size=static_params["batch_size"],
+                d_model=static_params["d_model"],
+                num_heads=static_params["num_heads"],
+                num_layers=static_params["num_layers"],
+                df=dataset,
+                clustering_method=clustering_method_enum,
+                clustering_param=clustering_param,
+                clustering_metric=static_params["clustering_metric"],
             )
-
-            # df_out, reference_set, ref_ids, _, _ = generate_reference_set(
-            #     batch_size=static_params["batch_size"],
-            #     d_model=static_params["d_model"],
-            #     num_heads=static_params["num_heads"],
-            #     num_layers=static_params["num_layers"],
-            #     df=dataset,
-            #     clustering_method=clustering_method_enum,
-            #     clustering_param=clustering_param,
-            #     clustering_metric=static_params["clustering_metric"],
-            # )
 
             compressed_data, merged_df, _, _ = ostc.compress(
                 df_out.to_records(index=False), 
