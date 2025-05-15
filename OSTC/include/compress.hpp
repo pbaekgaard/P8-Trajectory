@@ -206,6 +206,7 @@ py::object concat_dfs(const std::vector<py::object> &dfs)
 
 py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray, py::list refIds)
 {
+    std::cout << "Enter c++" << std::endl;
     //TODO: Delete when work/done testing:)
     /*const auto M = std::unordered_map<Trajectory, std::vector<Trajectory>>{
                     {t(0, 0), {t(0, 0)}}, {t(1, 8), {t2(0, 7)}}, {t(9, 14), {t5(6, 11)}},
