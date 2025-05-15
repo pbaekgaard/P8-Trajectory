@@ -127,7 +127,7 @@ with Progress(
             progress.console.print(f"🔍 Running iteration {count} of {total_iterations}")
 
             # try:
-            df_out, reference_set, ref_ids, _, _ = generate_reference_set(
+            df_out, reference_set, _, _, _, ref_ids = generate_reference_set(
                 batch_size=static_params["batch_size"],
                 d_model=static_params["d_model"],
                 num_heads=static_params["num_heads"],

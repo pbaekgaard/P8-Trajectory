@@ -243,13 +243,14 @@ def generate_reference_set(df: pd.DataFrame, clustering_method: ClusteringMethod
         # reference_set.append(unique_trajectories[representative_indices[cluster_label]]) # ref set links to trajID
 
     rep_ids = df['trajectory_id'].unique()[representative_indices]
+    ref_ids = dict(zip(df['trajectory_id'].unique(), reference_set))
     mask = np.isin(df['trajectory_id'].values, rep_ids)
     representative_trajectories = df.loc[mask]
     df = df.loc[~mask]
 
     # print(representative_trajectories)
 
-    return df, representative_trajectories, reference_set, representative_indices, trajectory_tensors
+    return df, representative_trajectories, reference_set, representative_indices, trajectory_tensors, ref_ids
 
 
 if __name__ == "__main__":

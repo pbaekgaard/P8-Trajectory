@@ -34,16 +34,19 @@ std::vector<Trajectory> ndarrayToTrajectories(py::object array)
     return trajectories;
 }
 
-std::vector<int> pyListToIds(py::object array)
+std::unordered_map<int, int> pyDictToIds(py::object dict)
 {
-    auto py_list = array.cast<py::list>();
-    std::vector<int> ids;
+    py::dict ids = dict.cast<py::dict>();
 
-    for (const auto& row : py_list) {
-        int id = row.cast<int>();
-        ids.push_back(id);
+    std::unordered_map<int, int> result;
+
+    for (const auto& item : ids) {
+        int key = item.first.cast<int>();
+        int value = item.second.cast<int>();
+        result[key] = value;
     }
-    return ids;
+
+    return result;
 }
 
 
@@ -219,7 +222,7 @@ py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray, p
 
     std::vector<Trajectory> rawTrajs = ndarrayToTrajectories(rawTrajectoryArray); // TODO: uncomment this shit when done testing
     std::vector<Trajectory> refTrajs = ndarrayToTrajectories(refTrajectoryArray);
-    std::vector<int> ref_ids = pyListToIds(refIds);
+    std::unordered_map<int, int> ref_ids = pyDictToIds(refIds);
 
     std::vector<py::object> uncompressed_trajectories_dfs;
     std::vector<OSTCResult> compressedTrajectories{};
@@ -236,9 +239,7 @@ py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray, p
 
 
     for (auto t : rawTrajs) {
-        std::cout << "ref_ids size: " << ref_ids.size() << std::endl;
-        std::cout << "t.id: " << t.id << std::endl;
-        auto ref_trajectory_id = ref_ids[t.id - 1];
+        auto ref_trajectory_id = ref_ids[t.id];
         auto ref_trajectory = std::ranges::find_if(refTrajs, [&](const Trajectory &ref_traj) {
             return ref_trajectory_id == ref_traj.id;
         });
