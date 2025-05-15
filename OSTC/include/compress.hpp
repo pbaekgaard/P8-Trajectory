@@ -207,7 +207,7 @@ py::object concat_dfs(const std::vector<py::object> &dfs)
     return concat(dfs);
 }
 
-py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray, py::list refIds)
+py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray, py::dict refIds)
 {
     //TODO: Delete when work/done testing:)
     /*const auto M = std::unordered_map<Trajectory, std::vector<Trajectory>>{
