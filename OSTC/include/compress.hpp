@@ -238,7 +238,7 @@ py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray, p
 
     for (auto t : rawTrajs) {
         std::cout << "Test 1" << std::endl;
-        auto ref_trajectory_id = ref_ids[t.id];
+        auto ref_trajectory_id = ref_ids[t.id - 1];
         std::cout << "Test 2" << std::endl;
         auto ref_trajectory = std::ranges::find_if(refTrajs, [&](const Trajectory &ref_traj) {
             return ref_trajectory_id == ref_traj.id;
