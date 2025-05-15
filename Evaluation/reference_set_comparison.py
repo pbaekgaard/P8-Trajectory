@@ -1,8 +1,8 @@
 import sys
 import os
-from collections import Counter
+import csv
 
-from shapely.measurement import length
+from collections import Counter
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../src/components")))
 
@@ -102,9 +102,27 @@ def reference_set_comparison(length, ref_set_size):
 if __name__ == '__main__':
     lengths = [10, 50, 100]
     ref_set_sizes = [5, 25, 50]
+    results = {}
+    file_path = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "files", "ref_set_comparison.csv"))
+    fields = ["length", "ref_set_size", "similarity", "deviation"]
+
+    # Initialize log file
+    if not os.path.exists(file_path):
+        with open(file_path, mode="w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=fields)
+            writer.writeheader()
+
     lengths_and_ref_set_size = [(length, ref_set_size) for length in lengths for ref_set_size in ref_set_sizes]
     for length, ref_set_size in lengths_and_ref_set_size:
         similarity, deviation = reference_set_comparison(length, ref_set_size)
-        print(similarity)
-        print(deviation)
+        results["length"] = length
+        results["ref_set_size"] = ref_set_size
+        results["similarity"] = similarity
+        results["deviation"] = deviation
+        with open(file_path, mode="a", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=fields)
+            writer.writerow(results)
+
+
+
 
