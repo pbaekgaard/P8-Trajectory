@@ -71,7 +71,7 @@ class TrajectoryDataset(Dataset):
     def augment(self, traj_df):
         # Example augmentation: jitter + crop
         jitter = traj_df.copy()
-        jitter[["longitude", "latitude"]] += np.random.normal(0, 0.0005, size=(len(jitter), 2)) # ~16,6m latitude, ~12,8m longitude, assuming Beijing City
+        jitter[["longitude", "latitude"]] += np.random.normal(0, 0.0001, size=(len(jitter), 2)) # ~16,6m latitude, ~12,8m longitude, assuming Beijing City
         jitter[["t_relative"]] += np.random.normal(0, 0.0000167, size=(len(jitter), 1)) # 7,2s, assuming dataset ranges over 5 days. Actual is ~days so maybe 9 seconds.
         if len(jitter) > 10:
             jitter = jitter.sample(frac=np.random.uniform(0.7, 1.0)).sort_values("timestamp")
@@ -132,7 +132,7 @@ if __name__ == "__main__":
     # print("Loading trained transformer state dict...")
     # model.load_state_dict(torch.load("trained_trajectory_transformer.pt", map_location=device))
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.00075)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.0005)
     loss_fn = NTXentLoss(temperature=0.1)
 
     train(model, dataloader, optimizer, loss_fn, device, epochs=50)
