@@ -6,21 +6,19 @@ class TimeEmbedding(nn.Module):
     def __init__(self, d_model):
         super().__init__()
         self.linear = nn.Linear(1, d_model)  # Project time into d_model space
-        self.activation = nn.ReLU()  # Optional non-linearity
 
     def forward(self, t) -> torch.Tensor:
         t = t.unsqueeze(-1)  # Shape: (batch, seq_len, 1)
-        return self.activation(self.linear(t))  # Output: (batch, seq_len, d_model)
+        return self.linear(t)  # Output: (batch, seq_len, d_model)
 
 
 class SpaceEmbedding(nn.Module):
     def __init__(self, d_model: int):
         super().__init__()
         self.linear = nn.Linear(2, d_model)  # Project (longitude, latitude) into d_model space
-        self.activation = nn.ReLU()
 
     def forward(self, coords: torch.Tensor) -> torch.Tensor:
-        return self.activation(self.linear(coords))  # Output: (batch, seq_len, d_model)
+        return self.linear(coords)  # Output: (batch, seq_len, d_model)
 
 
 class TrajectoryTransformer(nn.Module):
