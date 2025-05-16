@@ -123,11 +123,11 @@ if __name__ == '__main__':
             #dataset = _timestamp_conversion(pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"]))
 
 
-            query_original_dataset_time_start = time.perf_counter()
+            query_original_dataset_time_start = time.perf_counter_ns()
 
             query_result = query_original_dataset(dataset, queries)
 
-            query_original_dataset_time_end = time.perf_counter()
+            query_original_dataset_time_end = time.perf_counter_ns()
             query_original_dataset_time = query_original_dataset_time_end - query_original_dataset_time_start
 
 
@@ -147,7 +147,7 @@ if __name__ == '__main__':
             #dataset = pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
             dataset = dataset if dataset is not None else _load_data()
 
-            compression_time_start = time.perf_counter()
+            compression_time_start = time.perf_counter_ns()
             clustering_method, clustering_param, batch_size, d_model, num_heads, clustering_metric, num_layers = get_best_params()
 
             df, reference_set,_,_,_, ref_ids = generate_reference_set(
@@ -155,19 +155,22 @@ if __name__ == '__main__':
                 batch_size=batch_size, d_model=d_model, num_heads=num_heads, clustering_metric=clustering_metric,
                 num_layers=num_layers
             )
-            compression_time_ml_end = time.perf_counter()
+            compression_time_ml_end = time.perf_counter_ns()
             ml_time = compression_time_ml_end - compression_time_start
 
             # compressed_dataset, merged_df = mock_compressed_data(df, reference_set)
             numpy_df = df.to_records(index=False)
             numpy_ref_set = reference_set.to_records(index=False)
             compressed_dataset, merged_df, duration_MRTSearch, duration_OSTC = ostc.compress(numpy_df, numpy_ref_set)
-            compression_time_end = time.perf_counter()
+
+            compression_time_end = time.perf_counter_ns()
             compression_time = compression_time_end - compression_time_ml_end
 
-            query_compressed_dataset_time_start = time.perf_counter()
+            query_compressed_dataset_time_start = time.perf_counter_ns()
+
             query_result = query_compressed_dataset(compressed_dataset, merged_df, queries)
-            query_compressed_dataset_time_end = time.perf_counter()
+
+            query_compressed_dataset_time_end = time.perf_counter_ns()
             query_compressed_dataset_time = query_compressed_dataset_time_end - query_compressed_dataset_time_start
 
             result = {

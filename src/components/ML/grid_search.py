@@ -4,6 +4,7 @@ import os
 import sys
 from enum import Enum
 import warnings
+import time
 
 import ostc
 import pandas as pd
@@ -67,6 +68,7 @@ data = [
 # dataset = pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
 
 dataset = _load_data.main()
+dataset_size = sys.getsizeof(dataset)
 # df, unique_trajectories = get_first_x_trajectories(trajectories=dataset, num_trajectories=10)
 unique_trajectories = dataset["trajectory_id"].unique()
 
@@ -90,7 +92,7 @@ path = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), 
 param_config_path = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "grid_search_params.yml"))
 log_file = "grid_search_results.csv"
 path_log_file = os.path.join(path, log_file)
-log_fields = static_keys + ["clustering_param", "score"]
+log_fields = static_keys + ["clustering_param", "compression_ratio", "ml_time", "compression_time", "querying_time", "total_time", "score"]
 
 # Load params
 with open(param_config_path, "r") as f:
@@ -130,6 +132,8 @@ with Progress(
             progress.console.print(f"🔍 Running iteration {count} of {total_iterations}")
 
             # try:
+            compression_time_start = time.perf_counter_ns()
+
             df_out, reference_set, _, _, _, ref_ids = generate_reference_set(
                 batch_size=static_params["batch_size"],
                 d_model=static_params["d_model"],
@@ -141,11 +145,21 @@ with Progress(
                 clustering_metric=static_params["clustering_metric"],
             )
 
+            compression_time_ml_end = time.perf_counter_ns()
+            ml_time = compression_time_ml_end - compression_time_start
+
             compressed_data, merged_df, _, _ = ostc.compress(
                 df_out.to_records(index=False), 
                 reference_set.to_records(index=False),
                 ref_ids
             )
+
+            compression_time_end = time.perf_counter_ns()
+            compression_time = compression_time_end - compression_time_ml_end
+
+            compression_ratio = dataset_size / (sys.getsizeof(compressed_data) + sys.getsizeof(merged_df))
+
+            query_compressed_dataset_time_start = time.perf_counter_ns()
 
             y_pred = query_compressed_dataset(
                 compressed_dataset=compressed_data, 
@@ -153,11 +167,21 @@ with Progress(
                 queries=queries
             )
 
+            query_compressed_dataset_time_end = time.perf_counter_ns()
+            query_compressed_dataset_time = query_compressed_dataset_time_end - query_compressed_dataset_time_start
+
             score = custom_scoring(y_pred=y_pred)
+
+            total_time = time.perf_counter_ns() - compression_time_start
 
             log_row = static_params.copy()
             log_row["clustering_param"] = clustering_param
             log_row["score"] = score
+            log_row["compression_ratio"] = compression_ratio
+            log_row["ml_time"] = ml_time
+            log_row["compression_time"] = compression_time
+            log_row["querying_time"] = query_compressed_dataset_time
+            log_row["total_time"] = total_time
 
             with open(path_log_file, mode="a", newline="") as f:
                 writer = csv.DictWriter(f, fieldnames=log_fields)
