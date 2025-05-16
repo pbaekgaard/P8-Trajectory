@@ -5,6 +5,7 @@ import sys
 from enum import Enum
 import warnings
 import time
+from pympler import asizeof
 
 import ostc
 import pandas as pd
@@ -68,7 +69,7 @@ data = [
 # dataset = pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
 
 dataset = _load_data.main()
-dataset_size = sys.getsizeof(dataset)
+dataset_size = dataset.memory_usage(deep=True).sum()
 # df, unique_trajectories = get_first_x_trajectories(trajectories=dataset, num_trajectories=10)
 unique_trajectories = dataset["trajectory_id"].unique()
 
@@ -157,8 +158,10 @@ with Progress(
             compression_time_end = time.perf_counter_ns()
             compression_time = compression_time_end - compression_time_ml_end
 
-            compression_ratio = dataset_size / (sys.getsizeof(compressed_data) + sys.getsizeof(merged_df))
-
+            compression_ratio = dataset_size / (asizeof.asizeof(compressed_data) + \
+                merged_df.drop(columns=['timestamp_corrected']).memory_usage(deep=True).sum() + \
+                merged_df['timestamp_corrected'].apply(lambda x: asizeof.asizeof(x) if isinstance(x, dict) and x else 0).sum())
+            print(compression_ratio)
             query_compressed_dataset_time_start = time.perf_counter_ns()
 
             y_pred = query_compressed_dataset(
