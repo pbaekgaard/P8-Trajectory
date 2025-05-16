@@ -16,7 +16,7 @@ import faulthandler
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from enum import Enum
 
-import tools.scripts._load_data as _load_data
+import tools.scripts._preprocess as _load_data
 from src.components.ML.TrajectoryTransformer import TrajectoryTransformer
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -135,7 +135,7 @@ def visualize_in_PCA(df, trajectory_representations: np.ndarray, representative_
     # Labels and legend
     plt.xlabel("PCA Component 1")
     plt.ylabel("PCA Component 2")
-    plt.title("Trajectory Embeddings Visualized with PCA using " + clusteringMethod.name)
+    # plt.title("Trajectory Embeddings Visualized with PCA using " + clusteringMethod.name)
     plt.legend()
     plt.grid(True)
     plt.show()
@@ -256,11 +256,11 @@ def generate_reference_set(df: pd.DataFrame, clustering_method: ClusteringMethod
 
 if __name__ == "__main__":
     faulthandler.enable()  # så kan vi se, hvis vi løber tør for memory
-    num_trajectories = 10
+    num_trajectories = 25
     batch_size = 5
-    clusteringMethod = ClusteringMethod.KMEDOIDS
-    n_clusters = 3
-    distance_threshold = 0.25
+    clusteringMethod = ClusteringMethod.AGGLOMERATIVE
+    n_clusters = 2
+    distance_threshold = 1
     clustering_metric = "euclidean"
 
 
