@@ -125,12 +125,12 @@ def visualize_in_PCA(df, trajectory_representations: np.ndarray, representative_
     plt.scatter(
         representative_pca[:, 0], representative_pca[:, 1],
         c=representative_indices, label="Representative Trajectories",
-        edgecolors="black", s=150, marker="X"
+        edgecolors="black", s=75, marker="X"
     )
 
     # Add trajectory indices as labels
-    for i, (x, y) in enumerate(trajectory_pca):
-        plt.text(x, y, str(i) + ":" + str(df['trajectory_id'].unique()[i]), fontsize=10, ha='right', va='bottom', color='black')
+    # for i, (x, y) in enumerate(trajectory_pca):
+    #     plt.text(x, y, str(i) + ":" + str(df['trajectory_id'].unique()[i]), fontsize=10, ha='right', va='bottom', color='black')
 
     # Labels and legend
     plt.xlabel("PCA Component 1")
@@ -257,9 +257,9 @@ def generate_reference_set(df: pd.DataFrame, clustering_method: ClusteringMethod
 if __name__ == "__main__":
     faulthandler.enable()  # så kan vi se, hvis vi løber tør for memory
     batch_size = 128
-    clusteringMethod = ClusteringMethod.KMEDOIDS
+    clusteringMethod = ClusteringMethod.AGGLOMERATIVE
     n_clusters = 1000
-    distance_threshold = 0.03125
+    distance_threshold = 0.125
     clustering_metric = "euclidean"
 
 
