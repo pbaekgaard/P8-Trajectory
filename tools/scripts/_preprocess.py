@@ -10,13 +10,14 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # Adds the current directory to sys.path
 
-from _deduplicate import main as deduplicate
-from _load_data import main as load_data
-from _timestamporder import main as timestamporder
-from _remove_illegal_points import main as remove_illegal_points
 from _convert_timestamp_to_unix import main as timestamp_conversion
-from _ten_trajectories import main as ten_trajectories
+from _deduplicate import main as deduplicate
 from _delimit_trajectory_length import main as delimit_trajectory_length
+from _load_data import main as load_data
+from _remove_illegal_points import main as remove_illegal_points
+from _ten_trajectories import main as ten_trajectories
+from _timestamporder import main as timestamporder
+
 
 def parse_only(value):
     """

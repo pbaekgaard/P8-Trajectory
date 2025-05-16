@@ -5,6 +5,7 @@
 #include <ranges>
 #include "distance.hpp"
 
+#include <omp.h>
 #include <functional>
 #include <unordered_map>
 #include <map>
@@ -16,6 +17,7 @@
 #if _WIN32
 #include <cstdint>
 #endif
+
 
 bool SamplePoint::operator==(const SamplePoint& other) const
 {
@@ -93,6 +95,8 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
                                                                              const double epsilon,
                                                                              std::function<double(SamplePoint const& a, SamplePoint const& b)> distance_function)
 {
+
+    std::cout << "loop 1. doubles" << std::endl;
      std::unordered_map<Trajectory, std::vector<Trajectory>> M;
     for (int i = 0; i < points.size() - 1; i++) {
         Trajectory subtraj = (*this)(i, i + 1);
@@ -111,11 +115,12 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
             }
         }
     }
-
+    std::cout << "loop 2. n-tuples" << std::endl;
     for (int n = 2; n < points.size(); n++) {
+        std::cout << "loop 3. n.tuples. n is " << n << std::endl;
         auto found = false;
-
         for (int i = 0, j = i + n; j <= points.size() - 1; i++, j++) {
+
             Trajectory sub_left = (*this)(i, j - 1);
             Trajectory sub_right = (*this)(j - 1, j);
 
@@ -127,6 +132,7 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
                 const std::vector<Trajectory>& T_bs = T_b_vec->second;
 
                 for (Trajectory a : T_as) {
+
                     for (auto& b : T_bs) {
                         if (a.id == b.id && a.end_index == b.start_index) {
                             M[(*this)(i,j)].emplace_back(a + b);
@@ -149,6 +155,154 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
                 for (auto& b : T_bs) {
                     if (MaxDTW((*this)(i,j), b, distance_function) <= epsilon) {
                         M[(*this)(i,j)].emplace_back(b);
+                        found = true;
+                    }
+                }
+            }
+        }
+
+        if (!found) break;
+    }
+
+    std::vector<TrajectoryRemoval> to_remove;
+
+    std::cout << "loop 3. ref trajectories." << std::endl;
+
+    for (auto& [query_traj, ref_trajs] : M) {
+        auto query_start_index = query_traj.start_index;
+        auto query_end_index = query_traj.end_index;
+
+        for (auto i = query_start_index; i <= query_end_index - 1; i++) {
+            for (auto j = i + 1; j <= query_end_index; j++) {
+                if (i == query_start_index && j == query_end_index) {
+                    continue;
+                }
+
+                auto ref_iterator = M.find((*this)(i, j));
+                if (ref_iterator != M.end()) {
+                    auto& ref_trajectories = ref_iterator->second;
+                    for (auto& ref_trajectory : ref_trajectories) {
+                        auto is_sub_trajectory = std::ranges::find_if(ref_trajs,
+                            [&](const Trajectory& ref_traj) {
+                            return ref_trajectory.id == ref_traj.id && ref_trajectory.start_index >= ref_traj.start_index && ref_trajectory.end_index <= ref_traj.end_index;
+                        }) != ref_trajs.end();
+
+                        if (is_sub_trajectory) {
+                            to_remove.push_back(TrajectoryRemoval{(*this)(i, j), ref_trajectory});
+                        }
+                    }
+
+                }
+            }
+        }
+    }
+    std::cout << "loop 4. removals" << std::endl;
+    for (auto& removal : to_remove) {
+        auto& ref_trajectory_to_remove = removal.trajectory_to_remove;
+        auto iter = M.find(removal.query_trajectory);
+        if (iter == M.end()) {
+            continue;
+        }
+
+        auto& ref_trajectories = iter->second;
+        std::erase_if(ref_trajectories, [&](const Trajectory& ref_traj) { return ref_traj == ref_trajectory_to_remove; });
+
+        if (ref_trajectories.size() == 0) {
+            M.erase(removal.query_trajectory);
+        }
+    }
+
+    std::cout << "loop 5. M." << std::endl;
+    for (auto& [query_traj, ref_trajs] : M) {
+        std::unordered_set<Trajectory> seen;
+        ref_trajs.erase(std::remove_if(ref_trajs.begin(), ref_trajs.end(),
+                       [&seen](Trajectory x){
+                           return !seen.insert(x).second;   // true  ⇒ duplicate
+                       }),
+        ref_trajs.end());
+    }
+
+    return M;
+}
+
+
+std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearchOptimized(std::vector<Trajectory>& RefSet,
+                                                                             const double epsilon,
+                                                                             std::function<double(SamplePoint const& a, SamplePoint const& b)> distance_function)
+{
+    std::unordered_map<Trajectory, std::vector<Trajectory>> M;
+    #pragma omp parallel
+    {
+        #pragma omp for schedule(dynamic)
+        for (int i = 0; i < points.size() - 1; i++) {
+            Trajectory subtraj = (*this)(i, i + 1);
+
+            for (auto& refTraj : RefSet) {
+                for (int j = 0; j < refTraj.points.size() - 1; j++) {
+                    for (int k = j + 1; k < refTraj.points.size(); k++) {
+                        Trajectory subRefTraj = refTraj(j, k);
+                        if (MaxDTW(subtraj, subRefTraj, distance_function) <= epsilon) {
+                            subRefTraj.start_index += refTraj.start_index;
+                            subRefTraj.end_index += refTraj.start_index;
+
+                            // Protect shared map with critical section
+                            #pragma omp critical
+                            {
+                                M[subtraj].emplace_back(subRefTraj);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    for (int n = 2; n < points.size(); n++) {
+        auto found = false;
+        for (int i = 0, j = i + n; j <= points.size() - 1; i++, j++) {
+            Trajectory sub_left = (*this)(i, j - 1);
+            Trajectory sub_right = (*this)(j - 1, j);
+
+            auto T_a_vec = M.find(sub_left);
+            auto T_b_vec = M.find(sub_right);
+            std::unordered_set<Trajectory> seen;
+
+            if (T_a_vec != M.end() && T_b_vec != M.end()) {
+                const std::vector<Trajectory>& T_as = T_a_vec->second;
+                const std::vector<Trajectory>& T_bs = T_b_vec->second;
+
+                for (Trajectory a : T_as) {
+                    for (auto& b : T_bs) {
+                        if (a.id == b.id && a.end_index == b.start_index) {
+                            if (seen.find(a+b) == seen.end()) {
+                                seen.insert(a+b);
+                                M[(*this)(i,j)].emplace_back(a + b);
+                            }
+                            found = true;
+                        }
+                    }
+                }
+            }
+            if (T_a_vec != M.end()) {
+                auto T_as = T_a_vec->second;
+                for (auto& a : T_as) {
+                    if (MaxDTW((*this)(i,j), a, distance_function) <= epsilon) {
+                        if (seen.find(a) == seen.end()) {
+                            seen.insert(a);
+                            M[(*this)(i,j)].emplace_back(a);
+                        }
+                        found = true;
+                    }
+                }
+            }
+            if (T_b_vec != M.end()) {
+                auto T_bs = T_b_vec->second;
+                for (auto& b : T_bs) {
+                    if (MaxDTW((*this)(i,j), b, distance_function) <= epsilon) {
+                        if (seen.find(b) == seen.end()) {
+                            seen.insert(b);
+                            M[(*this)(i,j)].emplace_back(b);
+                        }
                         found = true;
                     }
                 }
@@ -215,6 +369,7 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
 
     return M;
 }
+
 
 OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajectory>> M, const double tepsilon, const double sepsilon, std::function<double(SamplePoint const& a, SamplePoint const& b)> distance_function)
 {
@@ -314,6 +469,8 @@ OSTCResult Trajectory::OSTC(std::unordered_map<Trajectory, std::vector<Trajector
 
     return {T_prime, time_correction_record};
 }
+
+
 
 
 void convertCompressedTrajectoriesToPoints(std::vector<CompressedResult>& points, const Trajectory& trajectory_to_be_compressed, OSTCResult compressed)

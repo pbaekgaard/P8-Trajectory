@@ -20,9 +20,6 @@ import tools.scripts._preprocess as _load_data
 from src.components.ML.TrajectoryTransformer import TrajectoryTransformer
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print("device: ", device)
-print("CUDA available: ", torch.cuda.is_available())
-
 
 class ClusteringMethod(Enum):
     KMEDOIDS = 1
@@ -125,17 +122,17 @@ def visualize_in_PCA(df, trajectory_representations: np.ndarray, representative_
     plt.scatter(
         representative_pca[:, 0], representative_pca[:, 1],
         c=representative_indices, label="Representative Trajectories",
-        edgecolors="black", s=75, marker="X"
+        edgecolors="black", s=150, marker="X"
     )
 
     # Add trajectory indices as labels
-    # for i, (x, y) in enumerate(trajectory_pca):
-    #     plt.text(x, y, str(i) + ":" + str(df['trajectory_id'].unique()[i]), fontsize=10, ha='right', va='bottom', color='black')
+    for i, (x, y) in enumerate(trajectory_pca):
+        plt.text(x, y, str(i) + ":" + str(df['trajectory_id'].unique()[i]), fontsize=10, ha='right', va='bottom', color='black')
 
     # Labels and legend
     plt.xlabel("PCA Component 1")
     plt.ylabel("PCA Component 2")
-    # plt.title("Trajectory Embeddings Visualized with PCA using " + clusteringMethod.name)
+    plt.title("Trajectory Embeddings Visualized with PCA using " + clusteringMethod.name)
     plt.legend()
     plt.grid(True)
     plt.show()
@@ -271,7 +268,7 @@ if __name__ == "__main__":
         batch_size=batch_size,
         d_model=128,
         num_heads=4,
-        num_layers=2,
+        num_layers=3,
         df=all_df,
         clustering_method=clusteringMethod,
         clustering_param=n_clusters if clusteringMethod == ClusteringMethod.KMEDOIDS else distance_threshold,

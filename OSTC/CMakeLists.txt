@@ -9,6 +9,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(Debug "Enable Executing in Debug Mode" OFF)
 
+find_package(OpenMP REQUIRED)
+
 if(Debug)
     # Find Python and Pybind11
     find_package(Python COMPONENTS Interpreter Development REQUIRED)
@@ -31,7 +33,10 @@ if(Debug)
         src/main.cpp
             # Change this if needed
     )
-    target_link_libraries(${This} PRIVATE ostc_lib)
+
+    target_link_libraries(ostc_lib PRIVATE OpenMP::OpenMP_CXX)
+
+    target_link_libraries(${This} PRIVATE ostc_lib OpenMP::OpenMP_CXX)
     target_compile_definitions(${This} PRIVATE Debug)  # Define Debug for preprocessor
 else()
     # Find Python and Pybind11
@@ -50,5 +55,8 @@ else()
         src/main.cpp  # Contains the pybind11 module definition
     )
 
-    target_link_libraries(ostc PRIVATE ostc_lib pybind11::pybind11)
+    target_link_libraries(ostc_lib PRIVATE OpenMP::OpenMP_CXX)
+    target_link_libraries(ostc PRIVATE ostc_lib pybind11::pybind11 OpenMP::OpenMP_CXX)
 endif()
+
+

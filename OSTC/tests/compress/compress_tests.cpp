@@ -93,6 +93,56 @@ auto create_mock_trajectory_data() {
     return py::object(data);
 }
 
+auto create_mock_reference_trajectory_data() {
+    py::list data;
+
+    // Each row: id, timestamp, lon, lat (ignoring extras)
+    std::vector<std::tuple<int, int, float, float>> rows = {
+        // Trajectory ID 1
+        {1, 1201956968, 116.51172f, 39.92123f},
+        {1, 1201961168, 116.51135f, 39.93883f},
+        {1, 1201961168, 116.51135f, 39.93883f},
+        {1, 1201965368, 116.51627f, 39.91034f},
+        {1, 1201969568, 116.47186f, 39.91248f},
+        {1, 1201973768, 116.47217f, 39.92498f},
+        {1, 1201977968, 116.47179f, 39.90718f},
+        {1, 1201982168, 116.45617f, 39.90531f},
+        {1, 1201983624, 116.47191f, 39.90577f},
+        {1, 1201984224, 116.50661f, 39.91450f},
+
+        // Updated Trajectory ID 6
+        {6, 1201957112, 116.43453f, 39.92262f},
+        {6, 1201957472, 116.44723f, 39.92572f},
+        {6, 1201957832, 116.4493f,  39.93550f},
+        {6, 1201958192, 116.44238f, 39.94755f},
+        {6, 1201958552, 116.45507f, 39.94780f},
+        {6, 1201958912, 116.4438f,  39.95938f},
+        {6, 1201959272, 116.42597f, 39.96815f},
+        {6, 1201959632, 116.41008f, 39.96773f},
+        {6, 1201959992, 116.3752f,  39.97650f},
+        {6, 1201960352, 116.38145f, 39.98073f},
+
+        // Trajectory ID 8
+        {8, 1202108473, 116.36606f, 39.68410f},
+        {8, 1202194895, 116.36606f, 39.68409f},
+        {8, 1202281320, 116.36605f, 39.68409f},
+        {8, 1202368965, 116.36611f, 39.68408f},
+        {8, 1202457637, 116.36615f, 39.68413f}
+    };
+
+    for (const auto& [id, ts, lon, lat] : rows) {
+        py::list row;
+        row.append(id);
+        row.append(ts);
+        row.append(lon);
+        row.append(lat);
+        data.append(row);
+    }
+
+    return py::object(data);
+}
+
+
 size_t lookup_points_size(const std::vector<Trajectory>& trajectories, const int trajectory_id)
 {
     const auto found_traj = std::ranges::find_if(trajectories,
@@ -108,13 +158,16 @@ py::scoped_interpreter guard{};
 TEST(ndarrayToTrajectories, check_trajectory_size)
 {
     const auto trajectories = ndarrayToTrajectories(create_mock_trajectory_data());
+    const auto refTrajectories = ndarrayToTrajectories(create_mock_reference_trajectory_data());
 
     EXPECT_EQ(trajectories.size(), 7);
+    EXPECT_EQ(refTrajectories.size(), 3);
 }
 
 TEST(ndarrayToTrajectories, check_trajectory_point_sizes)
 {
     const auto trajectories = ndarrayToTrajectories(create_mock_trajectory_data());
+    const auto refTrajectories = ndarrayToTrajectories(create_mock_reference_trajectory_data());
 
     EXPECT_EQ(lookup_points_size(trajectories, 2), 10);
     EXPECT_EQ(lookup_points_size(trajectories, 3), 10);
@@ -123,6 +176,10 @@ TEST(ndarrayToTrajectories, check_trajectory_point_sizes)
     EXPECT_EQ(lookup_points_size(trajectories, 7), 10);
     EXPECT_EQ(lookup_points_size(trajectories, 9), 10);
     EXPECT_EQ(lookup_points_size(trajectories, 10), 10);
+
+    EXPECT_EQ(lookup_points_size(refTrajectories, 1), 10);
+    EXPECT_EQ(lookup_points_size(refTrajectories, 6), 10);
+    EXPECT_EQ(lookup_points_size(refTrajectories, 8), 5);
 }
 
 TEST(ndarrayToTrajectories, check_trajectory_point)
@@ -133,4 +190,193 @@ TEST(ndarrayToTrajectories, check_trajectory_point)
     EXPECT_FLOAT_EQ(trajectories[6].points[0].longitude, 116.36422f);
     EXPECT_FLOAT_EQ(trajectories[6].points[0].latitude, 39.88781f);
     EXPECT_EQ(trajectories[6].points[0].timestamp, 1201959232);
+}
+
+
+TEST(Compress, MRTSearch)
+{
+    auto trajectories = ndarrayToTrajectories(create_mock_trajectory_data());
+    auto refTrajectories = ndarrayToTrajectories(create_mock_reference_trajectory_data());
+
+    constexpr auto temporal_deviation_threshold = 60;
+    constexpr auto spatial_deviation_threshold = 200;
+    auto distance_function = haversine_distance;
+
+    std::unordered_map<uint32_t, OSTCResult> all_compressed_results;
+
+    // small deviation threshold
+
+    for (auto trajectory : trajectories) {
+        const auto M = trajectory.MRTSearch(refTrajectories, spatial_deviation_threshold, distance_function); //TODO: uncomment when done testing
+        OSTCResult compressed = trajectory.OSTC(M, temporal_deviation_threshold, spatial_deviation_threshold, distance_function);
+
+        EXPECT_TRUE(compressed.references.size() > 0);
+        EXPECT_TRUE(compressed.time_corrections.size() == 0);
+
+        all_compressed_results[trajectory.id] = compressed;
+    }
+
+    for (auto compressedResult : all_compressed_results) {
+        EXPECT_EQ(compressedResult.second.references.size(), 1);
+    }
+
+    all_compressed_results.clear();
+
+
+    // large deviation threshold
+
+    auto M = trajectories[0].MRTSearch(refTrajectories, 20000, distance_function); //TODO: uncomment when done testing
+    OSTCResult compressed = trajectories[0].OSTC(M, temporal_deviation_threshold, 20000, distance_function);
+
+    EXPECT_EQ(compressed.references[0].id, 6);
+}
+
+TEST(MRT_VS_MRTOptimized, threshold_200)
+{
+    auto trajectories = ndarrayToTrajectories(create_mock_trajectory_data());
+    auto refTrajectories = ndarrayToTrajectories(create_mock_reference_trajectory_data());
+
+    constexpr auto temporal_deviation_threshold = 60;
+    constexpr auto spatial_deviation_threshold = 200;
+    auto distance_function = haversine_distance;
+
+    float duration_MRTSearch = 0;
+    float duration_MRTSearchOptimized = 0;
+
+
+    for (auto trajectory : trajectories) {
+        auto start_MRTSearch = std::chrono::high_resolution_clock::now();
+        const auto M = trajectory.MRTSearch(refTrajectories, spatial_deviation_threshold, distance_function);
+        duration_MRTSearch += std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start_MRTSearch).count();
+
+        auto start_MRTSearchOptimized = std::chrono::high_resolution_clock::now();
+        const auto M_Optimized = trajectory.MRTSearchOptimized(refTrajectories, spatial_deviation_threshold, distance_function);
+        duration_MRTSearchOptimized += std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start_MRTSearchOptimized).count();
+
+        EXPECT_EQ(M, M_Optimized);
+    }
+
+    std::cout << "duration_MRT: " << duration_MRTSearch << ", duration_MRT_Optimized: " << duration_MRTSearchOptimized << std::endl;
+    EXPECT_TRUE(duration_MRTSearch - duration_MRTSearchOptimized > -3);
+
+}
+
+TEST(MRT_VS_MRTOptimized, threshold_20000)
+{
+    auto trajectories = ndarrayToTrajectories(create_mock_trajectory_data());
+    auto refTrajectories = ndarrayToTrajectories(create_mock_reference_trajectory_data());
+
+    constexpr auto temporal_deviation_threshold = 60;
+    constexpr auto spatial_deviation_threshold = 20000;
+    auto distance_function = haversine_distance;
+
+    float duration_MRTSearch = 0;
+    float duration_MRTSearchOptimized = 0;
+
+
+    for (auto trajectory : trajectories) {
+        auto start_MRTSearch = std::chrono::high_resolution_clock::now();
+        const auto M = trajectory.MRTSearch(refTrajectories, spatial_deviation_threshold, distance_function);
+        duration_MRTSearch += std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start_MRTSearch).count();
+
+        auto start_MRTSearchOptimized = std::chrono::high_resolution_clock::now();
+        const auto M_Optimized = trajectory.MRTSearchOptimized(refTrajectories, spatial_deviation_threshold, distance_function);
+        duration_MRTSearchOptimized += std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start_MRTSearchOptimized).count();
+
+        EXPECT_EQ(M, M_Optimized);
+    }
+
+    std::cout << "duration_MRT: " << duration_MRTSearch << ", duration_MRT_Optimized: " << duration_MRTSearchOptimized << std::endl;
+    EXPECT_TRUE(duration_MRTSearch - duration_MRTSearchOptimized > -3);
+
+}
+
+
+TEST(MRTOptimized, rest_data)
+{
+    auto T1 = Trajectory(
+        1, std::vector<SamplePoint>{SamplePoint(2.0, 2.5, 0), SamplePoint(1.5, 3.0, 0), SamplePoint(1.5, 4.0, 0),
+                                    SamplePoint(1.5, 5.5, 0), SamplePoint(1.5, 7.0, 0), SamplePoint(1.5, 8.5, 0),
+                                    SamplePoint(1.5, 9.5, 0), SamplePoint(1.5, 10.5, 0), SamplePoint(1.5, 12.0, 0),
+                                    SamplePoint(1.5, 13.0, 0), SamplePoint(2, 14.0, 0), SamplePoint(3, 14.5, 0),
+                                    SamplePoint(5, 14.5, 0), SamplePoint(6.5, 14.5, 0)});
+    auto T2 = Trajectory(
+        2, std::vector<SamplePoint>{SamplePoint(5.0, 16.0, 0), SamplePoint(7.5, 16.0, 0), SamplePoint(8.5, 16.0, 0),
+                                    SamplePoint(9.5, 16.0, 0), SamplePoint(12, 15.5, 0), SamplePoint(12.5, 14.5, 0),
+                                    SamplePoint(12.5, 13.5, 0), SamplePoint(12.5, 12.0, 0), SamplePoint(14.0, 12.5, 0),
+                                    SamplePoint(15.0, 11.0, 0), SamplePoint(16.5, 11.0, 0), SamplePoint(17.5, 11.0, 0),
+                                    SamplePoint(18.5, 11.0, 0), SamplePoint(19.5, 11.5, 0), SamplePoint(19.5, 12.0, 0),
+                                    SamplePoint(19.5, 13.5, 0), SamplePoint(19.5, 14.5, 0)});
+
+    auto T3 = Trajectory(
+        3, std::vector<SamplePoint>{SamplePoint(5.5, 14.0, 0), SamplePoint(7.0, 14.0, 0), SamplePoint(8, 14.5, 0),
+                                    SamplePoint(10.0, 14.5, 0), SamplePoint(11.0, 14.0, 0), SamplePoint(11.5, 12.0, 0),
+                                    SamplePoint(9.5, 12.0, 0), SamplePoint(8.0, 12.0, 0), SamplePoint(6.5, 12.0, 0),
+                                    SamplePoint(4.5, 12.0, 0), SamplePoint(3.5, 12.0, 0), SamplePoint(2.5, 11.0, 0),
+                                    SamplePoint(2, 10.5, 0), SamplePoint(2, 9.0, 0), SamplePoint(2, 8.0, 0)});
+
+    auto T4 = Trajectory(4, std::vector<SamplePoint>{
+                                SamplePoint(5.5, 14.0, 0),  SamplePoint(6.5, 14.0, 0), SamplePoint(7.5, 14.5, 0),
+                                SamplePoint(8.5, 14.5, 0),  SamplePoint(9.5, 14.0, 0), SamplePoint(11.5, 12.0, 0),
+                                SamplePoint(11.5, 10.0, 0), SamplePoint(11.5, 8.5, 0), SamplePoint(11.5, 8.0, 0),
+                                SamplePoint(11.5, 6.0, 0),  SamplePoint(11.5, 5.0, 0), SamplePoint(12.5, 4.0, 0),
+                                SamplePoint(13.0, 3.5, 0),  SamplePoint(13.5, 3.0, 0), SamplePoint(13.5, 2.0, 0),
+                                SamplePoint(13.5, 1.0, 0),  SamplePoint(12.5, 1.0, 0), SamplePoint(10.5, 1.0, 0),
+                                SamplePoint(8.5, 1.0, 0),
+
+                            });
+
+    auto T5 = Trajectory(
+        5, std::vector<SamplePoint>{SamplePoint(20.5, 13.0, 0), SamplePoint(19.0, 13.0, 0), SamplePoint(17.5, 13.0, 0),
+                                    SamplePoint(16.0, 13.0, 0), SamplePoint(14.5, 13.0, 0), SamplePoint(13.5, 12.5, 0),
+                                    SamplePoint(12.5, 11.0, 0), SamplePoint(12.5, 10.0, 0), SamplePoint(12.5, 8.0, 0),
+                                    SamplePoint(12.5, 6.0, 0), SamplePoint(13.5, 4.5, 0), SamplePoint(14.5, 3.5, 0)});
+
+    auto T6 = Trajectory(
+        6, std::vector<SamplePoint>{SamplePoint(2.0, 6.0, 0), SamplePoint(2.0, 4.5, 0), SamplePoint(2.0, 3.5, 0),
+                                    SamplePoint(2.5, 2.5, 0), SamplePoint(3.5, 2.5, 0), SamplePoint(4.5, 2.5, 0),
+                                    SamplePoint(5.5, 2.5, 0), SamplePoint(6.5, 2.5, 0), SamplePoint(7.5, 2.5, 0),
+                                    SamplePoint(9.0, 2.5, 0), SamplePoint(11.0, 2.5, 0), SamplePoint(12.0, 2.5, 0),
+                                    SamplePoint(14.5, 2.5, 0), SamplePoint(16.0, 2.5, 0)});
+
+    auto T7 = Trajectory(
+        7, std::vector<SamplePoint>{SamplePoint(15.5, 6.5, 0), SamplePoint(15.5, 6.0, 0), SamplePoint(15.5, 5.0, 0),
+                                    SamplePoint(16.5, 5.0, 0), SamplePoint(17.5, 5.0, 0), SamplePoint(17.5, 4.0, 0),
+                                    SamplePoint(18.0, 3.0, 0), SamplePoint(18.0, 2.5, 0), SamplePoint(20.0, 2.5, 0),
+                                    SamplePoint(22.0, 2.5, 0)});
+
+    auto references = std::vector<Trajectory>{T1, T2, T3, T4, T5, T6, T7};
+
+    auto T = Trajectory(0, std::vector<SamplePoint>{
+                               SamplePoint(3.0, 15.5, 0),  SamplePoint(5.0, 15.5, 0),  SamplePoint(7.0, 15.5, 0),
+                               SamplePoint(8.5, 15.5, 0),  SamplePoint(9.5, 15.5, 0),  SamplePoint(10.0, 15.5, 0),
+                               SamplePoint(11.5, 15.5, 0), SamplePoint(12.0, 14.0, 0), SamplePoint(12.0, 12.0, 0),
+                               SamplePoint(12.0, 11.0, 0), SamplePoint(12.0, 10.0, 0), SamplePoint(12.0, 8.0, 0),
+                               SamplePoint(12.0, 5.5, 0),  SamplePoint(13.0, 4.0, 0),  SamplePoint(14.0, 3.0, 0),
+                               SamplePoint(14.0, 2.0, 0),  SamplePoint(16.0, 2.0, 0),  SamplePoint(18.5, 2.0, 0),
+                               SamplePoint(20.5, 2.0, 0),  SamplePoint(21.5, 2.0, 0),
+                           });
+    auto M_optimized = T.MRTSearchOptimized(references, 1, euclideanDistance);
+
+    auto M = T.MRTSearchOptimized(references, 1, euclideanDistance);
+
+    EXPECT_EQ(M, M_optimized);
+
+    auto expected_M1 = std::vector<Trajectory>{T1(11,13)};
+    auto expected_M2 = std::vector<Trajectory>{T2(0,7)};
+    auto expected_M3 = std::vector<Trajectory>{T3(2, 3)};
+    auto expected_M4 = std::vector<Trajectory>{T3(4, 5)};
+    auto expected_M5 = std::vector<Trajectory>{T5(6, 11)};
+    auto expected_M6 = std::vector<Trajectory>{T4(5, 14)};
+    auto expected_M7 = std::vector<Trajectory>{T6(12, 13)};
+    auto expected_M8 = std::vector<Trajectory>{T7(7, 9)};
+
+    // EXPECT_EQ(M[T(0,2)], expected_M1);
+    // EXPECT_EQ(M[T(1, 8)], expected_M2);
+    // EXPECT_EQ(M[T(3, 5)], expected_M3);
+    // EXPECT_EQ(M[T(7, 8)], expected_M4);
+    // EXPECT_EQ(M[T(9, 14)], expected_M5);
+    // EXPECT_EQ(M[T(9, 15)], expected_M6);
+    // EXPECT_EQ(M[T(14, 16)], expected_M7);
+    // EXPECT_EQ(M[T(17, 19)], expected_M8);
 }
