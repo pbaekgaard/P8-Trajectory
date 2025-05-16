@@ -256,23 +256,22 @@ def generate_reference_set(df: pd.DataFrame, clustering_method: ClusteringMethod
 
 if __name__ == "__main__":
     faulthandler.enable()  # så kan vi se, hvis vi løber tør for memory
-    num_trajectories = 25
-    batch_size = 5
-    clusteringMethod = ClusteringMethod.AGGLOMERATIVE
-    n_clusters = 2
-    distance_threshold = 1
+    batch_size = 128
+    clusteringMethod = ClusteringMethod.KMEDOIDS
+    n_clusters = 1000
+    distance_threshold = 0.03125
     clustering_metric = "euclidean"
 
 
     all_df = _load_data.main()
 
-    all_df = get_first_x_trajectories(trajectories=all_df, num_trajectories=10)
+    # all_df = get_first_x_trajectories(trajectories=all_df, num_trajectories=10)
 
     df, representative_trajectories, reference_set, representative_indices, trajectory_representations = generate_reference_set(
         batch_size=batch_size,
         d_model=128,
         num_heads=4,
-        num_layers=3,
+        num_layers=2,
         df=all_df,
         clustering_method=clusteringMethod,
         clustering_param=n_clusters if clusteringMethod == ClusteringMethod.KMEDOIDS else distance_threshold,
