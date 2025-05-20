@@ -16,13 +16,10 @@ import faulthandler
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from enum import Enum
 
-import tools.scripts._load_data as _load_data
+import tools.scripts._preprocess as _load_data
 from src.components.ML.TrajectoryTransformer import TrajectoryTransformer
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print("device: ", device)
-print("CUDA available: ", torch.cuda.is_available())
-
 
 class ClusteringMethod(Enum):
     KMEDOIDS = 1
@@ -178,7 +175,6 @@ def generate_reference_set(df: pd.DataFrame, clustering_method: ClusteringMethod
     )  # convert to delta_seconds from start.
     normalized_df = normalize_df(df)
 
-    print("instantiating model...")
     model = TrajectoryTransformer(
         d_model=d_model,
         num_heads=num_heads,
@@ -205,6 +201,7 @@ def generate_reference_set(df: pd.DataFrame, clustering_method: ClusteringMethod
         futures = [executor.submit(process_batch, batch) for batch in df_batches]
         for future in as_completed(futures):
             trajectory_tensors.append(future.result())
+
 
     trajectory_tensors = torch.cat(trajectory_tensors, dim=0).numpy()
 
@@ -235,28 +232,24 @@ def generate_reference_set(df: pd.DataFrame, clustering_method: ClusteringMethod
 
                 representative_indices.append(original_index)
 
-    print("cluster labels: ", cluster_labels)
-    print("representative_indices: ", representative_indices)
-
+    ref_ids_list = []
     reference_set = []
     for cluster_label in cluster_labels:
         reference_set.append(representative_indices[cluster_label]) # ref set links to medoid ID.
-        # reference_set.append(unique_trajectories[representative_indices[cluster_label]]) # ref set links to trajID
-    print("reference set: ", reference_set)
+        ref_ids_list.append(df['trajectory_id'].unique()[representative_indices[cluster_label]]) # ref set links to trajID
 
     rep_ids = df['trajectory_id'].unique()[representative_indices]
+    ref_ids_dict = dict(zip(df['trajectory_id'].unique(), ref_ids_list))
     mask = np.isin(df['trajectory_id'].values, rep_ids)
     representative_trajectories = df.loc[mask]
     df = df.loc[~mask]
 
-    # print(representative_trajectories)
 
-    return df, representative_trajectories, reference_set, representative_indices, trajectory_tensors
+    return df, representative_trajectories, reference_set, representative_indices, trajectory_tensors, ref_ids_dict
 
 
 if __name__ == "__main__":
     faulthandler.enable()  # så kan vi se, hvis vi løber tør for memory
-    num_trajectories = 10
     batch_size = 5
     clusteringMethod = ClusteringMethod.KMEDOIDS
     n_clusters = 3
@@ -265,8 +258,6 @@ if __name__ == "__main__":
 
 
     all_df = _load_data.main()
-
-    all_df = get_first_x_trajectories(trajectories=all_df, num_trajectories=10)
 
     df, representative_trajectories, reference_set, representative_indices, trajectory_representations = generate_reference_set(
         batch_size=batch_size,

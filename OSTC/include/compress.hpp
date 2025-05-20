@@ -34,6 +34,21 @@ std::vector<Trajectory> ndarrayToTrajectories(py::object array)
     return trajectories;
 }
 
+std::unordered_map<int, int> pyDictToIds(py::object dict)
+{
+    py::dict ids = dict.cast<py::dict>();
+
+    std::unordered_map<int, int> result;
+
+    for (const auto& item : ids) {
+        int key = item.first.cast<int>();
+        int value = item.second.cast<int>();
+        result[key] = value;
+    }
+
+    return result;
+}
+
 
 struct ReferenceSetMapKey
 {
@@ -192,7 +207,7 @@ py::object concat_dfs(const std::vector<py::object> &dfs)
     return concat(dfs);
 }
 
-py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray)
+py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray, py::dict refIds)
 {
     //TODO: Delete when work/done testing:)
     /*const auto M = std::unordered_map<Trajectory, std::vector<Trajectory>>{
@@ -207,6 +222,7 @@ py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray)
 
     std::vector<Trajectory> rawTrajs = ndarrayToTrajectories(rawTrajectoryArray); // TODO: uncomment this shit when done testing
     std::vector<Trajectory> refTrajs = ndarrayToTrajectories(refTrajectoryArray);
+    std::unordered_map<int, int> ref_ids = pyDictToIds(refIds);
 
     std::vector<py::object> uncompressed_trajectories_dfs;
     std::vector<OSTCResult> compressedTrajectories{};
@@ -223,15 +239,17 @@ py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray)
 
 
     for (auto t : rawTrajs) {
-        std::cout << "performing MRT search" << std::endl;
+        auto ref_trajectory_id = ref_ids[t.id];
+        auto ref_trajectory = std::ranges::find_if(refTrajs, [&](const Trajectory &ref_traj) {
+            return ref_trajectory_id == ref_traj.id;
+        });
+        std::vector<Trajectory> ref_trajectories = std::vector<Trajectory>{*ref_trajectory};
         auto start_MRTSearch = std::chrono::high_resolution_clock::now();
-        const auto M = t.MRTSearchOptimized(refTrajs, spatial_deviation_threshold, distance_function);
+        const auto M = t.MRTSearchOptimized(ref_trajectories, spatial_deviation_threshold, distance_function);
         duration_MRTSearch += std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start_MRTSearch).count();
-        std::cout << "MRT search done" << std::endl;
         auto start_OSTC = std::chrono::high_resolution_clock::now();
         OSTCResult compressed = t.OSTC(M, temporal_deviation_threshold, spatial_deviation_threshold, distance_function);
         duration_OSTC += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_OSTC).count();
-        std::cout << "OSTC done" << std::endl;
 
         all_compressed_results[t.id] = compressed;
     }
@@ -241,9 +259,7 @@ py::tuple compress(py::array rawTrajectoryArray, py::array refTrajectoryArray)
 
     auto reference_map_df = reference_map_to_df(reference_set_map);
     std::vector<py::object> merged_dfs = {reference_map_df, unreferenced_df};
-    std::cout << "Concatting dfs" << std::endl;
     py::object merged_df = concat_dfs(merged_dfs);
-    std::cout << "concat_dfs done" << std::endl;
     // Duration_MRTSearch and duration_OSTC is returned in milliseconds
     return py::make_tuple(triples_dict, merged_df, py::float_(duration_MRTSearch), py::float_(duration_OSTC / 1000));
 }

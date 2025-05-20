@@ -5,5 +5,5 @@ num_layers: [2, 4]
 clustering_method: ["KMEDOIDS", "AGGLOMERATIVE"]
 clustering_param:
   KMEDOIDS: [1000, 2500, 5000]
-  AGGLOMERATIVE: [0.125, 0.25, 0.5, 1] #check
+  AGGLOMERATIVE: [0.03125, 0.0625, 0.125, 0.25, 0.5, 1] #check
 clustering_metric: ["euclidean"]

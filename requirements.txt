@@ -6,6 +6,8 @@ pyproj==3.7.1
 torch==2.6.0
 scikit-learn==1.4.1.post1
 scikit-learn-extra==0.3.0
--e ../OSTCpytest
+pympler
+./OSTC
+pytest
 pyarrow
 fastparquet

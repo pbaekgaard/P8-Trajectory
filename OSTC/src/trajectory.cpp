@@ -5,6 +5,7 @@
 #include <ranges>
 #include "distance.hpp"
 
+#include <omp.h>
 #include <functional>
 #include <unordered_map>
 #include <map>
@@ -16,6 +17,7 @@
 #if _WIN32
 #include <cstdint>
 #endif
+
 
 bool SamplePoint::operator==(const SamplePoint& other) const
 {
@@ -93,6 +95,8 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
                                                                              const double epsilon,
                                                                              std::function<double(SamplePoint const& a, SamplePoint const& b)> distance_function)
 {
+
+    std::cout << "loop 1. doubles" << std::endl;
      std::unordered_map<Trajectory, std::vector<Trajectory>> M;
     for (int i = 0; i < points.size() - 1; i++) {
         Trajectory subtraj = (*this)(i, i + 1);
@@ -111,11 +115,12 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
             }
         }
     }
-
+    std::cout << "loop 2. n-tuples" << std::endl;
     for (int n = 2; n < points.size(); n++) {
+        std::cout << "loop 3. n.tuples. n is " << n << std::endl;
         auto found = false;
-
         for (int i = 0, j = i + n; j <= points.size() - 1; i++, j++) {
+
             Trajectory sub_left = (*this)(i, j - 1);
             Trajectory sub_right = (*this)(j - 1, j);
 
@@ -127,6 +132,7 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
                 const std::vector<Trajectory>& T_bs = T_b_vec->second;
 
                 for (Trajectory a : T_as) {
+
                     for (auto& b : T_bs) {
                         if (a.id == b.id && a.end_index == b.start_index) {
                             M[(*this)(i,j)].emplace_back(a + b);
@@ -160,6 +166,8 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
 
     std::vector<TrajectoryRemoval> to_remove;
 
+    std::cout << "loop 3. ref trajectories." << std::endl;
+
     for (auto& [query_traj, ref_trajs] : M) {
         auto query_start_index = query_traj.start_index;
         auto query_end_index = query_traj.end_index;
@@ -188,7 +196,7 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
             }
         }
     }
-
+    std::cout << "loop 4. removals" << std::endl;
     for (auto& removal : to_remove) {
         auto& ref_trajectory_to_remove = removal.trajectory_to_remove;
         auto iter = M.find(removal.query_trajectory);
@@ -204,6 +212,7 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearch(st
         }
     }
 
+    std::cout << "loop 5. M." << std::endl;
     for (auto& [query_traj, ref_trajs] : M) {
         std::unordered_set<Trajectory> seen;
         ref_trajs.erase(std::remove_if(ref_trajs.begin(), ref_trajs.end(),
@@ -221,28 +230,35 @@ std::unordered_map<Trajectory, std::vector<Trajectory>> Trajectory::MRTSearchOpt
                                                                              const double epsilon,
                                                                              std::function<double(SamplePoint const& a, SamplePoint const& b)> distance_function)
 {
-     std::unordered_map<Trajectory, std::vector<Trajectory>> M;
-    for (int i = 0; i < points.size() - 1; i++) {
-        Trajectory subtraj = (*this)(i, i + 1);
+    std::unordered_map<Trajectory, std::vector<Trajectory>> M;
+    #pragma omp parallel
+    {
+        #pragma omp for schedule(dynamic)
+        for (int i = 0; i < points.size() - 1; i++) {
+            Trajectory subtraj = (*this)(i, i + 1);
 
-        for (auto refTraj : RefSet) {
-            for (int j = 0; j < refTraj.points.size() - 1; j++) {
-                for (int k = j + 1; k < refTraj.points.size(); k++) {
-                    Trajectory subRefTraj = refTraj(j, k);
-                    if (MaxDTW(subtraj, subRefTraj, distance_function) <= epsilon) {
-                        subRefTraj.start_index = subRefTraj.start_index + refTraj.start_index;
-                        subRefTraj.end_index = subRefTraj.end_index + refTraj.start_index;
-                        M[subtraj].emplace_back(subRefTraj);
+            for (auto& refTraj : RefSet) {
+                for (int j = 0; j < refTraj.points.size() - 1; j++) {
+                    for (int k = j + 1; k < refTraj.points.size(); k++) {
+                        Trajectory subRefTraj = refTraj(j, k);
+                        if (MaxDTW(subtraj, subRefTraj, distance_function) <= epsilon) {
+                            subRefTraj.start_index += refTraj.start_index;
+                            subRefTraj.end_index += refTraj.start_index;
+
+                            // Protect shared map with critical section
+                            #pragma omp critical
+                            {
+                                M[subtraj].emplace_back(subRefTraj);
+                            }
+                        }
                     }
                 }
-
             }
         }
     }
 
     for (int n = 2; n < points.size(); n++) {
         auto found = false;
-
         for (int i = 0, j = i + n; j <= points.size() - 1; i++, j++) {
             Trajectory sub_left = (*this)(i, j - 1);
             Trajectory sub_right = (*this)(j - 1, j);
