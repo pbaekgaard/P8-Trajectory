@@ -123,7 +123,7 @@ def train(model, dataloader, optimizer, loss_fn, device, epochs):
             break
     return loss
 
-def grid_seach():
+def save_models():
     param_config_path = os.path.abspath(
         os.path.join(os.path.dirname(os.path.abspath(__file__)), "grid_search_params.yml"))
     model_files_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models")
@@ -171,4 +171,4 @@ def grid_seach():
 
 
 if __name__ == "__main__":
-    grid_seach()
+    save_models()
