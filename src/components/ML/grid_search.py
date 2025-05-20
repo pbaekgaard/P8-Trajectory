@@ -5,6 +5,7 @@ import sys
 from enum import Enum
 import warnings
 import time
+from pympler import asizeof
 
 import ostc
 import pandas as pd
@@ -36,8 +37,8 @@ class ClusteringMethod(Enum):
 
 
 def custom_scoring(y_pred):
-    accuracy, _ = query_accuracy_evaluation(y_true=y_true, y_pred=y_pred, original_df=dataset)
-    return accuracy
+    accuracy, individual_accuracies = query_accuracy_evaluation(y_true=y_true, y_pred=y_pred, original_df=dataset)
+    return accuracy, individual_accuracies
 
 
 # Load and prepare data
@@ -68,7 +69,7 @@ data = [
 # dataset = pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
 
 dataset = _load_data.main()
-dataset_size = sys.getsizeof(dataset)
+dataset_size = dataset.memory_usage(deep=True).sum()
 # df, unique_trajectories = get_first_x_trajectories(trajectories=dataset, num_trajectories=10)
 unique_trajectories = dataset["trajectory_id"].unique()
 
@@ -92,7 +93,7 @@ path = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), 
 param_config_path = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "grid_search_params.yml"))
 log_file = "grid_search_results.csv"
 path_log_file = os.path.join(path, log_file)
-log_fields = static_keys + ["clustering_param", "compression_ratio", "ml_time", "compression_time", "querying_time", "total_time", "score"]
+log_fields = static_keys + ["clustering_param", "compression_ratio", "ml_time", "compression_time", "Total_MRT_time", "Total_OSTC_time", "querying_time", "total_time", "accuracy_individual_results", "score"]
 
 # Load params
 with open(param_config_path, "r") as f:
@@ -148,7 +149,7 @@ with Progress(
             compression_time_ml_end = time.perf_counter_ns()
             ml_time = compression_time_ml_end - compression_time_start
 
-            compressed_data, merged_df, _, _ = ostc.compress(
+            compressed_data, merged_df, MRT_time, OSTC_time = ostc.compress(
                 df_out.to_records(index=False), 
                 reference_set.to_records(index=False),
                 ref_ids
@@ -157,8 +158,10 @@ with Progress(
             compression_time_end = time.perf_counter_ns()
             compression_time = compression_time_end - compression_time_ml_end
 
-            compression_ratio = dataset_size / (sys.getsizeof(compressed_data) + sys.getsizeof(merged_df))
-
+            compression_ratio = dataset_size / (asizeof.asizeof(compressed_data) + \
+                merged_df.drop(columns=['timestamp_corrected']).memory_usage(deep=True).sum() + \
+                merged_df['timestamp_corrected'].apply(lambda x: asizeof.asizeof(x) if isinstance(x, dict) and x else 0).sum())
+            print(compression_ratio)
             query_compressed_dataset_time_start = time.perf_counter_ns()
 
             y_pred = query_compressed_dataset(
@@ -170,7 +173,7 @@ with Progress(
             query_compressed_dataset_time_end = time.perf_counter_ns()
             query_compressed_dataset_time = query_compressed_dataset_time_end - query_compressed_dataset_time_start
 
-            score = custom_scoring(y_pred=y_pred)
+            score, individual_accuracies = custom_scoring(y_pred=y_pred)
 
             total_time = time.perf_counter_ns() - compression_time_start
 
@@ -180,8 +183,12 @@ with Progress(
             log_row["compression_ratio"] = compression_ratio
             log_row["ml_time"] = ml_time
             log_row["compression_time"] = compression_time
+            log_row["Total_MRT_time"] = MRT_time
+            log_row["Total_OSTC_time"] = OSTC_time
             log_row["querying_time"] = query_compressed_dataset_time
             log_row["total_time"] = total_time
+            log_row["accuracy_individual_results"] = individual_accuracies
+
 
             with open(path_log_file, mode="a", newline="") as f:
                 writer = csv.DictWriter(f, fieldnames=log_fields)
