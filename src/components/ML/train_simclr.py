@@ -166,7 +166,7 @@ def save_models():
         optimizer = torch.optim.Adam(model.parameters(), lr=0.0004)
         loss_fn = NTXentLoss(temperature=0.09)
 
-        loss = train(model, dataloader, optimizer, loss_fn, device, epochs=8)
+        loss = train(model, dataloader, optimizer, loss_fn, device, epochs=50)
 
         filename = f"{batch_size}-{d_model}-{num_heads}-{num_layers}-{loss}_transformer.pt"
         torch.save(model.state_dict(), os.path.join(model_files_path, filename))
