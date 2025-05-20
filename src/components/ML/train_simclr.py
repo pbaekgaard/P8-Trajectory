@@ -171,23 +171,4 @@ def grid_seach():
 
 
 if __name__ == "__main__":
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    df = _load_data.main()
-    df['t_relative'] = df.groupby('trajectory_id')['timestamp'].transform(lambda x: x - x.min())
-    df = normalize_df(df)
-
-    dataset = TrajectoryDataset(df)
-    dataloader = DataLoader(dataset, batch_size=64, shuffle=True, collate_fn=lambda x: list(zip(*x)))
-
-    model = TrajectoryTransformer(d_model=128, num_heads=4, num_layers=2).to(device)
-
-    # print("Loading trained transformer state dict...")
-    # model.load_state_dict(torch.load("trained_trajectory_transformer.pt", map_location=device))
-
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.0005)
-    loss_fn = NTXentLoss(temperature=0.1)
-
-    train(model, dataloader, optimizer, loss_fn, device, epochs=50)
-
-    torch.save(model.state_dict(), "trained_trajectory_transformer_new_stats.pt")
+    grid_seach()
