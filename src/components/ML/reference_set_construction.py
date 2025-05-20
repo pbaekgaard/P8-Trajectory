@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
+import re
 from scipy.spatial.distance import cdist
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.decomposition import PCA
@@ -183,7 +184,21 @@ def generate_reference_set(df: pd.DataFrame, clustering_method: ClusteringMethod
         num_layers=num_layers,
     ).to(device)
     print("Loading trained transformer state dict...")
-    model.load_state_dict(torch.load("models/trained_trajectory_transformer.pt", map_location=device))
+    model_files_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models")
+
+    pattern = re.compile(rf"^{batch_size}-{d_model}-{num_heads}-{num_layers}-[\d\.]+_transformer\.pt$")
+
+    # Find the matching file
+    matching_files = [f for f in os.listdir(model_files_path) if pattern.match(f)]
+
+    if len(matching_files) != 1:
+        raise ValueError(
+            f"Expected 1 matching model file, found {len(matching_files)} for config: {batch_size}-{d_model}-{num_heads}-{num_layers}")
+
+    filename = matching_files[0]
+    print(f"Loading model from: {filename}")
+
+    model.load_state_dict(torch.load(os.path.join(model_files_path, filename), map_location=device))
     model.eval()
 
     df_batches = split_into_batches(normalized_df, batch_size=batch_size)
