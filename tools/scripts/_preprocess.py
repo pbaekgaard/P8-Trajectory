@@ -131,7 +131,7 @@ def main(only=None):
         'timestamporder',
         'convert_timestamp_to_unix',
         'take_10_trajectories',
-        'trajectory_length:50'
+        'trajectory_length:200'
         ]
 
     data = load_data()
@@ -151,7 +151,7 @@ def main(only=None):
             print(f"Converting timestamp to unix...")
             data = timestamp_conversion(data)
         # elif step == "take_10_trajectories":
-        #     print("TAKING ONLY THE FIRST 10 TRAJECTORIESSS!!!!...")
+        #     print("TAKING ONLY THE FIRST 1000 TRAJECTORIESSS!!!!...")
         #     data = ten_trajectories(data)
         elif step.split(":")[0] == "trajectory_length":
             length = int(step.split(":")[1])

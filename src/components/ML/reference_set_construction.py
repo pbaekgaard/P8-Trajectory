@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
+import re
 from scipy.spatial.distance import cdist
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.decomposition import PCA
@@ -122,12 +123,12 @@ def visualize_in_PCA(df, trajectory_representations: np.ndarray, representative_
     plt.scatter(
         representative_pca[:, 0], representative_pca[:, 1],
         c=representative_indices, label="Representative Trajectories",
-        edgecolors="black", s=150, marker="X"
+        edgecolors="black", s=100, marker="X"
     )
 
-    # Add trajectory indices as labels
-    for i, (x, y) in enumerate(trajectory_pca):
-        plt.text(x, y, str(i) + ":" + str(df['trajectory_id'].unique()[i]), fontsize=10, ha='right', va='bottom', color='black')
+    # # Add trajectory indices as labels
+    # for i, (x, y) in enumerate(trajectory_pca):
+    #     plt.text(x, y, str(i) + ":" + str(df['trajectory_id'].unique()[i]), fontsize=10, ha='right', va='bottom', color='black')
 
     # Labels and legend
     plt.xlabel("PCA Component 1")
@@ -146,6 +147,7 @@ def normalize_df(df):
     """
     norm_df = df.copy()
     norm_df['t_relative'] = (df['t_relative'] - df['t_relative'].min()) / (df['t_relative'].max() - df['t_relative'].min())
+    print("max t_relative in days: " + str(df['t_relative'].max()/60/60/24))
     norm_df['longitude'] = (df['longitude'] - df['longitude'].min()) / (df['longitude'].max() - df['longitude'].min())
     norm_df['latitude'] = (df['latitude'] - df['latitude'].min()) / (df['latitude'].max() - df['latitude'].min())
     return norm_df
@@ -175,12 +177,28 @@ def generate_reference_set(df: pd.DataFrame, clustering_method: ClusteringMethod
     )  # convert to delta_seconds from start.
     normalized_df = normalize_df(df)
 
+    print("instantiating model...")
     model = TrajectoryTransformer(
         d_model=d_model,
         num_heads=num_heads,
         num_layers=num_layers,
     ).to(device)
-    # model.train() # IF TRAIN
+    print("Loading trained transformer state dict...")
+    model_files_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models")
+
+    pattern = re.compile(rf"^{batch_size}-{d_model}-{num_heads}-{num_layers}-[\d\.]+_transformer\.pt$")
+
+    # Find the matching file
+    matching_files = [f for f in os.listdir(model_files_path) if pattern.match(f)]
+
+    if len(matching_files) != 1:
+        raise ValueError(
+            f"Expected 1 matching model file, found {len(matching_files)} for config: {batch_size}-{d_model}-{num_heads}-{num_layers}")
+
+    filename = matching_files[0]
+    print(f"Loading model from: {filename}")
+
+    model.load_state_dict(torch.load(os.path.join(model_files_path, filename), map_location=device))
     model.eval()
 
     df_batches = split_into_batches(normalized_df, batch_size=batch_size)
@@ -201,7 +219,6 @@ def generate_reference_set(df: pd.DataFrame, clustering_method: ClusteringMethod
         futures = [executor.submit(process_batch, batch) for batch in df_batches]
         for future in as_completed(futures):
             trajectory_tensors.append(future.result())
-
 
     trajectory_tensors = torch.cat(trajectory_tensors, dim=0).numpy()
 
@@ -232,38 +249,38 @@ def generate_reference_set(df: pd.DataFrame, clustering_method: ClusteringMethod
 
                 representative_indices.append(original_index)
 
-    ref_ids_list = []
+
     reference_set = []
     for cluster_label in cluster_labels:
         reference_set.append(representative_indices[cluster_label]) # ref set links to medoid ID.
-        ref_ids_list.append(df['trajectory_id'].unique()[representative_indices[cluster_label]]) # ref set links to trajID
+        # reference_set.append(unique_trajectories[representative_indices[cluster_label]]) # ref set links to trajID
 
     rep_ids = df['trajectory_id'].unique()[representative_indices]
-    ref_ids_dict = dict(zip(df['trajectory_id'].unique(), ref_ids_list))
     mask = np.isin(df['trajectory_id'].values, rep_ids)
     representative_trajectories = df.loc[mask]
     df = df.loc[~mask]
 
-
-    return df, representative_trajectories, reference_set, representative_indices, trajectory_tensors, ref_ids_dict
+    return df, representative_trajectories, reference_set, representative_indices, trajectory_tensors
 
 
 if __name__ == "__main__":
     faulthandler.enable()  # så kan vi se, hvis vi løber tør for memory
-    batch_size = 5
-    clusteringMethod = ClusteringMethod.KMEDOIDS
-    n_clusters = 3
-    distance_threshold = 0.25
+    batch_size = 128
+    clusteringMethod = ClusteringMethod.AGGLOMERATIVE
+    n_clusters = 100
+    distance_threshold = 10.0
     clustering_metric = "euclidean"
 
 
     all_df = _load_data.main()
 
+    # all_df = get_first_x_trajectories(trajectories=all_df, num_trajectories=10)
+
     df, representative_trajectories, reference_set, representative_indices, trajectory_representations = generate_reference_set(
         batch_size=batch_size,
         d_model=128,
         num_heads=4,
-        num_layers=3,
+        num_layers=2,
         df=all_df,
         clustering_method=clusteringMethod,
         clustering_param=n_clusters if clusteringMethod == ClusteringMethod.KMEDOIDS else distance_threshold,
