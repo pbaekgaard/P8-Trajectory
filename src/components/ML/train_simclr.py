@@ -123,8 +123,6 @@ def train(model, dataloader, optimizer, loss_fn, device, epochs):
 
         loss = total_loss / len(dataloader)
         print(f"Epoch {epoch+1}, Loss: {loss:.4f}")
-        if loss <= 0.0:
-            break
     return loss
 
 def save_models():
