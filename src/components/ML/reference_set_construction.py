@@ -183,7 +183,7 @@ def generate_reference_set(df: pd.DataFrame, clustering_method: ClusteringMethod
         num_layers=num_layers,
     ).to(device)
     print("Loading trained transformer state dict...")
-    model.load_state_dict(torch.load("trained_trajectory_transformer.pt", map_location=device))
+    model.load_state_dict(torch.load("models/trained_trajectory_transformer.pt", map_location=device))
     model.eval()
 
     df_batches = split_into_batches(normalized_df, batch_size=batch_size)
