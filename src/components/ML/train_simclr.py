@@ -8,9 +8,11 @@ import yaml
 import itertools
 import os
 from tqdm import tqdm
-import tools.scripts._preprocess as _load_data
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
+import tools.scripts._preprocess as _load_data
+
+
 
 from src.components.ML.TrajectoryTransformer import TrajectoryTransformer
 from src.components.ML.reference_set_construction import pad_batches, df_to_tensor, normalize_df
