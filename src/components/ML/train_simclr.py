@@ -123,7 +123,7 @@ def train(model, dataloader, optimizer, loss_fn, device, epochs):
 
         loss = total_loss / len(dataloader)
         print(f"Epoch {epoch+1}, Loss: {loss:.4f}")
-        if loss <= 0.5:
+        if loss <= 0.0:
             break
     return loss
 
@@ -163,10 +163,10 @@ def save_models():
 
         model = TrajectoryTransformer(d_model=d_model, num_heads=num_heads, num_layers=num_layers).to(device)
 
-        optimizer = torch.optim.Adam(model.parameters(), lr=0.0005)
-        loss_fn = NTXentLoss(temperature=0.1)
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.0004)
+        loss_fn = NTXentLoss(temperature=0.09)
 
-        loss = train(model, dataloader, optimizer, loss_fn, device, epochs=50)
+        loss = train(model, dataloader, optimizer, loss_fn, device, epochs=20)
 
         filename = f"{batch_size}-{d_model}-{num_heads}-{num_layers}-{loss}_transformer.pt"
         torch.save(model.state_dict(), os.path.join(model_files_path, filename))
