@@ -4,6 +4,9 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader, Dataset
 import pandas as pd
 import numpy as np
+import yaml
+import itertools
+import os
 from tqdm import tqdm
 import tools.scripts._preprocess as _load_data
 
@@ -88,6 +91,7 @@ class TrajectoryDataset(Dataset):
 # =====================
 def train(model, dataloader, optimizer, loss_fn, device, epochs):
     model.train()
+    loss = 100
     for epoch in range(epochs):
         total_loss = 0
         for traj1, traj2 in tqdm(dataloader, desc=f"Epoch {epoch+1}"):
@@ -113,7 +117,56 @@ def train(model, dataloader, optimizer, loss_fn, device, epochs):
 
             total_loss += loss.item()
 
-        print(f"Epoch {epoch+1}, Loss: {total_loss / len(dataloader):.4f}")
+        loss = total_loss / len(dataloader)
+        print(f"Epoch {epoch+1}, Loss: {loss:.4f}")
+        if loss <= 0.5:
+            break
+    return loss
+
+def grid_seach():
+    param_config_path = os.path.abspath(
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "grid_search_params.yml"))
+    model_files_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models")
+
+
+
+    with open(param_config_path, "r") as f:
+        grid = yaml.safe_load(f)
+
+    # Create all combinations of parameter values
+    param_combinations = list(itertools.product(
+        grid['batch_size'],
+        grid['d_model'],
+        grid['num_heads'],
+        grid['num_layers']
+    ))
+
+    # Device
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    # Load and preprocess data once
+    df = _load_data.main()
+    df['t_relative'] = df.groupby('trajectory_id')['timestamp'].transform(lambda x: x - x.min())
+    df = normalize_df(df)
+
+    # Loop through all combinations
+    for batch_size, d_model, num_heads, num_layers in param_combinations:
+        print(
+            f"Training with batch_size={batch_size}, d_model={d_model}, num_heads={num_heads}, num_layers={num_layers}")
+
+        dataset = TrajectoryDataset(df)
+        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, collate_fn=lambda x: list(zip(*x)))
+
+        model = TrajectoryTransformer(d_model=d_model, num_heads=num_heads, num_layers=num_layers).to(device)
+
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.0005)
+        loss_fn = NTXentLoss(temperature=0.1)
+
+        loss = train(model, dataloader, optimizer, loss_fn, device, epochs=50)
+
+        filename = f"{batch_size}-{d_model}-{num_heads}-{num_layers}-{loss}_transformer.pt"
+        torch.save(model.state_dict(), os.path.join(model_files_path, filename))
+        print(f"Saved model to {filename}")
 
 
 
