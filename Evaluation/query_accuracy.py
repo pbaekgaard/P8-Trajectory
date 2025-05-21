@@ -13,7 +13,7 @@ def query_accuracy_evaluation(y_true, y_pred, original_df):
     # print("where accuracy done")
 
     # DISTANCE
-    accuracy_results.append(("Distance",distance_query_accuracy_evaluation(y_true[1], y_pred[1])))
+    accuracy_results.append(("Distance",distance_query_accuracy_evaluation(y_true[1], y_pred[1], original_df)))
     # print("distance accuracy done")
 
     # WHEN
@@ -69,8 +69,9 @@ def where_query_accuracy_evaluation(y_true, y_pred, original_df):
         results.append(sum_score)
     return sum(results) / len(results)
 
-def distance_query_accuracy_evaluation(y_true, y_pred):
+def distance_query_accuracy_evaluation(y_true, y_pred, original_df):
     results = []
+    trajectories_count = len(original_df.groupby(["trajectory_id"]))
     for i in range(len(y_true)):
         true_set = set(y_true[i]["trajectory_id"])
         pred_set = set(y_pred[i]["trajectory_id"])
@@ -85,9 +86,11 @@ def distance_query_accuracy_evaluation(y_true, y_pred):
         range_val = max(y_true_vals) - min(y_true_vals)
 
         if range_val == 0:
-            result = max(1 - rmse / max(y_true_vals), 0)
+            result = 1 - (rmse / max(y_true_vals) * len(recurring_ids)) / (len(unique_ids) + len(recurring_ids))
+            result = max(result, 0)
         else:
-            result = max(1 - rmse / range_val, 0)
+            result = 1 - ((rmse / range_val) * len(recurring_ids)) / (len(unique_ids) + len(recurring_ids))
+            result = max(result, 0)
         results.append(result)
     return sum(results) / len(results)
 

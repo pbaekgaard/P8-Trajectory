@@ -268,8 +268,8 @@ if __name__ == "__main__":
     faulthandler.enable()  # så kan vi se, hvis vi løber tør for memory
     batch_size = 128
     clusteringMethod = ClusteringMethod.AGGLOMERATIVE
-    n_clusters = 100
-    distance_threshold = 10.0
+    n_clusters = 1000
+    distance_threshold = 10
     clustering_metric = "euclidean"
 
 
@@ -277,11 +277,11 @@ if __name__ == "__main__":
 
     # all_df = get_first_x_trajectories(trajectories=all_df, num_trajectories=10)
 
-    df, representative_trajectories, reference_set, representative_indices, trajectory_representations = generate_reference_set(
+    df, representative_trajectories, reference_set, representative_indices, trajectory_representations, _ = generate_reference_set(
         batch_size=batch_size,
         d_model=128,
-        num_heads=4,
-        num_layers=2,
+        num_heads=2,
+        num_layers=4,
         df=all_df,
         clustering_method=clusteringMethod,
         clustering_param=n_clusters if clusteringMethod == ClusteringMethod.KMEDOIDS else distance_threshold,
