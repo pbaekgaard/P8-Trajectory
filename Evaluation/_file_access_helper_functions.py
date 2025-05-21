@@ -51,8 +51,9 @@ def get_best_params():
         for row in reader:
             try:
                 score = float(row["score"])
-                if score > best_score:
-                    best_score = score
+                compression_ratio = float(row["compression_ratio"])
+                if score * compression_ratio > best_score:
+                    best_score = score * compression_ratio
                     best_row = row
             except ValueError:
                 continue  # Skip rows with invalid scores
@@ -69,4 +70,13 @@ def get_best_params():
         int(best_row["num_heads"]),
         best_row["clustering_metric"],
         int(best_row["num_layers"]),
+        float(best_row["compression_ratio"]),
+        int(best_row["ml_time"]),
+        int(best_row["compression_time"]),
+        float(best_row["Total_MRT_time"]),
+        float(best_row["Total_OSTC_time"]),
+        int(best_row["querying_time"]),
+        int(best_row["total_time"]),
+        best_row["accuracy_individual_results"],
+        float(best_row["score"]),
     )

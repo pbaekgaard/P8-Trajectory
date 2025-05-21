@@ -1,6 +1,7 @@
 import os
 import random
 import sys
+import ast
 from typing import List, Optional
 
 import matplotlib.pyplot as plt
@@ -9,7 +10,7 @@ from matplotlib import rc, ticker
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__+"/../../")))
 
-from Evaluation._file_access_helper_functions import load_data_from_file
+from Evaluation._file_access_helper_functions import load_data_from_file, get_best_params
 from tools.scripts._preprocess import main as _load_data
 
 
@@ -20,8 +21,8 @@ def visualize(evaluation_results: dict, only: List[str] = []) -> None:
     :param evaluation_results: Dict containing 'accuracy', 'compression_ratio', 'accuracy_individual_results', 'query_original_dataset_time', 'query_compressed_dataset_time', 'compression_time'
     :param only: Optional list of things to plot, allowed values: ['accuracy, compression_ratio, times']
     """
-    accuracy : float = evaluation_results["accuracy"] * 100
-    compression_ratio : float = evaluation_results["compression_ratio"]
+    accuracy : float = round(evaluation_results["accuracy"] * 100, 2)
+    compression_ratio : float = round(evaluation_results["compression_ratio"], 2)
     individual_accuracy_results : List[float] = evaluation_results["accuracy_individual_results"]
     qorg_data_time : float = evaluation_results["query_original_dataset_time"]
     qcomp_data_time : float = evaluation_results["query_compressed_dataset_time"]
@@ -139,26 +140,36 @@ def visualize_trajectories(visualize_dict: dict, only: List[str] = []) -> None:
 if __name__ == "__main__":
     org_query_res : dict = load_data_from_file({
         "filename": "original_query_results",
-        "version": 3
+        "version": 1
     })
 
-    compressed_query_res : dict = load_data_from_file({
-        "filename": "compressed_query_results",
-        "version": 3
-    })
-    evaluation_results : dict = load_data_from_file({
-        "filename": "evaluation",
-        "version": 3
-    })
-    evaluation_results['query_original_dataset_time'] = org_query_res['times']['querying_time']
-    evaluation_results['query_compressed_dataset_time'] = compressed_query_res['times']['querying_time']
-    evaluation_results['compression_time'] = compressed_query_res['times']['ml_time'] + compressed_query_res['times']['compression_time']
+    _,_,_,_,_,_,_, compression_ratio, ml_time, compression_time, Total_MRT_time, Total_OSTC_time, querying_time, total_time, accuracy_individual_results, score = get_best_params()
+    evaluation_results = {}
 
-    visualize_traj_dict = {}
+    evaluation_results["query_original_dataset_time"] = org_query_res['times']['querying_time']
+    evaluation_results["query_compressed_dataset_time"] = querying_time / 10**9
+    evaluation_results["compression_time"] = (ml_time + compression_time) / 10**9
+    evaluation_results["accuracy"] = score
+    evaluation_results["compression_ratio"] = compression_ratio
+    evaluation_results["accuracy_individual_results"] = ast.literal_eval(accuracy_individual_results)
 
-    visualize_traj_dict["compressed"] = compressed_query_res["compressed_dataset"]
-    visualize_traj_dict["reference_set"] = compressed_query_res["merged_dataset"]
-    visualize_traj_dict["original"] = _load_data()
+    # compressed_query_res : dict = load_data_from_file({
+    #     "filename": "compressed_query_results",
+    #     "version": 3
+    # })
+    # evaluation_results : dict = load_data_from_file({
+    #     "filename": "evaluation",
+    #     "version": 3
+    # })
+    # evaluation_results['query_original_dataset_time'] = org_query_res['times']['querying_time']
+    # evaluation_results['query_compressed_dataset_time'] = compressed_query_res['times']['querying_time']
+    # evaluation_results['compression_time'] = compressed_query_res['times']['ml_time'] + compressed_query_res['times']['compression_time']
+    #
+    # visualize_traj_dict = {}
+    #
+    # visualize_traj_dict["compressed"] = compressed_query_res["compressed_dataset"]
+    # visualize_traj_dict["reference_set"] = compressed_query_res["merged_dataset"]
+    # visualize_traj_dict["original"] = _load_data()
 
     # MOCK DATA
 #     visualize_traj_dict["original"] = pd.DataFrame([
@@ -185,4 +196,4 @@ if __name__ == "__main__":
 # ], columns=["trajectory_id", "timestamp", "longitude", "latitude"])
 
     visualize(evaluation_results)
-    visualize_trajectories(visualize_traj_dict)
+    # visualize_trajectories(visualize_traj_dict)
