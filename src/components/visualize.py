@@ -27,6 +27,7 @@ def visualize(evaluation_results: dict, only: List[str] = []) -> None:
     qorg_data_time : float = evaluation_results["query_original_dataset_time"]
     qcomp_data_time : float = evaluation_results["query_compressed_dataset_time"]
     compression_time : float = evaluation_results["compression_time"]
+    ml_time : float = evaluation_results["ml_time"]
     only = [s.lower() for s in only]
     # accuracy : float = 98.5
     # compression_ratio : float = 2.4
@@ -68,8 +69,8 @@ def visualize(evaluation_results: dict, only: List[str] = []) -> None:
         # compression_time = 1200.2
         # MOCK DATA END
 
-        titles = ["Query Original Dataset Time", "Query Compressed Dataset Time", "Compression Time"]
-        values = [qorg_data_time, qcomp_data_time, compression_time]
+        titles = ["Query Original Dataset Time", "Query Compressed Dataset Time", "Compression Time", "Reference set construction time"]
+        values = [qorg_data_time, qcomp_data_time, compression_time, ml_time]
 
         plt.figure(figsize=(8, 6))
         bars = plt.bar(titles, values, color="skyblue")
@@ -79,6 +80,7 @@ def visualize(evaluation_results: dict, only: List[str] = []) -> None:
         ax = plt.gca()
         ax.yaxis.set_major_formatter(ticker.ScalarFormatter())
         # ax.yaxis.set_minor_formatter(ticker.NullFormatter())
+        plt.xticks(rotation=10, ha='center')  # Rotate x-axis labels
         ax.bar_label(bars, fmt="%.2f", label_type="center", color="black", fontsize=12, rotation=360, fontname="Comic Sans MS")
         plt.title("Query and Compression Times (log scale)")
         plt.tight_layout()
@@ -148,7 +150,8 @@ if __name__ == "__main__":
 
     evaluation_results["query_original_dataset_time"] = org_query_res['times']['querying_time']
     evaluation_results["query_compressed_dataset_time"] = querying_time / 10**9
-    evaluation_results["compression_time"] = (ml_time + compression_time) / 10**9
+    evaluation_results["compression_time"] = compression_time / 10**9
+    evaluation_results["ml_time"] = ml_time / 10**9
     evaluation_results["accuracy"] = score
     evaluation_results["compression_ratio"] = compression_ratio
     evaluation_results["accuracy_individual_results"] = ast.literal_eval(accuracy_individual_results)
