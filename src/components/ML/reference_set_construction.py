@@ -253,7 +253,7 @@ def generate_reference_set(df: pd.DataFrame, clustering_method: ClusteringMethod
     reference_set = []
     for cluster_label in cluster_labels:
         reference_set.append(representative_indices[cluster_label]) # ref set links to medoid ID.
-        ref_ids_list.append(df['trajectory_id'].unique()[representative_indices[cluster_label]]) # ref set links to trajID
+        ref_ids_list.append(df['trajectory_id'].unique()[representative_indices[cluster_label]])# ref set links to trajID
 
     rep_ids = df['trajectory_id'].unique()[representative_indices]
     ref_ids_dict = dict(zip(df['trajectory_id'].unique(), ref_ids_list))
