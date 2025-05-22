@@ -26,7 +26,8 @@ def visualize(evaluation_results: dict, only: List[str] = []) -> None:
     individual_accuracy_results : List[float] = evaluation_results["accuracy_individual_results"]
     qorg_data_time : float = evaluation_results["query_original_dataset_time"]
     qcomp_data_time : float = evaluation_results["query_compressed_dataset_time"]
-    compression_time : float = evaluation_results["compression_time"]
+    MRT_time : float = evaluation_results["MRT_time"]
+    OSTC_time : float = evaluation_results["OSTC_time"]
     ml_time : float = evaluation_results["ml_time"]
     only = [s.lower() for s in only]
     # accuracy : float = 98.5
@@ -49,13 +50,18 @@ def visualize(evaluation_results: dict, only: List[str] = []) -> None:
         titles = [title for title, _ in individual_accuracy_results]
         results = [acc * 100 for _, acc in individual_accuracy_results]
 
-
+        bars = plt.bar(titles, results, color="skyblue")
+        ax = plt.gca()
+        ax.yaxis.set_major_formatter(ticker.ScalarFormatter())
         plt.bar(titles, results, color="skyblue")
         plt.axhline(accuracy, color="red", linestyle="solid", label=f"Overall Accuracy ({accuracy}%)")
         plt.ylabel("Accuracy (%)")
         plt.title(f"Individual Accuracy Results (Compression Ratio: {compression_ratio})")
+        ax.bar_label(bars, fmt="%.2f", label_type="center", color="black", fontsize=12, rotation=360, fontname="Comic Sans MS")
+
         plt.legend()
         plt.tight_layout()
+        plt.savefig("accuracy.svg", format='svg')
         plt.show()
 
 
@@ -69,8 +75,8 @@ def visualize(evaluation_results: dict, only: List[str] = []) -> None:
         # compression_time = 1200.2
         # MOCK DATA END
 
-        titles = ["Query Original Dataset Time", "Query Compressed Dataset Time", "Compression Time", "Reference set construction time"]
-        values = [qorg_data_time, qcomp_data_time, compression_time, ml_time]
+        titles = ["Query Original Dataset Time", "Query Compressed Dataset Time", "MRT Search Time", "OSTC Time", "Reference set construction time"]
+        values = [qorg_data_time, qcomp_data_time, MRT_time, OSTC_time, ml_time]
 
         plt.figure(figsize=(8, 6))
         bars = plt.bar(titles, values, color="skyblue")
@@ -84,6 +90,7 @@ def visualize(evaluation_results: dict, only: List[str] = []) -> None:
         ax.bar_label(bars, fmt="%.2f", label_type="center", color="black", fontsize=12, rotation=360, fontname="Comic Sans MS")
         plt.title("Query and Compression Times (log scale)")
         plt.tight_layout()
+        plt.savefig("times.svg", format='svg')
         plt.show()
 
 
@@ -145,12 +152,13 @@ if __name__ == "__main__":
         "version": 1
     })
 
-    _,_,_,_,_,_,_, compression_ratio, ml_time, compression_time, Total_MRT_time, Total_OSTC_time, querying_time, total_time, accuracy_individual_results, score = get_best_params()
+    clustering_method, clustering_param, batch_size, d_model, num_heads, clustering_metric, num_layers, compression_ratio, ml_time, compression_time, Total_MRT_time, Total_OSTC_time, querying_time, total_time, accuracy_individual_results, score = get_best_params()
     evaluation_results = {}
 
     evaluation_results["query_original_dataset_time"] = org_query_res['times']['querying_time']
     evaluation_results["query_compressed_dataset_time"] = querying_time / 10**9
-    evaluation_results["compression_time"] = compression_time / 10**9
+    evaluation_results["MRT_time"] = Total_MRT_time / 10**3
+    evaluation_results["OSTC_time"] = Total_OSTC_time / 10**3
     evaluation_results["ml_time"] = ml_time / 10**9
     evaluation_results["accuracy"] = score
     evaluation_results["compression_ratio"] = compression_ratio
@@ -166,7 +174,8 @@ if __name__ == "__main__":
     # })
     # evaluation_results['query_original_dataset_time'] = org_query_res['times']['querying_time']
     # evaluation_results['query_compressed_dataset_time'] = compressed_query_res['times']['querying_time']
-    # evaluation_results['compression_time'] = compressed_query_res['times']['ml_time'] + compressed_query_res['times']['compression_time']
+    # evaluation_results['compression_time'] = compressed_query_res['times']['compression_time']
+    # evaluation_results['ml_time'] = compressed_query_res['times']['ml_time']
     #
     # visualize_traj_dict = {}
     #
