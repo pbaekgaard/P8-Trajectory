@@ -3,12 +3,13 @@ import os
 import sys
 import time
 from typing import List
+import warnings
 
 import pandas as pd
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../src/components")))
 
-# import ostc
+import ostc
 from _file_access_helper_functions import (find_newest_version,
                                            get_best_params,
                                            load_data_from_file, save_to_file)
@@ -22,6 +23,8 @@ from tools.scripts._convert_timestamp_to_unix import \
     main as _timestamp_conversion
 from tools.scripts._load_data import count_trajectories
 from tools.scripts._preprocess import main as _load_data
+
+warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 data = [        # Beijing Trajectories
     [0, 1201956968, 116.51172, 39.92123],  # Trajectory 1
@@ -107,8 +110,7 @@ if __name__ == '__main__':
             version_number = find_newest_version() + 1
 
         # create all that does not exist
-        if not os.path.exists(os.path.join(os.path.abspath(__file__), "..", "files", f"{version_number}-queries_for_evaluation.pkl")):
-            print("Query creation")
+        if not os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "files", f"{version_number}-queries_for_evaluation.pkl")):
             create_queries(amount_of_individual_queries=1, version=version_number)
         queries = load_data_from_file({
             "filename": "queries_for_evaluation",
@@ -116,17 +118,16 @@ if __name__ == '__main__':
         })
         #queries = dummy_create_queries()
 
-        if not os.path.exists(os.path.join(os.path.abspath(__file__), "..", "files", f"{version_number}-original_query_results.pkl")):
-            print("Querying")
+        if not os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "files", f"{version_number}-original_query_results.pkl")):
             dataset = _load_data()
             #dataset = _timestamp_conversion(pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"]))
 
 
-            query_original_dataset_time_start = time.perf_counter()
+            query_original_dataset_time_start = time.perf_counter_ns()
 
             query_result = query_original_dataset(dataset, queries)
 
-            query_original_dataset_time_end = time.perf_counter()
+            query_original_dataset_time_end = time.perf_counter_ns()
             query_original_dataset_time = query_original_dataset_time_end - query_original_dataset_time_start
 
 
@@ -142,36 +143,34 @@ if __name__ == '__main__':
                 "version": version_number
             }, result)
 
-        if not os.path.exists(os.path.join(os.path.abspath(__file__), "..", "files", f"{version_number}-compressed_query_results.pkl")):
-            print("Compressed querying")
-            # dataset = pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
+        if not os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "files", f"{version_number}-compressed_query_results.pkl")):
+            #dataset = pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
             dataset = dataset if dataset is not None else _load_data()
 
-            compression_time_start = time.perf_counter()
+            compression_time_start = time.perf_counter_ns()
+            clustering_method, clustering_param, batch_size, d_model, num_heads, clustering_metric, num_layers = get_best_params()
 
-            clustering_method, clustering_param, batch_size, d_model, num_heads, clustering_metric, num_layers, _ = get_best_params()
-            df, reference_set,_,_,_ = generate_reference_set(
+            df, reference_set,_,_,_, ref_ids = generate_reference_set(
                 df=dataset, clustering_method=clustering_method, clustering_param=clustering_param,
                 batch_size=batch_size, d_model=d_model, num_heads=num_heads, clustering_metric=clustering_metric,
                 num_layers=num_layers
             )
-            compression_time_ml_end = time.perf_counter()
+            compression_time_ml_end = time.perf_counter_ns()
             ml_time = compression_time_ml_end - compression_time_start
 
             # compressed_dataset, merged_df = mock_compressed_data(df, reference_set)
-            numpy_df = df.to_numpy()
-            numpy_ref_set = reference_set.to_numpy()
-            compressed_dataset, merged_df = ostc.compress(numpy_df, numpy_ref_set) # TODO: merged_df not implemented in c++ package yet.
-            # TODO: compressed_dataset might be list of tuples depending on c++ implementation.
-            print(f"shape of compressed_dataset: {compressed_dataset.shape}")
-            print(f"length of compressed_dataset: {len(compressed_dataset)}")
-            compression_time_end = time.perf_counter()
+            numpy_df = df.to_records(index=False)
+            numpy_ref_set = reference_set.to_records(index=False)
+            compressed_dataset, merged_df, duration_MRTSearch, duration_OSTC = ostc.compress(numpy_df, numpy_ref_set)
+
+            compression_time_end = time.perf_counter_ns()
             compression_time = compression_time_end - compression_time_ml_end
 
-            query_compressed_dataset_time_start = time.perf_counter()
+            query_compressed_dataset_time_start = time.perf_counter_ns()
+
             query_result = query_compressed_dataset(compressed_dataset, merged_df, queries)
-            # query_result = "sup digga" # TODO: spelling error needs fix
-            query_compressed_dataset_time_end = time.perf_counter()
+
+            query_compressed_dataset_time_end = time.perf_counter_ns()
             query_compressed_dataset_time = query_compressed_dataset_time_end - query_compressed_dataset_time_start
 
             result = {
@@ -179,6 +178,8 @@ if __name__ == '__main__':
                 "times": {
                     "ml_time": ml_time,
                     "compression_time": compression_time,
+                    "Total_MRT_time": duration_MRTSearch,
+                    "Total_OSTC_time": duration_OSTC,
                     "querying_time": query_compressed_dataset_time
                 },
                 "compressed_dataset": compressed_dataset,
@@ -197,7 +198,6 @@ if __name__ == '__main__':
         else:
             version_number = find_newest_version()
 
-        print("evaluating..")
         original_results = load_data_from_file({
             "filename": "original_query_results",
             "version": version_number
@@ -216,8 +216,6 @@ if __name__ == '__main__':
         individual_accuracy_results : List[float]
 
         comp_ratio : float = compression_ratio(dataset) # COMPRESSION
-
-        print(f"evaluation done. accuracy: {accuracy}, compression ratio: {comp_ratio}. Saving...")
 
         evaluation_results = {"accuracy": accuracy, "compression_ratio": comp_ratio, "accuracy_individual_results": individual_accuracy_results}
         save_to_file({

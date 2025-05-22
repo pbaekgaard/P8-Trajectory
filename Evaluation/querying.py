@@ -1,5 +1,10 @@
+import os
+import sys
+
 import pandas as pd
-from _file_access_helper_functions import save_to_file
+
+sys.path.append(os.path.abspath(os.path.dirname(__file__)))
+
 from Queries.count import count_query_processing
 from Queries.distance import distance_query_processing
 from Queries.how_long import how_long_query_processing
@@ -69,13 +74,15 @@ def reconstruct_trajectories(compressed_dataset, merged_df):
     for new_id, compressed_trajectory in compressed_dataset.items():
         reconstructed_points = []
         for (trajectory_id, start_index, end_index) in compressed_trajectory:
-            trajectory = merged_df[merged_df["trajectory_id"] == trajectory_id].iloc[start_index:end_index + 1].reset_index(drop=True)
+            trajectory : pd.DataFrame = merged_df[merged_df["trajectory_id"] == trajectory_id].iloc[start_index:end_index + 1].reset_index(drop=True)
+            trajectory = trajectory.sort_values(by=["timestamp"]).reset_index(drop=True)
             reference_trajectory = trajectory.copy()
             trajectory["trajectory_id"] = new_id
             for i, row in trajectory.iterrows():
                 trajectory.at[i, "timestamp"] = get_correct_timestamp(row, trajectory, reference_trajectory, new_id)
             reconstructed_points.append(trajectory)
         reconstructed_trajectories.append(pd.concat(reconstructed_points, ignore_index=True))
+
     return pd.concat(reconstructed_trajectories, ignore_index=True).drop(columns=["timestamp_corrected"])
 
 

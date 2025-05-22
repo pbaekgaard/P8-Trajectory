@@ -3,8 +3,9 @@
 #include "trajectory.hpp"
 #include <unordered_map>
 #include <iostream>
-#ifdef Debug
 #include "example_trajectories.hpp"
+#include <vector>
+#ifdef Debug
 
 
 
@@ -18,48 +19,17 @@ void run_example()
 
     const auto M = t.MRTSearch(RefSet, spatial_deviation_threshold, euclideanDistance);
     OSTCResult compressed = t.OSTC(M,temporal_deviation_threshold, spatial_deviation_threshold, euclideanDistance);
-    std::cout << M.size() << std::endl;
-    // try {
-    //     std::vector<ReferenceTrajectory> T_prime = t.OSTC(M);
-    //     std::cout << "Compressed trajectory T':\n";
-    //     for (const auto& mrt : T_prime) {
-    //         std::cout << "MRT: (id=" << mrt.id << ", start=" << mrt.start_index << ", end=" << mrt.end_index <<
-    //         ")\n";
-    //     }
-    // } catch (const std::exception& e) {
-    //     std::cerr << "Error: " << e.what() << "\n";
-    // }
 }
 #endif
 #ifndef Debug
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
+#include <compress.hpp>
 
 namespace py = pybind11;
 // Custom format descriptor for std::tuple<int, std::string, double, double>
 void say_hello() { std::cout << "Hello From C++!" << std::endl; }
-
-std::vector<Trajectory> ndarrayToTrajectories(py::object array)
-{
-    // Convert the Python object to a list of lists
-    auto py_list = array.cast<py::list>();
-    std::vector<Trajectory> trajectories;
-    std::unordered_map<int, std::vector<SamplePoint>> traject_dict;
-    for (const auto& row_handle : py_list) {
-        auto row = row_handle.cast<py::list>();  // Cast to py::list
-        int id = row[0].cast<int>();
-        auto timestamp = row[1].cast<std::string>();
-        auto latitude = row[2].cast<float>();
-        auto longitude = row[3].cast<float>();
-        auto point = SamplePoint(latitude, longitude, 0);
-        traject_dict[id].push_back(point);
-    }
-    for (const auto& [id, points] : traject_dict) {
-        trajectories.push_back(Trajectory(id, points));
-    }
-    return trajectories;
-}
 
 void print_numpy(py::object array)
 {
@@ -68,165 +38,12 @@ void print_numpy(py::object array)
     std::cout << traj[0].points[0] << std::endl;
 }
 
-py::list corrections_to_dict(const std::vector<CompressedResultCorrection>& corrections) {
-    py::list result;
-
-    for (const auto& c : corrections) {
-        py::dict d;
-        d[py::int_(c.id)] = c.corrected_timestamp;
-        result.append(d);
-    }
-
-    return result;
-}
-py::object concat_dfs(const std::vector<py::object>& dfs)
-{
-    py::module_ pd = py::module_::import("pandas");
-    py::object concat = pd.attr("concat");
-    return concat(dfs);
-}
-
-py::object compressed_trajectory_to_dataframe(const std::vector<CompressedResult>& compressed_points)
-{
-    py::list ids, lats, lons, timestamps, corrections;
-
-    for (const auto& point : compressed_points) {
-        ids.append(point.id);
-        lats.append(point.latitude);
-        lons.append(point.longitude);
-        timestamps.append(point.timestamp);
-        corrections.append(corrections_to_dict(point.corrections));  // nested list of dicts
-    }
-
-    py::dict data;
-    data["trajectory_id"] = ids;
-    data["latitude"] = lats;
-    data["longitude"] = lons;
-    data["timestamp"] = timestamps;
-    data["timestamp_corrected"] = corrections;
-
-    py::module_ pd = py::module_::import("pandas");
-    return pd.attr("DataFrame")(data);
-}
-
-void test_compression_to_pandas()
-{
-    const auto M_opt = std::unordered_map<Trajectory, std::vector<Trajectory>>{
-                {t(0, 0), {t(0, 0)}}, {t(1, 8), {t2(0, 7)}}, {t(9, 14), {t5(6, 11)}},
-                {t(15, 16), {t6(12, 13)}}, {t(17, 19), {t7(7, 9)}},
-            };
-
-    const auto raw_trajectories = std::vector<Trajectory>{t_copy};
-
-    auto points = std::vector<CompressedResult>{};
-    for (const auto& raw_traj : raw_trajectories) {
-        const OSTCResult compressed = t.OSTC(M_opt, 0.5, 0.9, euclideanDistance);
-        convertCompressedTrajectoriesToPoints(points, raw_traj, compressed);
-    }
-}
-
-py::object find_uncompressed_trajectory(std::vector<Trajectory>& T_prime, uint32_t id)
-{
-    py::list ids, lats, lons, timestamps, corrections;
-    int counter = 0;
-
-    for (Trajectory& triple : T_prime)
-    {
-        if (triple.id == id)
-        {
-            triple.end_index = counter + (triple.end_index - triple.start_index);
-            triple.start_index = counter;
-
-            for (auto i = 0; i <= triple.end_index; i++)
-            {
-                ids.append(id);
-                lats.append(triple.points[i].latitude);
-                lons.append(triple.points[i].longitude);
-                timestamps.append(triple.points[i].timestamp);// nested list of dicts
-                corrections.append(py::none());
-                counter++;
-            }
-        }
-    }
-    py::dict data;
-    data["trajectory_id"] = ids;
-    data["latitude"] = lats;
-    data["longitude"] = lons;
-    data["timestamp"] = timestamps;
-    data["timestamp_corrected"] = corrections;
-
-    py::module_ pd = py::module_::import("pandas");
-    return pd.attr("DataFrame")(data);
-}
-
-
-
-
-
-
-py::tuple compress(py::object rawTrajectoryArray, py::object refTrajectoryArray)
-{
-    std::vector<Trajectory> rawTrajs = ndarrayToTrajectories(rawTrajectoryArray);
-    std::vector<Trajectory> refTrajs = ndarrayToTrajectories(refTrajectoryArray);
-    std::vector<py::object> uncompressed_trajectories;
-    std::vector<OSTCResult> compressedTrajectories{};
-        std::vector<py::object> trajectory_dfs{};
-    constexpr auto spatial_deviation_threshold = 0.9;
-    constexpr auto temporal_deviation_threshold = 0.5;
-    auto distance_function = haversine_distance;
-
-
-    // TODO: return tuple of dfs. <compressed results, df2>. compressed results is the alle the trajectories compressed. can be df or vector of tuples. df2 is the merged df of the original df and the reference set df.
-    for (auto t : rawTrajs) {
-        std::cout << "compressing Trajectory " << t.id << std::endl;
-        std::cout << "performing MRT search" << std::endl;
-        const auto M = t.MRTSearch(refTrajs, spatial_deviation_threshold, distance_function);
-        std::cout << "MRT search done" << std::endl;
-        std::cout << "performing OSTC" << std::endl;
-        OSTCResult compressed = t.OSTC(M, temporal_deviation_threshold, spatial_deviation_threshold, distance_function);
-        std::cout << "OSTC done" << std::endl;
-
-        py::object uncompressed_trajectory = find_uncompressed_trajectory(compressed.references, t.id);
-        uncompressed_trajectories.push_back(uncompressed_trajectory);
-        // compressedTrajectories.push_back(compressed);
-        // trajectory_dfs.push_back(compressed_trajectory_to_dataframe(compressed));
-    }
-    // try {
-    //     std::vector<ReferenceTrajectory> T_prime = t.OSTC(M);
-    //     std::cout << "Compressed trajectory T':\n";
-    //     for (const auto& mrt : T_prime) {
-    //         std::cout << "MRT: (id=" << mrt.id << ", start=" << mrt.start_index << ", end=" << mrt.end_index <<
-    //         ")\n";
-    //     }
-    // } catch (const std::exception& e) {
-    //     std::cerr << "Error: " << e.what() << "\n";
-    //
-    py::object df1 = concat_dfs(uncompressed_trajectories); // TODO: check uncompressed_trajectories er rigtige.
-                                                            // TODO: join/merge/concat uncompressed_trajectories med refTrajectoryArray, som er et ndarray. Burde kunne lade sig gøre, fordi uncompressed er en pd.df. kan laves til et ndarray i stedet for speed.
-    py::object df2 = df1;
-    return py::make_tuple(df1, df2);                        // TODO: return en liste af compressed trajectories og så den mergede df
-}
-
-
 // This function is to demonstrate how you could expose C++ logic to Python
 
 // Binding the functions to Python
 
 PYBIND11_MODULE(ostc, m)
 {
-    py::class_<CompressedResultCorrection>(m, "CompressedResultCorrection")
-            .def(py::init<uint32_t, int>())
-            .def_readwrite("id", &CompressedResultCorrection::id)
-            .def_readwrite("corrected_timestamp", &CompressedResultCorrection::corrected_timestamp);
-
-    py::class_<CompressedResult>(m, "CompressedResult")
-        .def(py::init<uint32_t, double, double, int, std::vector<CompressedResultCorrection>>())
-        .def_readwrite("id", &CompressedResult::id)
-        .def_readwrite("latitude", &CompressedResult::latitude)
-        .def_readwrite("longitude", &CompressedResult::longitude)
-        .def_readwrite("timestamp", &CompressedResult::timestamp)
-        .def_readwrite("corrections", &CompressedResult::corrections);
-
     m.doc() = R"pbdoc(
         OSTC Module
         -----------------------
@@ -257,11 +74,13 @@ PYBIND11_MODULE(ostc, m)
         Some other explanation about the run_example function.
     )pbdoc");
 
+    /*
     m.def("test_compression_to_pandas", &test_compression_to_pandas, R"pbdoc(
         test_compression_to_pandas function
 
         Boi.
     )pbdoc");
+    */
 }
 
 #endif
@@ -270,7 +89,6 @@ PYBIND11_MODULE(ostc, m)
 #ifdef Debug
 int main()
 {
-    std::cout << "Hello from Debug Main" << std::endl;
     run_example();
     return 0;
 }

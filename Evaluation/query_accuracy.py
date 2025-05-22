@@ -1,8 +1,9 @@
 
 import pandas as pd
-from Queries._helper_functions_and_classes import (similarity_score_distance,
-                                                   similarity_score_time)
-from sklearn.metrics import r2_score
+from sklearn.metrics import r2_score, root_mean_squared_error
+
+from Evaluation.Queries._helper_functions_and_classes import (
+    similarity_score_distance, similarity_score_time)
 
 
 def query_accuracy_evaluation(y_true, y_pred, original_df):
@@ -12,7 +13,7 @@ def query_accuracy_evaluation(y_true, y_pred, original_df):
     # print("where accuracy done")
 
     # DISTANCE
-    accuracy_results.append(("Distance",distance_query_accuracy_evaluation(y_true[1], y_pred[1])))
+    accuracy_results.append(("Distance",distance_query_accuracy_evaluation(y_true[1], y_pred[1], original_df)))
     # print("distance accuracy done")
 
     # WHEN
@@ -49,22 +50,28 @@ def where_query_accuracy_evaluation(y_true, y_pred, original_df):
         pred_set = set(y_pred[i]["trajectory_id"])
         recurring_ids = true_set.intersection(pred_set)
         unique_ids = true_set.symmetric_difference(pred_set)
+        counter = 0
 
         for trajectory_id, trajectory in group_by:
             if trajectory_id in recurring_ids:
                 true_point = y_true[i][y_true[i]["trajectory_id"] == trajectory_id][["longitude", "latitude"]]
                 pred_point = y_pred[i][y_pred[i]["trajectory_id"] == trajectory_id][["longitude", "latitude"]]
-                sum_score += similarity_score_distance(true_point, pred_point, trajectory)
+                sum_sim = similarity_score_distance(true_point, pred_point, trajectory)
+                if sum_sim is not None:
+                    sum_score += sum_sim
+                else:
+                    counter += 1
             elif trajectory_id in unique_ids:
                 sum_score += 0
             else:
                 sum_score += 1
-        sum_score /= len(group_by)
+        sum_score /= (len(group_by) - counter)
         results.append(sum_score)
     return sum(results) / len(results)
 
-def distance_query_accuracy_evaluation(y_true, y_pred):
+def distance_query_accuracy_evaluation(y_true, y_pred, original_df):
     results = []
+    trajectories_count = len(original_df.groupby(["trajectory_id"]))
     for i in range(len(y_true)):
         true_set = set(y_true[i]["trajectory_id"])
         pred_set = set(y_pred[i]["trajectory_id"])
@@ -73,11 +80,17 @@ def distance_query_accuracy_evaluation(y_true, y_pred):
         if len(recurring_ids) == 0:
             results.append(0)
             continue
-        r2 = r2_score([distance for distance in y_true[i][y_true[i]["trajectory_id"].isin(recurring_ids)]["distance"]],
-                 [distance for distance in y_pred[i][y_pred[i]["trajectory_id"].isin(recurring_ids)]["distance"]])
-        result = r2 - (len(unique_ids) / (len(recurring_ids) + len(unique_ids)))
-        if result < 0:
-            result = 0
+        y_true_vals = [distance for distance in y_true[i][y_true[i]["trajectory_id"].isin(recurring_ids)]["distance"]]
+        y_pred_vals = [distance for distance in y_pred[i][y_pred[i]["trajectory_id"].isin(recurring_ids)]["distance"]] 
+        rmse = root_mean_squared_error(y_true_vals, y_pred_vals)
+        range_val = max(y_true_vals) - min(y_true_vals)
+
+        if range_val == 0:
+            result = 1 - (rmse / max(y_true_vals) * len(recurring_ids)) / (len(unique_ids) + len(recurring_ids))
+            result = max(result, 0)
+        else:
+            result = 1 - ((rmse / range_val) * len(recurring_ids)) / (len(unique_ids) + len(recurring_ids))
+            result = max(result, 0)
         results.append(result)
     return sum(results) / len(results)
 

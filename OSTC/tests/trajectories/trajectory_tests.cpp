@@ -82,7 +82,7 @@ TEST(Trajectories, mrtset_is_correct_format)
     auto T8 = Trajectory(8, std::vector<SamplePoint>{SamplePoint(12.0, 11.5, 0), SamplePoint(12.0, 10.0, 0),
                                                      SamplePoint(12.0, 8.5, 0), SamplePoint(12.0, 5.5, 0)});
 
-    auto references = std::vector<Trajectory>{T1, T2, T3, T4, T5, T6, T7, T8};
+    auto references = std::vector<Trajectory>{T1, T2, T3(2,14), T4, T5, T6, T7, T8};
 
     auto T = Trajectory(0, std::vector<SamplePoint>{
                                SamplePoint(3.0, 15.5, 0),  SamplePoint(5.0, 15.5, 0),  SamplePoint(7.0, 15.5, 0),
