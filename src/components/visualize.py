@@ -3,8 +3,10 @@ import random
 import sys
 import ast
 from typing import List, Optional
+import numpy as np
 
 import matplotlib.pyplot as plt
+import matplotlib.patheffects as path_effects
 import pandas as pd
 from matplotlib import rc, ticker
 
@@ -73,9 +75,19 @@ def visualize(evaluation_results: dict, only: List[str] = []) -> None:
         # qcomp_data_time = 3.5
         # compression_time = 1200.2
         # MOCK DATA END
+        values = [qorg_data_time, ml_time, MRT_time, OSTC_time, qcomp_data_time]
+
+        total_time = sum(values)
+
 
         titles = ["Query Original Dataset", "Reference set construction", "MRT Search", "OSTC", "Query Compressed Dataset"]
-        values = [qorg_data_time, ml_time, MRT_time, OSTC_time, qcomp_data_time]
+        combined_labels = [
+            f"{val:.2f} \n ({(val / total_time) * 100:.1f}%)" for val in values
+        ]
+
+        percentage_labels = [
+            f"{(val / total_time) * 100:.2f}%" for val in values
+        ]
 
         plt.figure(figsize=(8, 6))
         bars = plt.bar(titles, values, color="skyblue")
@@ -86,11 +98,65 @@ def visualize(evaluation_results: dict, only: List[str] = []) -> None:
         ax.yaxis.set_major_formatter(ticker.ScalarFormatter())
         # ax.yaxis.set_minor_formatter(ticker.NullFormatter())
         plt.xticks(fontsize=12, rotation=15, ha='center')  # Rotate x-axis labels
-        ax.bar_label(bars, fmt="%.2f", label_type="center", color="black", fontsize=12, rotation=360, fontname="Comic Sans MS")
+        ax.bar_label(bars, labels=combined_labels, fmt="%.2f", label_type="center", color="black", fontsize=12, rotation=360, fontname="Comic Sans MS")
         plt.title("Query and Compression Times (log scale)", fontsize=16, fontweight="bold")
         plt.tight_layout()
         plt.savefig("times.svg", format='svg')
         plt.show()
+
+def visualize_comp_acc(evaluation_results_len_50, evaluation_results_len_250):
+    accuracy_len_50: float = round(evaluation_results_len_50["accuracy"] * 100, 2)
+    compression_ratio_len_50: float = round(evaluation_results_len_50["compression_ratio"], 2)
+
+    accuracy_len_250: float = round(evaluation_results_len_250["accuracy"] * 100, 2)
+    compression_ratio_len_250: float = round(evaluation_results_len_250["compression_ratio"], 2)
+
+
+    # MOCK DATA
+    # n = 7
+    # raw = [random.uniform(-2, 2) for _ in range(n)]
+    # offset = sum(raw) / n
+    # individual_accuracy_results : List[tuple[str, float]] = [(f"hello", round(accuracy - offset + r, 2)) for r in raw]
+    # results = [acc for _, acc in individual_accuracy_results]
+    # titles = ["Where", "Distance", "When", "How Long", "Count", "KNN", "Window"]
+    # MOCK DATA END
+
+    titles = ["Length 50", "Length 250"]
+    compression_ratios = [compression_ratio_len_50, compression_ratio_len_250]
+    accuracies = [accuracy_len_50, accuracy_len_250]
+
+    x = np.arange(len(titles))
+    width = 0.35
+
+    fig, ax1 = plt.subplots()
+
+    bars1 = ax1.bar(x - width / 2, compression_ratios, width, color='skyblue', label='Compression Ratio')
+    label1 = ax1.set_ylabel('Compression Ratio', color='skyblue')
+    label1.set_path_effects([
+        path_effects.Stroke(linewidth=0.15, foreground='gray'),
+        path_effects.Normal()
+    ])
+    ax1.set_ylim(0, 2)
+    ax1.bar_label(bars1, fmt='%.2f', label_type='center', padding=3)
+
+    ax2 = ax1.twinx()
+
+    bars2 = ax2.bar(x + width / 2, accuracies, width, color='mediumseagreen', label='Accuracy')
+
+    label2 =  ax2.set_ylabel('Accuracy (%)', color='mediumseagreen')
+    label2.set_path_effects([
+        path_effects.Stroke(linewidth=0.15, foreground='gray'),
+        path_effects.Normal()
+    ])
+    ax2.set_ylim(0, 100)
+    ax2.bar_label(bars2, fmt='%.2f%%', label_type='center', padding=3)
+
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(titles)
+
+    plt.tight_layout()
+    plt.savefig("acc-comp-comparisons.svg", format='svg')
+    plt.show()
 
 def visualize_mrt_huge(evaluation_results: dict) -> None:
     MRT_time_len_50: float = evaluation_results["MRT_time_len_50"]
@@ -166,55 +232,48 @@ def visualize_trajectories(visualize_dict: dict, only: List[str] = []) -> None:
 
 
 if __name__ == "__main__":
-    org_query_res : dict = load_data_from_file({
+    org_query_res_len_50 : dict = load_data_from_file({
         "filename": "original_query_results",
         "version": 1
     })
 
-    # clustering_method, clustering_param, batch_size, d_model, num_heads, clustering_metric, num_layers, compression_ratio, ml_time, compression_time, Total_MRT_time, Total_OSTC_time, querying_time, total_time, accuracy_individual_results, score = get_best_params()
-    # evaluation_results = {}
-    #
-    # evaluation_results["query_original_dataset_time"] = org_query_res['times']['querying_time']
-    # evaluation_results["query_compressed_dataset_time"] = querying_time / 10**9
-    # evaluation_results["MRT_time"] = Total_MRT_time / 10**3
-    # evaluation_results["OSTC_time"] = Total_OSTC_time / 10**3
-    # evaluation_results["ml_time"] = ml_time / 10**9
-    # evaluation_results["accuracy"] = score
-    # evaluation_results["compression_ratio"] = compression_ratio
-    # evaluation_results["accuracy_individual_results"] = ast.literal_eval(accuracy_individual_results)
 
+    clustering_method_len_50, clustering_param_len_50, batch_size_len_50, d_model_len_50, num_heads_len_50, clustering_metric_len_50, num_layers_len_50, compression_ratio_len_50, ml_time_len_50, compression_time_len_50, Total_MRT_time_len_50, Total_OSTC_time_len_50, querying_time_len_50, total_time_len_50, accuracy_individual_results_len_50, score_len_50 = get_best_params()
+    evaluation_results_len_50 = {}
 
-    org_query_res: dict = load_data_from_file({
+    evaluation_results_len_50["query_original_dataset_time"] = org_query_res_len_50['times']['querying_time']
+    evaluation_results_len_50["query_compressed_dataset_time"] = querying_time_len_50 / 10**9
+    evaluation_results_len_50["MRT_time"] = Total_MRT_time_len_50 / 10**3
+    evaluation_results_len_50["OSTC_time"] = Total_OSTC_time_len_50 / 10**3
+    evaluation_results_len_50["ml_time"] = ml_time_len_50 / 10**9
+    evaluation_results_len_50["accuracy"] = score_len_50
+    evaluation_results_len_50["compression_ratio"] = compression_ratio_len_50
+    evaluation_results_len_50["accuracy_individual_results"] = ast.literal_eval(accuracy_individual_results_len_50)
+
+    org_query_res_len_250: dict = load_data_from_file({
         "filename": "original_query_results",
         "version": 2
     })
 
-    compressed_query_res : dict = load_data_from_file({
+    compressed_query_res_len_250 : dict = load_data_from_file({
         "filename": "compressed_query_results",
         "version": 2
     })
-    evaluation_results : dict = load_data_from_file({
+    evaluation_results_len_250 : dict = load_data_from_file({
         "filename": "evaluation",
         "version": 2
     })
 
+    evaluation_results_len_250['query_original_dataset_time'] = org_query_res_len_250['times']['querying_time'] / 10**9
+    evaluation_results_len_250['query_compressed_dataset_time'] = compressed_query_res_len_250['times']['querying_time'] / 10**9
+    evaluation_results_len_250["MRT_time"] = compressed_query_res_len_250['times']["Total_MRT_time"] / 10**3
+    evaluation_results_len_250["OSTC_time"] = compressed_query_res_len_250['times']["Total_OSTC_time"] / 10**3
+    evaluation_results_len_250['ml_time'] = compressed_query_res_len_250['times']['ml_time']  / 10**9
 
-    evaluation_results['query_original_dataset_time'] = org_query_res['times']['querying_time'] / 10**9
-    evaluation_results['query_compressed_dataset_time'] = compressed_query_res['times']['querying_time'] / 10**9
-    evaluation_results["MRT_time"] = compressed_query_res['times']["Total_MRT_time"] / 10**3
-    evaluation_results["OSTC_time"] = compressed_query_res['times']["Total_OSTC_time"] / 10**3
-    evaluation_results['ml_time'] = compressed_query_res['times']['ml_time']  / 10**9
-
-    clustering_method, clustering_param, batch_size, d_model, num_heads, clustering_metric, num_layers, compression_ratio, ml_time, compression_time, Total_MRT_time, Total_OSTC_time, querying_time, total_time, accuracy_individual_results, score = get_best_params()
     mrt_huge_results = {}
 
-    compressed_query_res: dict = load_data_from_file({
-        "filename": "compressed_query_results",
-        "version": 2
-    })
-
-    mrt_huge_results["MRT_time_len_50"] = Total_MRT_time / 10**3
-    mrt_huge_results["MRT_time_len_250"] = compressed_query_res['times']["Total_MRT_time"]  / 10**3
+    mrt_huge_results["MRT_time_len_50"] = Total_MRT_time_len_50 / 10**3
+    mrt_huge_results["MRT_time_len_250"] = compressed_query_res_len_250['times']["Total_MRT_time"]  / 10**3
 
     #
     # visualize_traj_dict = {}
@@ -247,6 +306,7 @@ if __name__ == "__main__":
 #     [5, 1201973400, 116.61000, 39.99300]
 # ], columns=["trajectory_id", "timestamp", "longitude", "latitude"])
 
-    visualize(evaluation_results)
+    visualize(evaluation_results_len_50)
     # visualize_trajectories(visualize_traj_dict)
     visualize_mrt_huge(mrt_huge_results)
+    visualize_comp_acc(evaluation_results_len_50, evaluation_results_len_250)
