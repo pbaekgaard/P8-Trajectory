@@ -53,13 +53,12 @@ def visualize(evaluation_results: dict, only: List[str] = []) -> None:
         bars = plt.bar(titles, results, color="skyblue")
         ax = plt.gca()
         ax.yaxis.set_major_formatter(ticker.ScalarFormatter())
-        plt.bar(titles, results, color="skyblue")
         plt.axhline(accuracy, color="red", linestyle="solid", label=f"Overall Accuracy ({accuracy}%)")
-        plt.ylabel("Accuracy (%)")
-        plt.title(f"Individual Accuracy Results (Compression Ratio: {compression_ratio})")
+        plt.ylabel("Accuracy (%)", fontsize=11)
+        plt.title(f"Individual Accuracy Results (Compression Ratio: {compression_ratio})", fontweight="bold")
         ax.bar_label(bars, fmt="%.2f", label_type="center", color="black", fontsize=12, rotation=360, fontname="Comic Sans MS")
 
-        plt.legend()
+        plt.legend(loc='upper left', bbox_to_anchor=(0.535, 0.85), framealpha=0.5)
         plt.tight_layout()
         plt.savefig("accuracy.svg", format='svg')
         plt.show()
@@ -75,20 +74,20 @@ def visualize(evaluation_results: dict, only: List[str] = []) -> None:
         # compression_time = 1200.2
         # MOCK DATA END
 
-        titles = ["Query Original Dataset Time", "Query Compressed Dataset Time", "MRT Search Time", "OSTC Time", "Reference set construction time"]
-        values = [qorg_data_time, qcomp_data_time, MRT_time, OSTC_time, ml_time]
+        titles = ["Query Original Dataset", "Reference set construction", "MRT Search", "OSTC", "Query Compressed Dataset"]
+        values = [qorg_data_time, ml_time, MRT_time, OSTC_time, qcomp_data_time]
 
         plt.figure(figsize=(8, 6))
         bars = plt.bar(titles, values, color="skyblue")
-        plt.ylabel("Running Time (sec)")
+        plt.ylabel("Running Time (sec)", fontsize=12)
         plt.yscale("log", base=2)
 
         ax = plt.gca()
         ax.yaxis.set_major_formatter(ticker.ScalarFormatter())
         # ax.yaxis.set_minor_formatter(ticker.NullFormatter())
-        plt.xticks(rotation=10, ha='center')  # Rotate x-axis labels
+        plt.xticks(fontsize=12, rotation=15, ha='center')  # Rotate x-axis labels
         ax.bar_label(bars, fmt="%.2f", label_type="center", color="black", fontsize=12, rotation=360, fontname="Comic Sans MS")
-        plt.title("Query and Compression Times (log scale)")
+        plt.title("Query and Compression Times (log scale)", fontsize=16, fontweight="bold")
         plt.tight_layout()
         plt.savefig("times.svg", format='svg')
         plt.show()
@@ -166,11 +165,11 @@ if __name__ == "__main__":
 
     # compressed_query_res : dict = load_data_from_file({
     #     "filename": "compressed_query_results",
-    #     "version": 3
+    #     "version": 2
     # })
     # evaluation_results : dict = load_data_from_file({
     #     "filename": "evaluation",
-    #     "version": 3
+    #     "version": 2
     # })
     # evaluation_results['query_original_dataset_time'] = org_query_res['times']['querying_time']
     # evaluation_results['query_compressed_dataset_time'] = compressed_query_res['times']['querying_time']
