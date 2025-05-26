@@ -131,23 +131,16 @@ def visualize_comp_acc(evaluation_results_len_50, evaluation_results_len_250):
     fig, ax1 = plt.subplots()
 
     bars1 = ax1.bar(x - width / 2, compression_ratios, width, color='skyblue', label='Compression Ratio')
-    label1 = ax1.set_ylabel('Compression Ratio', color='skyblue')
-    label1.set_path_effects([
-        path_effects.Stroke(linewidth=0.15, foreground='gray'),
-        path_effects.Normal()
-    ])
+    ax1.set_ylabel('Compression Ratio', color='skyblue')
+
     ax1.set_ylim(0, 2)
     ax1.bar_label(bars1, fmt='%.2f', label_type='center', padding=3)
 
     ax2 = ax1.twinx()
 
     bars2 = ax2.bar(x + width / 2, accuracies, width, color='mediumseagreen', label='Accuracy')
+    ax2.set_ylabel('Accuracy (%)', color='mediumseagreen')
 
-    label2 =  ax2.set_ylabel('Accuracy (%)', color='mediumseagreen')
-    label2.set_path_effects([
-        path_effects.Stroke(linewidth=0.15, foreground='gray'),
-        path_effects.Normal()
-    ])
     ax2.set_ylim(0, 100)
     ax2.bar_label(bars2, fmt='%.2f%%', label_type='center', padding=3)
 
