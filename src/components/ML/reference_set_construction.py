@@ -228,7 +228,7 @@ def generate_reference_set(df: pd.DataFrame, clustering_method: ClusteringMethod
 
     match clustering_method.value:
         case ClusteringMethod.KMEDOIDS.value:
-            clustering = KMedoids(n_clusters=clustering_param, metric=clustering_metric)
+            clustering = KMedoids(n_clusters=int(clustering_param), metric=clustering_metric)
             cluster_labels = clustering.fit_predict(trajectory_tensors)
             representative_indices = clustering.medoid_indices_
             

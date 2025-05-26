@@ -161,7 +161,7 @@ if __name__ == '__main__':
             # compressed_dataset, merged_df = mock_compressed_data(df, reference_set)
             numpy_df = df.to_records(index=False)
             numpy_ref_set = reference_set.to_records(index=False)
-            compressed_dataset, merged_df, duration_MRTSearch, duration_OSTC = ostc.compress(numpy_df, numpy_ref_set)
+            compressed_dataset, merged_df, duration_MRTSearch, duration_OSTC = ostc.compress(numpy_df, numpy_ref_set, ref_ids)
 
             compression_time_end = time.perf_counter_ns()
             compression_time = compression_time_end - compression_time_ml_end
@@ -203,10 +203,14 @@ if __name__ == '__main__':
             "version": version_number
         })["data"]
 
-        compressed_results = load_data_from_file({
+        compressed_data = load_data_from_file({
             "filename": "compressed_query_results",
             "version": version_number
-        })["data"]
+        })
+
+        compressed_results = compressed_data["data"]
+        compressed_dataset = compressed_data["compressed_dataset"]
+        merged_df = compressed_data["merged_dataset"]
 
         dataset = dataset if dataset is not None else _load_data()
         # dataset = pd.DataFrame(data, columns=["trajectory_id", "timestamp", "longitude", "latitude"])
@@ -215,7 +219,7 @@ if __name__ == '__main__':
         accuracy : float
         individual_accuracy_results : List[float]
 
-        comp_ratio : float = compression_ratio(dataset) # COMPRESSION
+        comp_ratio : float = compression_ratio(dataset, compressed_dataset, merged_df) # COMPRESSION
 
         evaluation_results = {"accuracy": accuracy, "compression_ratio": comp_ratio, "accuracy_individual_results": individual_accuracy_results}
         save_to_file({
