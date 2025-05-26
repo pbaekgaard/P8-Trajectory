@@ -50,8 +50,9 @@ def get_best_params():
         for row in reader:
             try:
                 score = float(row["score"])
-                if score > best_score:
-                    best_score = score
+                compression_ratio = float(row["compression_ratio"])
+                if compression_ratio > best_score:
+                    best_score = compression_ratio
                     best_row = row
             except ValueError:
                 continue  # Skip rows with invalid scores
@@ -62,7 +63,7 @@ def get_best_params():
     # Extract and return the desired parameters
     return (
         ClusteringMethod[best_row["clustering_method"]],
-        int(best_row["clustering_param"]),
+        float(best_row["clustering_param"]),
         int(best_row["batch_size"]),
         int(best_row["d_model"]),
         int(best_row["num_heads"]),
