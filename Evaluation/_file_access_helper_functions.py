@@ -51,8 +51,8 @@ def get_best_params():
             try:
                 score = float(row["score"])
                 compression_ratio = float(row["compression_ratio"])
-                if compression_ratio > best_score:
-                    best_score = compression_ratio
+                if score > best_score:
+                    best_score = score
                     best_row = row
             except ValueError:
                 continue  # Skip rows with invalid scores

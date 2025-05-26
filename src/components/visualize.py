@@ -92,6 +92,26 @@ def visualize(evaluation_results: dict, only: List[str] = []) -> None:
         plt.savefig("times.svg", format='svg')
         plt.show()
 
+def visualize_mrt_huge(evaluation_results: dict) -> None:
+    MRT_time_len_50: float = evaluation_results["MRT_time_len_50"]
+    MRT_time_len_250: float = evaluation_results["MRT_time_len_250"]
+
+    titles = ["MRT Search Length 50", "MRT Search Length 250"]
+    values = [MRT_time_len_50, MRT_time_len_250]
+
+    plt.figure(figsize=(8, 6))
+    bars = plt.bar(titles, values, color="skyblue")
+    plt.ylabel("Running Time (sec)", fontsize=12)
+    plt.yscale("log", base=2)
+
+    ax = plt.gca()
+    ax.yaxis.set_major_formatter(ticker.ScalarFormatter())
+    ax.bar_label(bars, fmt="%.2f", label_type="center", color="black", fontsize=12, rotation=360,
+                 fontname="Comic Sans MS")
+    plt.title("Query and Compression Times (log scale)", fontsize=16, fontweight="bold")
+    plt.tight_layout()
+    plt.savefig("mrt-huge.svg", format='svg')
+    plt.show()
 
 def visualize_trajectories(visualize_dict: dict, only: List[str] = []) -> None:
     compressed_dataset = visualize_dict["compressed"]
@@ -151,30 +171,51 @@ if __name__ == "__main__":
         "version": 1
     })
 
+    # clustering_method, clustering_param, batch_size, d_model, num_heads, clustering_metric, num_layers, compression_ratio, ml_time, compression_time, Total_MRT_time, Total_OSTC_time, querying_time, total_time, accuracy_individual_results, score = get_best_params()
+    # evaluation_results = {}
+    #
+    # evaluation_results["query_original_dataset_time"] = org_query_res['times']['querying_time']
+    # evaluation_results["query_compressed_dataset_time"] = querying_time / 10**9
+    # evaluation_results["MRT_time"] = Total_MRT_time / 10**3
+    # evaluation_results["OSTC_time"] = Total_OSTC_time / 10**3
+    # evaluation_results["ml_time"] = ml_time / 10**9
+    # evaluation_results["accuracy"] = score
+    # evaluation_results["compression_ratio"] = compression_ratio
+    # evaluation_results["accuracy_individual_results"] = ast.literal_eval(accuracy_individual_results)
+
+
+    org_query_res: dict = load_data_from_file({
+        "filename": "original_query_results",
+        "version": 2
+    })
+
+    compressed_query_res : dict = load_data_from_file({
+        "filename": "compressed_query_results",
+        "version": 2
+    })
+    evaluation_results : dict = load_data_from_file({
+        "filename": "evaluation",
+        "version": 2
+    })
+
+
+    evaluation_results['query_original_dataset_time'] = org_query_res['times']['querying_time'] / 10**9
+    evaluation_results['query_compressed_dataset_time'] = compressed_query_res['times']['querying_time'] / 10**9
+    evaluation_results["MRT_time"] = compressed_query_res['times']["Total_MRT_time"] / 10**3
+    evaluation_results["OSTC_time"] = compressed_query_res['times']["Total_OSTC_time"] / 10**3
+    evaluation_results['ml_time'] = compressed_query_res['times']['ml_time']  / 10**9
+
     clustering_method, clustering_param, batch_size, d_model, num_heads, clustering_metric, num_layers, compression_ratio, ml_time, compression_time, Total_MRT_time, Total_OSTC_time, querying_time, total_time, accuracy_individual_results, score = get_best_params()
-    evaluation_results = {}
+    mrt_huge_results = {}
 
-    evaluation_results["query_original_dataset_time"] = org_query_res['times']['querying_time']
-    evaluation_results["query_compressed_dataset_time"] = querying_time / 10**9
-    evaluation_results["MRT_time"] = Total_MRT_time / 10**3
-    evaluation_results["OSTC_time"] = Total_OSTC_time / 10**3
-    evaluation_results["ml_time"] = ml_time / 10**9
-    evaluation_results["accuracy"] = score
-    evaluation_results["compression_ratio"] = compression_ratio
-    evaluation_results["accuracy_individual_results"] = ast.literal_eval(accuracy_individual_results)
+    compressed_query_res: dict = load_data_from_file({
+        "filename": "compressed_query_results",
+        "version": 2
+    })
 
-    # compressed_query_res : dict = load_data_from_file({
-    #     "filename": "compressed_query_results",
-    #     "version": 2
-    # })
-    # evaluation_results : dict = load_data_from_file({
-    #     "filename": "evaluation",
-    #     "version": 2
-    # })
-    # evaluation_results['query_original_dataset_time'] = org_query_res['times']['querying_time']
-    # evaluation_results['query_compressed_dataset_time'] = compressed_query_res['times']['querying_time']
-    # evaluation_results['compression_time'] = compressed_query_res['times']['compression_time']
-    # evaluation_results['ml_time'] = compressed_query_res['times']['ml_time']
+    mrt_huge_results["MRT_time_len_50"] = Total_MRT_time / 10**3
+    mrt_huge_results["MRT_time_len_250"] = compressed_query_res['times']["Total_MRT_time"]  / 10**3
+
     #
     # visualize_traj_dict = {}
     #
@@ -208,3 +249,4 @@ if __name__ == "__main__":
 
     visualize(evaluation_results)
     # visualize_trajectories(visualize_traj_dict)
+    visualize_mrt_huge(mrt_huge_results)
